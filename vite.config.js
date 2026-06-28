@@ -10,21 +10,4 @@ export default defineConfig({
         }),
         vue(),
     ],
-    server: {
-        host: '0.0.0.0',
-        port: 5173,
-        https: false, // ✅ DESHABILITAR HTTPS
-        hmr: {
-            host: 'localhost',
-        },
-        proxy: {
-            '/api': 'http://localhost:8000',
-            '/sanctum': 'http://localhost:8000',
-        }
-    },
-    resolve: {
-        alias: {
-            '@': '/resources/js',
-        },
-    },
 });
