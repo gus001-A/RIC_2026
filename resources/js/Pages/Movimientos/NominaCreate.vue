@@ -109,31 +109,9 @@
                                     <div v-if="errors.fecha_pago" class="error-message-premium">{{ errors.fecha_pago }}</div>
                                 </div>
 
-                                <!-- Cuenta de Destino -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        Cuenta de Destino <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium">
-                                        <select v-model="formData.id_cuenta"
-                                                @change="clearError('id_cuenta')"
-                                                class="form-input-premium form-select-premium"
-                                                :class="{ 'error': errors.id_cuenta }">
-                                            <option value="">Selecciona una cuenta</option>
-                                            <option v-for="c in cuentas" :key="c.id_cuenta" :value="c.id_cuenta">
-                                                {{ c.nombre_cuenta }}
-                                            </option>
-                                        </select>
-                                        <div class="input-icon-premium">
-                                            <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="errors.id_cuenta" class="error-message-premium">{{ errors.id_cuenta }}</div>
-                                </div>
+                                <!-- ELIMINADA: Cuenta de Destino -->
 
-                                <!-- Caja Fondo -->
+                                <!-- Caja Fondo (ahora ocupa el espacio de la cuenta destino) -->
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">
                                         Caja Fondo <span class="required-star">*</span>
@@ -416,7 +394,6 @@ const props = defineProps({
     empresa_id: { type: Number, default: null },
     empleados: { type: Array, default: () => [] },
     cuentas_fondeadoras: { type: Array, default: () => [] },
-    cuentas: { type: Array, default: () => [] },
     marcadores: { type: Array, default: () => [] }
 });
 
@@ -434,7 +411,6 @@ const fechaActual = ref(new Date().toISOString().split('T')[0]);
 // DATOS REACTIVOS
 // ============================================
 const cuentasFondeadoras = ref(props.cuentas_fondeadoras || []);
-const cuentas = ref(props.cuentas || []);
 const marcadores = ref(props.marcadores || []);
 
 // Inicializar empleados con datos de props
@@ -446,7 +422,7 @@ const empleados = ref([]);
 const formData = reactive({
     quincena: '',
     fecha_pago: '',
-    id_cuenta: props.cuentas?.length > 0 ? props.cuentas[0].id_cuenta : null,
+    // ELIMINADO: id_cuenta
     id_cuenta_fondeadora: props.cuentas_fondeadoras?.length > 0 ? props.cuentas_fondeadoras[0].id_cuenta : null,
     tipo_poliza: 'EGRESO',
     id_marcador: null,
@@ -486,8 +462,7 @@ const isFormValid = computed(() => {
     // Validar fecha de pago
     if (!formData.fecha_pago) return false;
     
-    // Validar cuenta de destino
-    if (!formData.id_cuenta) return false;
+    // ELIMINADA: validación de cuenta de destino
     
     // Validar cuenta fondeadora
     if (!formData.id_cuenta_fondeadora) return false;
@@ -642,12 +617,7 @@ const submit = () => {
         return;
     }
 
-    // Validar cuenta de destino
-    if (!formData.id_cuenta) {
-        errors.id_cuenta = 'Selecciona una cuenta de destino';
-        processing.value = false;
-        return;
-    }
+    // ELIMINADA: validación de cuenta de destino
 
     // Validar cuenta fondeadora
     if (!formData.id_cuenta_fondeadora) {
@@ -701,7 +671,7 @@ const submit = () => {
     const data = {
         quincena: formData.quincena,
         fecha_pago: formData.fecha_pago,
-        id_cuenta: formData.id_cuenta,
+        // ELIMINADO: id_cuenta
         id_cuenta_fondeadora: formData.id_cuenta_fondeadora,
         tipo_poliza: formData.tipo_poliza,
         id_marcador: formData.id_marcador,
@@ -764,11 +734,7 @@ const submit = () => {
 onMounted(() => {
     console.log('Props recibidas:', props);
     
-    // Inicializar cuentas
-    if (props.cuentas && props.cuentas.length > 0) {
-        cuentas.value = props.cuentas;
-        formData.id_cuenta = props.cuentas[0].id_cuenta;
-    }
+    // ELIMINADO: inicialización de cuentas de destino
 
     // Inicializar cuentas fondeadoras
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {

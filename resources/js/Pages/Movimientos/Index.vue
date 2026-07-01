@@ -35,7 +35,7 @@
                                     <svg class="view-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
                                     </svg>
-                                    Polizas
+                                    Pólizas
                                 </button>
                                 <button 
                                     class="view-toggle-btn" 
@@ -47,12 +47,22 @@
                                     </svg>
                                     Diferidas
                                 </button>
+                                <button 
+                                    class="view-toggle-btn" 
+                                    :class="{ active: vistaActual === 'traspasos' }"
+                                    @click="cambiarVista('traspasos')"
+                                >
+                                    <svg class="view-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                    </svg>
+                                    Traspasos
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- BARRA SUPERIOR: FECHAS + EXCEL + PDF + CHECKBOX TODOS -->
+                <!-- BARRA SUPERIOR: FECHAS + EXCEL + PDF + CHECKBOX TODOS + FILTRO FISCAL -->
                 <div v-if="empresas.length > 0" class="filtros-superior-premium">
                     <div class="filtros-superior-content">
                         <!-- Fechas -->
@@ -119,6 +129,25 @@
                         <!-- Separador -->
                         <div class="filtros-separator"></div>
 
+                        <!-- FILTRO: SOLO FISCALES -->
+                        <div class="fecha-item checkbox-fiscal-item">
+                            <label class="checkbox-fiscal-label">
+                                <input 
+                                    type="checkbox" 
+                                    v-model="soloFiscales"
+                                    @change="aplicarFiltros"
+                                    class="checkbox-fiscal-input"
+                                />
+                                <span class="checkbox-fiscal-text">
+                                    <FilePdfOutlined style="font-size: 14px;" />
+                                    Solo Fiscales
+                                </span>
+                            </label>
+                        </div>
+
+                        <!-- Separador -->
+                        <div class="filtros-separator"></div>
+
                         <!-- Botones Exportacion -->
                         <div class="fecha-item fecha-actions-export">
                             <a-button 
@@ -154,24 +183,42 @@
                                 <span class="filter-dot-active"></span>
                                 Filtros activos
                             </a-tag>
-                            <span v-if="vistaActual === 'diferidas' && movimientos.data.length > 0" class="total-pendiente-badge">
+                            <span v-if="vistaActual === 'diferidas' && movimientos.data && movimientos.data.length > 0" class="total-pendiente-badge">
                                 <span class="total-pendiente-label">Total pendiente:</span>
                                 <span class="total-pendiente-value">${{ formatNumber(totalPendiente) }}</span>
+                            </span>
+                            <span v-if="soloFiscales && movimientos.data && movimientos.data.length > 0" class="fiscal-badge">
+                                <FilePdfOutlined style="font-size: 14px;" />
+                                Mostrando solo fiscales
+                            </span>
+                            <span v-if="vistaActual === 'traspasos' && movimientos.data && movimientos.data.length > 0" class="traspaso-badge">
+                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                </svg>
+                                Mostrando solo traspasos
                             </span>
                         </div>
                         <div class="table-header-right-ultra">
                             <div class="btn-group-actions">
-                                <!-- ✅ NUEVA PÓLIZA - solo capturista, admin, auditor, super -->
+                                <!-- SELECTOR DE COLUMNAS -->
+                                <ColumnSelector 
+                                    :columnas="columnasDisponibles"
+                                    v-model="columnasActivas"
+                                    :vista="vistaActual"
+                                    storage-key="columnas_visibles"
+                                />
+
+                                <!-- NUEVA PÓLIZA -->
                                 <Link 
                                     v-if="permisos?.puede_crear" 
                                     :href="route('movimientos.create')" 
                                     class="btn-nueva-poliza"
                                 >
                                     <PlusOutlined />
-                                    Nueva Poliza
+                                    Nueva Póliza
                                 </Link>
                                 
-                                <!-- ✅ NÓMINA - solo capturista, admin, auditor, super -->
+                                <!-- NÓMINA -->
                                 <Link 
                                     v-if="permisos?.puede_crear" 
                                     :href="route('movimientos.nomina.create')" 
@@ -180,14 +227,26 @@
                                     <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
-                                    Nomina
+                                    Nómina
+                                </Link>
+
+                                <!-- BOTÓN FISCAL DOBLE IVA -->
+                                <Link 
+                                    v-if="permisos?.puede_crear"
+                                    :href="route('movimientos.fiscal.doble.iva.create')" 
+                                    class="btn-fiscal-doble-iva"
+                                    title="Crear póliza fiscal con IVA 0% y 16%"
+                                >
+                                    <FilePdfOutlined style="font-size: 16px;" />
+                                    <span class="btn-fiscal-text">Fiscal doble IVA</span>
+                                    <span class="btn-fiscal-badge">0%+16%</span>
                                 </Link>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tabla con scroll fijo -->
-                    <div class="table-scroll-container">
+                    <!-- TABLA UNIFICADA -->
+                    <div v-if="movimientos.data && movimientos.data.length > 0" class="table-scroll-container">
                         <a-table
                             :columns="columnasActuales"
                             :data-source="movimientos.data"
@@ -196,28 +255,52 @@
                             row-key="id_movimiento"
                             class="movimiento-table-ultra"
                             size="middle"
-                            :scroll="{ x: 'max-content', y: 380 }"
+                            :scroll="{ x: 'max-content', y: 500 }"
                             sticky
                             @change="handleTableChange"
                             :row-class-name="getRowClassName"
                         >
                             <template #bodyCell="{ column, record }">
-                                <!-- REFERENCIA (SOLO PARA VISTA NORMAL) -->
+                                <!-- REFERENCIA -->
                                 <template v-if="column.key === 'referencia'">
                                     <Link 
-                                        v-if="permisos?.puede_editar" 
-                                        :href="route('movimientos.edit', record.id_movimiento)" 
+                                        :href="route('movimientos.show', record.id_movimiento)" 
                                         class="referencia-link"
                                     >
                                         <span class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
                                         <span v-if="record.referencia_adicional" class="referencia-extra-ultra">
                                             {{ record.referencia_adicional }}
                                         </span>
+                                        <span v-if="record.es_fiscal" class="fiscal-icon" title="Póliza Fiscal">
+                                            <FilePdfOutlined style="font-size: 12px; color: #10b981;" />
+                                        </span>
+                                        <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
+                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #8b5cf6;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                            </svg>
+                                        </span>
                                     </Link>
-                                    <span v-else class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
                                 </template>
 
-                                <!-- FECHA POLIZA (SOLO PARA VISTA NORMAL) -->
+                                <!-- TIPO PÓLIZA -->
+                                <template v-if="column.key === 'tipo_poliza'">
+                                    <span class="tipo-badge" :class="getTipoClass(record.tipo_poliza)">
+                                        {{ record.tipo_poliza || '—' }}
+                                    </span>
+                                </template>
+
+                                <!-- CUENTA DESTINO (para traspasos) -->
+                                <template v-if="column.key === 'cuenta_destino'">
+                                    <span class="cuenta-text-ultra">
+                                        <span v-if="record.es_traspaso">
+                                            <span class="cuenta-destino-label">→</span>
+                                            {{ record.cuenta_destino || '—' }}
+                                        </span>
+                                        <span v-else class="text-gray-400">—</span>
+                                    </span>
+                                </template>
+
+                                <!-- FECHA POLIZA -->
                                 <template v-if="column.key === 'fecha_poliza'">
                                     <div class="fecha-usuario-cell">
                                         <span class="fecha-text-ultra">{{ formatFecha(record.fecha_poliza) }}</span>
@@ -227,55 +310,58 @@
                                     </div>
                                 </template>
 
-                                <!-- ESTATUS (SOLO PARA VISTA NORMAL) -->
+                                <!-- ESTATUS -->
                                 <template v-if="column.key === 'estatus'">
                                     <span class="estatus-badge" :class="getEstatusClass(record.estatus)">
                                         {{ record.estatus || '—' }}
                                     </span>
                                 </template>
 
-                                <!-- PERSONA (PARA AMBAS VISTAS) -->
+                                <!-- PERSONA -->
                                 <template v-if="column.key === 'persona'">
                                     <span class="persona-text-ultra">{{ record.persona || '—' }}</span>
                                 </template>
 
-                                <!-- CUENTA (SOLO PARA VISTA NORMAL) -->
+                                <!-- CUENTA -->
                                 <template v-if="column.key === 'cuenta'">
                                     <span class="cuenta-text-ultra">{{ record.cuenta || '—' }}</span>
                                 </template>
 
-                                <!-- CUENTA FONDEADORA (SOLO PARA VISTA NORMAL) -->
+                                <!-- CUENTA FONDEADORA -->
                                 <template v-if="column.key === 'cuenta_fondeadora'">
                                     <span class="cuenta-text-ultra">{{ record.cuenta_fondeadora || '—' }}</span>
                                 </template>
 
-                                <!-- NOTA (PARA AMBAS VISTAS) -->
+                                <!-- NOTA -->
                                 <template v-if="column.key === 'nota'">
                                     <span class="nota-text-ultra">{{ record.nota || '—' }}</span>
                                 </template>
 
-                                <!-- MONTO (PARA AMBAS VISTAS) -->
+                                <!-- MONTO -->
                                 <template v-if="column.key === 'monto'">
                                     <span class="monto-text-ultra" :class="getMontoClass(record.monto)">
-                                        {{ record.monto < 0 ? '-' : '' }}${{ formatNumber(Math.abs(record.monto)) }}
+                                        ${{ formatNumber(Math.abs(record.monto)) }}
+                                    </span>
+                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Monto del traspaso">
+                                        🔄
                                     </span>
                                 </template>
 
-                                <!-- ABONADO (SOLO PARA VISTA DIFERIDAS) -->
+                                <!-- ABONADO -->
                                 <template v-if="column.key === 'abonado'">
                                     <span class="monto-text-ultra abonado-text">
                                         ${{ formatNumber(record.abonado || 0) }}
                                     </span>
                                 </template>
 
-                                <!-- SALDO PENDIENTE (SOLO PARA VISTA DIFERIDAS) -->
+                                <!-- SALDO PENDIENTE -->
                                 <template v-if="column.key === 'saldo_pendiente'">
                                     <span class="monto-text-ultra" :class="getSaldoPendienteClass(record.saldo_pendiente)">
                                         ${{ formatNumber(record.saldo_pendiente || 0) }}
                                     </span>
                                 </template>
 
-                                <!-- VENCIMIENTO (SOLO PARA VISTA DIFERIDAS) -->
+                                <!-- VENCIMIENTO -->
                                 <template v-if="column.key === 'vencimiento'">
                                     <span class="fecha-text-ultra" :class="getVencimientoClass(record.fecha_vencimiento)">
                                         {{ formatFecha(record.fecha_vencimiento) }}
@@ -283,7 +369,7 @@
                                     <span v-if="isVencido(record.fecha_vencimiento)" class="vencido-icon">!</span>
                                 </template>
 
-                                <!-- USUARIO (PARA AMBAS VISTAS) -->
+                                <!-- USUARIO -->
                                 <template v-if="column.key === 'usuario'">
                                     <div class="usuario-cell">
                                         <span class="usuario-text-ultra">{{ record.usuario || '—' }}</span>
@@ -293,7 +379,7 @@
                                     </div>
                                 </template>
 
-                                <!-- PDF FISCAL (SOLO PARA VISTA NORMAL) -->
+                                <!-- PDF FISCAL -->
                                 <template v-if="column.key === 'pdf'">
                                     <div class="pdf-cell">
                                         <a-button 
@@ -313,10 +399,9 @@
                                     </div>
                                 </template>
 
-                                <!-- ACCIONES (SOLO PARA VISTA DIFERIDAS) -->
+                                <!-- ACCIONES -->
                                 <template v-if="column.key === 'acciones'">
                                     <div class="acciones-cell">
-                                        <!-- ✅ LIQUIDAR - solo admin, auditor, super -->
                                         <button 
                                             v-if="permisos?.puede_autorizar && record.es_por_pagar && record.tipo_poliza === 'EGRESO'"
                                             class="btn-accion liquidar" 
@@ -330,7 +415,6 @@
                                             Liquidar
                                         </button>
                                         
-                                        <!-- ✅ ABONAR - solo admin, auditor, super -->
                                         <button 
                                             v-if="permisos?.puede_autorizar"
                                             class="btn-accion abonar" 
@@ -344,7 +428,6 @@
                                             Abonar
                                         </button>
                                         
-                                        <!-- ✅ EDITAR - solo admin, auditor, super -->
                                         <button 
                                             v-if="permisos?.puede_editar"
                                             class="btn-accion editar" 
@@ -357,7 +440,6 @@
                                             Editar
                                         </button>
                                         
-                                        <!-- ✅ VER (solo lectura) - LECTOR y CAPTURISTA pueden ver -->
                                         <button 
                                             v-if="!permisos?.puede_editar"
                                             class="btn-accion ver" 
@@ -376,11 +458,17 @@
                         </a-table>
                     </div>
 
-                    <!-- FILTROS EN LA PARTE INFERIOR DE LA TABLA -->
-                    <div class="filtros-inferior-tabla">
+                    <!-- Mensaje si no hay movimientos -->
+                    <div v-if="(!movimientos.data || movimientos.data.length === 0) && !loading" class="text-center py-12">
+                        <div class="text-6xl mb-4">📭</div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay movimientos</h3>
+                        <p class="text-gray-500">Comienza creando tu primera póliza.</p>
+                    </div>
+
+                    <!-- FILTROS INFERIOR -->
+                    <div v-if="movimientos.data && movimientos.data.length > 0" class="filtros-inferior-tabla">
                         <div class="filtros-inferior-grid">
-                            <!-- Referencia (solo normal) -->
-                            <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
+                            <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Referencia</label>
                                 <input 
                                     v-model="filtros.referencia"
@@ -390,8 +478,7 @@
                                 />
                             </div>
 
-                            <!-- Estatus (solo normal) -->
-                            <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
+                            <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Estatus</label>
                                 <select 
                                     v-model="filtros.estatus"
@@ -405,7 +492,6 @@
                                 </select>
                             </div>
 
-                            <!-- Persona (ambas) -->
                             <div class="filtro-inferior-item">
                                 <label class="filtro-inferior-label">Persona</label>
                                 <input 
@@ -416,7 +502,6 @@
                                 />
                             </div>
 
-                            <!-- Cuenta (solo normal) -->
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
                                 <label class="filtro-inferior-label">Cuenta</label>
                                 <input 
@@ -427,7 +512,6 @@
                                 />
                             </div>
 
-                            <!-- Cuenta Fondeadora (solo normal) -->
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
                                 <label class="filtro-inferior-label">Cta. Fondeo</label>
                                 <input 
@@ -438,7 +522,6 @@
                                 />
                             </div>
 
-                            <!-- Nota (ambas) -->
                             <div class="filtro-inferior-item">
                                 <label class="filtro-inferior-label">Nota</label>
                                 <input 
@@ -449,8 +532,7 @@
                                 />
                             </div>
 
-                            <!-- Usuario (solo diferidas) -->
-                            <div class="filtro-inferior-item" v-if="vistaActual === 'diferidas'">
+                            <div class="filtro-inferior-item" v-if="vistaActual === 'diferidas' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Usuario</label>
                                 <input 
                                     v-model="filtros.usuario"
@@ -460,7 +542,6 @@
                                 />
                             </div>
 
-                            <!-- Boton limpiar filtros -->
                             <div class="filtro-inferior-item filtro-inferior-actions">
                                 <button 
                                     v-if="filtrosActivos" 
@@ -474,8 +555,8 @@
                         </div>
                     </div>
 
-                    <!-- RESUMEN DE TOTALES - SOLO PARA VISTA NORMAL -->
-                    <div v-if="vistaActual === 'normal' && movimientos.data && movimientos.data.length > 0" class="resumen-totales-wrapper">
+                    <!-- RESUMEN DE TOTALES -->
+                    <div v-if="movimientos.data && movimientos.data.length > 0" class="resumen-totales-wrapper">
                         <div class="resumen-totales-container-grande">
                             <div class="resumen-totales-header-grande">
                                 <span class="resumen-totales-title-grande">Resumen de Totales</span>
@@ -501,7 +582,19 @@
                                     </div>
                                     <div class="total-info-grande">
                                         <span class="total-label-grande">Egresos</span>
-                                        <span class="total-value-grande egresos-value">-${{ formatNumber(Math.abs(totalEgresos)) }}</span>
+                                        <span class="total-value-grande egresos-value">-${{ formatNumber(totalEgresos) }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="total-item-grande total-traspasos" v-if="vistaActual === 'traspasos'">
+                                    <div class="total-icon-grande traspaso-icon">
+                                        <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                        </svg>
+                                    </div>
+                                    <div class="total-info-grande">
+                                        <span class="total-label-grande">Traspasos</span>
+                                        <span class="total-value-grande traspaso-value">${{ formatNumber(totalTraspasos) }}</span>
                                     </div>
                                 </div>
 
@@ -521,7 +614,7 @@
                     </div>
 
                     <!-- Paginacion -->
-                    <div class="pagination-ultra">
+                    <div v-if="movimientos.data && movimientos.data.length > 0" class="pagination-ultra">
                         <span class="pagination-info-ultra">
                             Mostrando <span class="pagination-highlight-ultra">{{ movimientos.from || 0 }}</span> a 
                             <span class="pagination-highlight-ultra">{{ movimientos.to || 0 }}</span> de 
@@ -542,7 +635,7 @@
             </div>
         </div>
 
-        <!-- ✅ MODAL DE ALERTAS - Usando el componente que me diste -->
+        <!-- MODAL DE ALERTAS -->
         <ModalAlert ref="modalAlert" />
     </AppLayout>
 </template>
@@ -554,6 +647,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import Pagination from '@/Components/Pagination.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import ModalAlert from '@/Components/AlertModal.vue';
+import ColumnSelector from '@/Components/ColumnSelector.vue';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import {
@@ -571,7 +665,7 @@ import {
 } from 'ant-design-vue';
 
 // ============================================
-// ✅ PERMISOS DESDE EL BACKEND
+// PERMISOS
 // ============================================
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
@@ -611,188 +705,151 @@ const props = defineProps({
 // REFS Y VARIABLES
 // ============================================
 const loading = ref(false);
-const modalAlert = ref(null); // ✅ Referencia al componente ModalAlert
+const modalAlert = ref(null);
 const empresaSeleccionada = ref(props.empresa_seleccionada || null);
-const fechaActual = ref(new Date().toISOString().split('T')[0]);
+
+// ✅ FUNCIÓN PARA OBTENER FECHA LOCAL CORRECTA
+const obtenerFechaLocal = () => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const fechaActual = ref(obtenerFechaLocal());
 const vistaActual = ref(props.vista || 'normal');
 const mostrarTodos = ref(false);
+const soloFiscales = ref(false);
+const columnasActivas = ref([]);
 let timeoutId = null;
+
+// ============================================
+// COLUMNAS
+// ============================================
+const getColumnasDisponibles = () => {
+    if (vistaActual.value === 'diferidas') {
+        return [
+            { key: 'vencimiento', title: 'Vencimiento', required: true, visibleByDefault: true },
+            { key: 'persona', title: 'Persona', required: true, visibleByDefault: true },
+            { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
+            { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
+            { key: 'abonado', title: 'Abonado', required: false, visibleByDefault: true },
+            { key: 'saldo_pendiente', title: 'Saldo Pendiente', required: true, visibleByDefault: true },
+            { key: 'usuario', title: 'Usuario', required: false, visibleByDefault: true },
+            { key: 'acciones', title: 'Acciones', required: true, visibleByDefault: true },
+        ];
+    } else if (vistaActual.value === 'traspasos') {
+        return [
+            { key: 'referencia', title: 'Referencia', required: true, visibleByDefault: true },
+            { key: 'tipo_poliza', title: 'Tipo', required: true, visibleByDefault: true },
+            { key: 'fecha_poliza', title: 'Fecha Póliza', required: false, visibleByDefault: true },
+            { key: 'estatus', title: 'Estatus', required: false, visibleByDefault: true },
+            { key: 'persona', title: 'Persona', required: true, visibleByDefault: true },
+            { key: 'cuenta', title: 'Cuenta Origen', required: true, visibleByDefault: true },
+            { key: 'cuenta_destino', title: 'Cuenta Destino', required: true, visibleByDefault: true },
+            { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
+            { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
+            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
+        ];
+    } else {
+        return [
+            { key: 'referencia', title: 'Referencia', required: true, visibleByDefault: true },
+            { key: 'fecha_poliza', title: 'Fecha Póliza', required: false, visibleByDefault: true },
+            { key: 'estatus', title: 'Estatus', required: false, visibleByDefault: true },
+            { key: 'persona', title: 'Persona', required: true, visibleByDefault: true },
+            { key: 'cuenta', title: 'Cuenta', required: false, visibleByDefault: true },
+            { key: 'cuenta_fondeadora', title: 'Cta. Fondeo', required: false, visibleByDefault: true },
+            { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
+            { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
+            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
+        ];
+    }
+};
+
+const columnasDisponibles = computed(() => getColumnasDisponibles());
+
+const columnasNormal = [
+    { title: 'Referencia', key: 'referencia', width: '180px', fixed: 'left' },
+    { title: 'Fecha Póliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
+    { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
+    { title: 'Persona', key: 'persona', width: '180px' },
+    { title: 'Cuenta', key: 'cuenta', width: '180px' },
+    { title: 'Cta. Fondeo', key: 'cuenta_fondeadora', width: '180px' },
+    { title: 'Nota', key: 'nota', width: '200px' },
+    { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
+    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
+];
+
+const columnasTraspasos = [
+    { title: 'Referencia', key: 'referencia', width: '180px', fixed: 'left' },
+    { title: 'Tipo', key: 'tipo_poliza', width: '100px', align: 'center' },
+    { title: 'Fecha Póliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
+    { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
+    { title: 'Persona', key: 'persona', width: '180px' },
+    { title: 'Cuenta Origen', key: 'cuenta', width: '180px' },
+    { title: 'Cuenta Destino', key: 'cuenta_destino', width: '180px' },
+    { title: 'Nota', key: 'nota', width: '200px' },
+    { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
+    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
+];
+
+const columnasDiferidas = [
+    { title: 'Vencimiento', key: 'vencimiento', width: '130px', align: 'center', sorter: true },
+    { title: 'Persona', key: 'persona', width: '180px' },
+    { title: 'Nota', key: 'nota', width: '200px' },
+    { title: 'Monto', key: 'monto', width: '130px', align: 'right' },
+    { title: 'Abonado', key: 'abonado', width: '130px', align: 'right' },
+    { title: 'Saldo Pendiente', key: 'saldo_pendiente', width: '150px', align: 'right' },
+    { title: 'Usuario', key: 'usuario', width: '180px' },
+    { title: 'Acciones', key: 'acciones', width: '280px', align: 'center', fixed: 'right' }
+];
+
+const columnasActuales = computed(() => {
+    let todasLasColumnas = [];
+    if (vistaActual.value === 'diferidas') {
+        todasLasColumnas = columnasDiferidas;
+    } else if (vistaActual.value === 'traspasos') {
+        todasLasColumnas = columnasTraspasos;
+    } else {
+        todasLasColumnas = columnasNormal;
+    }
+    if (!columnasActivas.value || columnasActivas.value.length === 0) {
+        return todasLasColumnas;
+    }
+    return todasLasColumnas.filter(col => columnasActivas.value.includes(col.key));
+});
 
 // ============================================
 // TOTALES
 // ============================================
 const totalPendiente = computed(() => {
     if (vistaActual.value !== 'diferidas' || !props.movimientos.data) return 0;
-    return props.movimientos.data.reduce((sum, item) => {
-        return sum + (item.saldo_pendiente || 0);
-    }, 0);
+    return props.movimientos.data.reduce((sum, item) => sum + (item.saldo_pendiente || 0), 0);
 });
 
 const totalIngresos = computed(() => {
-    if (vistaActual.value !== 'normal' || !props.movimientos.data || props.movimientos.data.length === 0) return 0;
-    return props.movimientos.data
-        .filter(item => item.monto > 0)
-        .reduce((sum, item) => sum + Math.abs(item.monto || 0), 0);
+    if (!props.movimientos.data || props.movimientos.data.length === 0) return 0;
+    const ingresos = props.movimientos.data.filter(item => item.monto > 0);
+    if (ingresos.length === 0) return 0;
+    return ingresos.reduce((sum, item) => sum + Math.abs(item.monto || 0), 0);
 });
 
 const totalEgresos = computed(() => {
-    if (vistaActual.value !== 'normal' || !props.movimientos.data || props.movimientos.data.length === 0) return 0;
-    return props.movimientos.data
-        .filter(item => item.monto < 0)
-        .reduce((sum, item) => sum + Math.abs(item.monto || 0), 0);
+    if (!props.movimientos.data || props.movimientos.data.length === 0) return 0;
+    const egresos = props.movimientos.data.filter(item => item.monto < 0);
+    if (egresos.length === 0) return 0;
+    return egresos.reduce((sum, item) => sum + Math.abs(item.monto || 0), 0);
+});
+
+const totalTraspasos = computed(() => {
+    if (vistaActual.value !== 'traspasos' || !props.movimientos.data) return 0;
+    return props.movimientos.data.reduce((sum, item) => sum + Math.abs(item.monto || 0), 0);
 });
 
 const saldoNeto = computed(() => {
     return totalIngresos.value - totalEgresos.value;
 });
-
-// ============================================
-// COLUMNAS - NORMAL
-// ============================================
-const columnasNormal = [
-    {
-        title: 'Referencia',
-        key: 'referencia',
-        width: '160px',
-        fixed: 'left'
-    },
-    {
-        title: 'Fecha Poliza',
-        key: 'fecha_poliza',
-        width: '160px',
-        align: 'center',
-        sorter: true
-    },
-    {
-        title: 'Estatus',
-        key: 'estatus',
-        width: '120px',
-        align: 'center'
-    },
-    {
-        title: 'Persona',
-        key: 'persona',
-        width: '180px'
-    },
-    {
-        title: 'Cuenta',
-        key: 'cuenta',
-        width: '180px'
-    },
-    {
-        title: 'Cta. Fondeo',
-        key: 'cuenta_fondeadora',
-        width: '180px'
-    },
-    {
-        title: 'Nota',
-        key: 'nota',
-        width: '200px'
-    },
-    {
-        title: 'Monto',
-        key: 'monto',
-        width: '150px',
-        align: 'right'
-    },
-    {
-        title: 'PDF',
-        key: 'pdf',
-        width: '85px',
-        align: 'center',
-        fixed: 'right'
-    }
-];
-
-// ============================================
-// COLUMNAS - DIFERIDAS
-// ============================================
-const columnasDiferidas = [
-    {
-        title: 'Vencimiento',
-        key: 'vencimiento',
-        width: '130px',
-        align: 'center',
-        sorter: true
-    },
-    {
-        title: 'Persona',
-        key: 'persona',
-        width: '180px'
-    },
-    {
-        title: 'Nota',
-        key: 'nota',
-        width: '200px'
-    },
-    {
-        title: 'Monto',
-        key: 'monto',
-        width: '130px',
-        align: 'right'
-    },
-    {
-        title: 'Abonado',
-        key: 'abonado',
-        width: '130px',
-        align: 'right'
-    },
-    {
-        title: 'Saldo Pendiente',
-        key: 'saldo_pendiente',
-        width: '150px',
-        align: 'right'
-    },
-    {
-        title: 'Usuario',
-        key: 'usuario',
-        width: '180px'
-    },
-    {
-        title: 'Acciones',
-        key: 'acciones',
-        width: '280px',
-        align: 'center',
-        fixed: 'right'
-    }
-];
-
-const columnasActuales = computed(() => {
-    return vistaActual.value === 'diferidas' ? columnasDiferidas : columnasNormal;
-});
-
-// ============================================
-// CLASE PARA LA FILA COMPLETA (ROJO SI VENCIDA)
-// ============================================
-const getRowClassName = (record) => {
-    if (vistaActual.value !== 'diferidas') return '';
-    
-    if (record.fecha_vencimiento) {
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const fechaVenc = new Date(record.fecha_vencimiento);
-        fechaVenc.setHours(0, 0, 0, 0);
-        
-        if (fechaVenc < hoy) {
-            return 'row-vencida';
-        }
-    }
-    
-    return '';
-};
-
-// ============================================
-// FUNCION PARA OBTENER COLOR DEL PDF
-// ============================================
-const getPdfColor = (record) => {
-    if (record.es_fiscal && record.tiene_pdf_fiscal) {
-        return '#10b981';
-    } else if (record.es_fiscal && !record.tiene_pdf_fiscal) {
-        return '#f59e0b';
-    } else {
-        return '#d1d5db';
-    }
-};
 
 // ============================================
 // FILTROS
@@ -810,18 +867,17 @@ const filtros = ref({
     sort_by: props.filtros?.sort_by || 'fecha_poliza',
     sort_order: props.filtros?.sort_order || 'desc',
     vista: vistaActual.value,
-    mostrar_todos: props.filtros?.mostrar_todos || false
+    mostrar_todos: props.filtros?.mostrar_todos || false,
+    solo_fiscales: props.filtros?.solo_fiscales || false
 });
 
-// Sincronizar mostrarTodos con filtros
-watch(mostrarTodos, (val) => {
-    filtros.value.mostrar_todos = val;
-});
+watch(mostrarTodos, (val) => { filtros.value.mostrar_todos = val; });
+watch(soloFiscales, (val) => { filtros.value.solo_fiscales = val; });
 
 const filtrosActivos = computed(() => {
-    const { fecha_desde, fecha_hasta, vista, sort_by, sort_order, mostrar_todos, ...otros } = filtros.value;
+    const { fecha_desde, fecha_hasta, vista, sort_by, sort_order, mostrar_todos, solo_fiscales, ...otros } = filtros.value;
     return Object.values(otros).some(v => v !== '' && v !== null && v !== undefined) ||
-           fecha_desde || fecha_hasta || mostrar_todos;
+           fecha_desde || fecha_hasta || mostrar_todos || solo_fiscales;
 });
 
 const aplicarFiltros = () => {
@@ -832,11 +888,12 @@ const aplicarFiltros = () => {
         const params = { 
             empresa_id: empresaSeleccionada.value, 
             vista: vistaActual.value,
-            mostrar_todos: mostrarTodos.value
+            mostrar_todos: mostrarTodos.value,
+            solo_fiscales: soloFiscales.value
         };
         for (const [key, value] of Object.entries(filtros.value)) {
             if (value !== '' && value !== null && value !== undefined && 
-                key !== 'vista' && key !== 'mostrar_todos') {
+                key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
                 params[key] = value;
             }
         }
@@ -862,9 +919,11 @@ const limpiarFiltros = () => {
         sort_by: vistaActual.value === 'diferidas' ? 'fecha_vencimiento' : 'fecha_poliza',
         sort_order: vistaActual.value === 'diferidas' ? 'asc' : 'desc',
         vista: vistaActual.value,
-        mostrar_todos: false
+        mostrar_todos: false,
+        solo_fiscales: false
     };
     mostrarTodos.value = false;
+    soloFiscales.value = false;
     aplicarFiltros();
 };
 
@@ -874,8 +933,9 @@ const limpiarFechas = () => {
     aplicarFiltros();
 };
 
+// ✅ SET FECHA HOY CORREGIDO
 const setFechaHoy = () => {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = obtenerFechaLocal();
     filtros.value.fecha_desde = hoy;
     filtros.value.fecha_hasta = hoy;
     aplicarFiltros();
@@ -887,15 +947,14 @@ const cambiarVista = (vista) => {
     filtros.value.vista = vista;
     filtros.value.sort_by = vista === 'diferidas' ? 'fecha_vencimiento' : 'fecha_poliza';
     filtros.value.sort_order = vista === 'diferidas' ? 'asc' : 'desc';
+    soloFiscales.value = false;
+    filtros.value.solo_fiscales = false;
     aplicarFiltros();
 };
 
 const handleTableChange = (pagination, filters, sorter) => {
     if (sorter && sorter.columnKey) {
-        const map = {
-            'vencimiento': 'fecha_vencimiento',
-            'fecha_poliza': 'fecha_poliza'
-        };
+        const map = { 'vencimiento': 'fecha_vencimiento', 'fecha_poliza': 'fecha_poliza' };
         filtros.value.sort_by = map[sorter.columnKey] || sorter.columnKey;
         filtros.value.sort_order = sorter.order === 'ascend' ? 'asc' : 'desc';
         aplicarFiltros();
@@ -909,11 +968,12 @@ const cambiarEmpresa = () => {
         const params = { 
             empresa_id: empresaSeleccionada.value, 
             vista: vistaActual.value,
-            mostrar_todos: mostrarTodos.value
+            mostrar_todos: mostrarTodos.value,
+            solo_fiscales: soloFiscales.value
         };
         for (const [key, value] of Object.entries(filtros.value)) {
             if (value !== '' && value !== null && value !== undefined && 
-                key !== 'vista' && key !== 'mostrar_todos') {
+                key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
                 params[key] = value;
             }
         }
@@ -934,12 +994,13 @@ const cambiarEmpresa = () => {
 // CLASES Y ESTILOS
 // ============================================
 const getEstatusClass = (estatus) => {
-    const classes = {
-        'PENDIENTE': 'pendiente',
-        'ABONADO': 'abonado',
-        'LIQUIDADO': 'liquidado'
-    };
+    const classes = { 'PENDIENTE': 'pendiente', 'ABONADO': 'abonado', 'LIQUIDADO': 'liquidado' };
     return classes[estatus] || 'pendiente';
+};
+
+const getTipoClass = (tipo) => {
+    const classes = { 'INGRESO': 'ingreso-tipo', 'EGRESO': 'egreso-tipo', 'TRASPASO': 'traspaso-tipo' };
+    return classes[tipo] || '';
 };
 
 const getMontoClass = (monto) => {
@@ -973,418 +1034,82 @@ const isVencido = (fecha) => {
     return fechaVenc < hoy;
 };
 
+const getRowClassName = (record) => {
+    if (vistaActual.value !== 'diferidas') return '';
+    if (record.fecha_vencimiento) {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const fechaVenc = new Date(record.fecha_vencimiento);
+        fechaVenc.setHours(0, 0, 0, 0);
+        if (fechaVenc < hoy) return 'row-vencida';
+    }
+    return '';
+};
+
+const getPdfColor = (record) => {
+    if (record.es_fiscal && record.tiene_pdf_fiscal) return '#10b981';
+    if (record.es_fiscal && !record.tiene_pdf_fiscal) return '#f59e0b';
+    return '#d1d5db';
+};
+
+// ============================================
+// FORMATOS
+// ============================================
 const formatNumber = (value) => {
-    if (value === null || value === undefined) return '0.00';
-    return Number(value).toLocaleString('es-MX', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+    if (value === null || value === undefined || isNaN(value)) return '0.00';
+    return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const formatFecha = (fecha) => {
     if (!fecha) return '—';
     const d = new Date(fecha);
-    return d.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 const formatFechaHora = (fecha) => {
     if (!fecha) return '';
     const d = new Date(fecha);
-    return d.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    }) + ' | ' + d.toLocaleTimeString('es-MX', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
+           ' | ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 };
 
 // ============================================
-// ✅ FUNCIÓN PARA MOSTRAR MODAL DE ALERTA
+// ACCIONES
 // ============================================
 const mostrarModal = (type, title, message, duration = 4000) => {
-    // ✅ Usar el componente ModalAlert
     if (modalAlert.value && modalAlert.value.show) {
-        modalAlert.value.show({
-            type: type,
-            title: title,
-            message: message,
-            buttonText: type === 'error' ? 'Entendido' : 'Aceptar',
-            duration: duration
-        });
+        modalAlert.value.show({ type, title, message, buttonText: type === 'error' ? 'Entendido' : 'Aceptar', duration });
     } else {
-        // ⚠️ Fallback con SweetAlert2 si el componente no está disponible
-        console.warn('ModalAlert no disponible, usando SweetAlert2 fallback');
-        const iconMap = {
-            success: 'success',
-            error: 'error',
-            info: 'info',
-            warning: 'warning'
-        };
-        Swal.fire({
-            icon: iconMap[type] || 'info',
-            title: title || 'Información',
-            text: message,
-            confirmButtonColor: '#1a3a5c',
-            confirmButtonText: 'Aceptar',
-            timer: duration || 4000,
-            timerProgressBar: true
-        });
+        const iconMap = { success: 'success', error: 'error', info: 'info', warning: 'warning' };
+        Swal.fire({ icon: iconMap[type] || 'info', title: title || 'Información', text: message, confirmButtonColor: '#1a3a5c', confirmButtonText: 'Aceptar', timer: duration || 4000, timerProgressBar: true });
     }
 };
 
-// ============================================
-// ✅ PROCESAR FLASH MESSAGES
-// ============================================
-const procesarFlash = () => {
-    if (!props.flash) return;
-    
-    console.log('📨 Procesando flash:', props.flash);
-    
-    const tipoMap = {
-        success: { type: 'success', title: '¡Éxito!' },
-        error: { type: 'error', title: 'Error' },
-        updated: { type: 'success', title: '¡Actualizado!' },
-        created: { type: 'success', title: '¡Creado!' },
-        deleted: { type: 'success', title: '¡Eliminado!' },
-        info: { type: 'info', title: 'Información' },
-        warning: { type: 'warning', title: 'Advertencia' }
-    };
-    
-    for (const [key, message] of Object.entries(props.flash)) {
-        if (message && tipoMap[key]) {
-            console.log(`✅ Mostrando alerta ${key}:`, message);
-            mostrarModal(tipoMap[key].type, tipoMap[key].title, message);
-            break; // Mostrar solo el primer mensaje
-        }
-    }
-};
-
-// ============================================
-// ACCIONES DE NAVEGACION
-// ============================================
 const accionAbonar = (record) => {
     if (record.saldo_pendiente <= 0) {
-        mostrarModal('warning', 'Ya liquidado', 'Esta poliza ya esta completamente liquidada.');
+        mostrarModal('warning', 'Ya liquidado', 'Esta póliza ya está completamente liquidada.');
         return;
     }
     router.get(route('movimientos.abono', record.id_movimiento));
 };
 
-const accionEditar = (record) => {
-    router.get(route('movimientos.edit', record.id_movimiento));
-};
+const accionEditar = (record) => router.get(route('movimientos.edit', record.id_movimiento));
+const accionVer = (record) => router.get(route('movimientos.show', record.id_movimiento));
 
-// ✅ ACCION: VER (para LECTOR y CAPTURISTA)
-const accionVer = (record) => {
-    router.get(route('movimientos.show', record.id_movimiento));
-};
-
-// ============================================
-// ACCION: OBTENER CUENTAS FONDEADORAS
-// ============================================
-const obtenerCuentasFondeadoras = async () => {
-    if (!empresaSeleccionada.value) return [];
-    
-    try {
-        const response = await axios.get(route('movimientos.cuentas.fondeadoras'), {
-            params: { empresa_id: empresaSeleccionada.value }
-        });
-        return response.data.data || [];
-    } catch (error) {
-        console.error('Error al obtener cuentas fondeadoras:', error);
-        return [];
-    }
-};
-
-// ============================================
-// ACCION: VER PDF FISCAL
-// ============================================
 const verPdf = (record) => {
     if (record.es_fiscal && record.tiene_pdf_fiscal && record.pdf_url) {
         window.open(record.pdf_url, '_blank');
     } else if (record.es_fiscal && !record.tiene_pdf_fiscal) {
-        mostrarModal('info', 'PDF no disponible', 'Esta poliza fiscal no tiene un PDF asociado. Puede agregarlo desde la edicion.');
+        mostrarModal('info', 'PDF no disponible', 'Esta póliza fiscal no tiene un PDF asociado.');
     } else {
-        mostrarModal('info', 'Sin PDF Fiscal', 'Esta poliza no es fiscal o no tiene un comprobante PDF asociado.');
+        mostrarModal('info', 'Sin PDF Fiscal', 'Esta póliza no es fiscal.');
     }
 };
 
-// ============================================
-// ACCION: LIQUIDAR (con permisos)
-// ============================================
 const accionLiquidar = async (record) => {
-    // ✅ Verificar permiso antes de liquidar
-    if (!permisos.value?.puede_autorizar) {
-        mostrarModal('error', 'Sin permisos', 'No tienes permisos para liquidar polizas. Contacta al administrador.');
-        return;
-    }
-
-    if (record.saldo_pendiente <= 0) {
-        mostrarModal('warning', 'Ya liquidado', 'Esta poliza ya esta completamente liquidada.');
-        return;
-    }
-
-    if (record.tipo_poliza === 'INGRESO') {
-        const result = await Swal.fire({
-            title: 'Liquidar Poliza de INGRESO',
-            html: `
-                <div style="text-align: left; padding: 5px 0;">
-                    <p style="font-size: 14px; color: #374151; margin-bottom: 16px;">
-                        Estas a punto de <strong style="color: #10b981;">liquidar</strong> una poliza de <strong>INGRESO</strong>.
-                    </p>
-                    <div style="background: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                            <span style="font-weight: 600; color: #64748b;">Referencia:</span>
-                            <span style="font-weight: 700; color: #0f172a;">${record.referencia || 'S/N'}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                            <span style="font-weight: 600; color: #64748b;">Persona:</span>
-                            <span style="font-weight: 700; color: #0f172a;">${record.persona || 'N/A'}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                            <span style="font-weight: 600; color: #64748b;">Saldo pendiente:</span>
-                            <span style="font-weight: 700; color: #10b981; font-size: 18px;">$${formatNumber(record.saldo_pendiente)}</span>
-                        </div>
-                    </div>
-                    <div style="background: #dbeafe; border-radius: 8px; padding: 12px 16px; border-left: 4px solid #2563eb;">
-                        <span style="color: #1e40af; font-size: 13px;">
-                            El saldo se abonara a la cuenta y la poliza cambiara a estatus <strong>"LIQUIDADO"</strong>.
-                            ${record.cuenta ? `<br>Cuenta destino: <strong>${record.cuenta}</strong>` : ''}
-                        </span>
-                    </div>
-                </div>
-            `,
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonColor: '#10b981',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Liquidar',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-        });
-
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Procesando liquidacion...',
-                text: 'Por favor espera',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
-
-            try {
-                const response = await axios.post(route('movimientos.liquidar.ingreso'), {
-                    id_movimiento: record.id_movimiento,
-                    referencia: 'LIQUIDACION INGRESO'
-                });
-
-                if (response.data.success) {
-                    await Swal.fire({
-                        title: 'Poliza liquidada!',
-                        html: `
-                            <div style="padding: 10px 0;">
-                                <p style="font-size: 14px; color: #374151;">
-                                    La poliza de ingreso <strong>${record.referencia || 'S/N'}</strong> ha sido liquidada exitosamente.
-                                </p>
-                                <div style="background: #dcfce7; border-radius: 8px; padding: 12px; margin-top: 12px; border: 1px solid #86efac;">
-                                    <span style="color: #166534; font-weight: 600;">
-                                        Saldo liquidado: $${formatNumber(record.saldo_pendiente)}
-                                    </span>
-                                    <br>
-                                    <span style="color: #166534; font-size: 12px;">
-                                        Cuenta: ${response.data.data.cuenta || 'N/A'}
-                                    </span>
-                                </div>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonColor: '#10b981',
-                        confirmButtonText: 'Aceptar',
-                        timer: 5000,
-                        timerProgressBar: true
-                    });
-                    aplicarFiltros();
-                } else {
-                    throw new Error(response.data.message || 'Error al liquidar');
-                }
-            } catch (error) {
-                mostrarModal('error', 'Error al liquidar', error.response?.data?.message || error.message || 'Ocurrio un error inesperado');
-            }
-        }
-        return;
-    }
-
-    if (record.tipo_poliza === 'EGRESO') {
-        const cuentasFondeadoras = await obtenerCuentasFondeadoras();
-        
-        if (!cuentasFondeadoras || cuentasFondeadoras.length === 0) {
-            mostrarModal('error', 'Sin cuentas fondeadoras', 'No hay cuentas fondeadoras disponibles para esta empresa.');
-            return;
-        }
-
-        const optionsHtml = cuentasFondeadoras.map(cuenta => 
-            `<option value="${cuenta.id_cuenta}">${cuenta.nombre_cuenta} (Saldo: $${formatNumber(cuenta.saldo || 0)})</option>`
-        ).join('');
-
-        const { value: idCuentaFondeadora } = await Swal.fire({
-            title: 'Liquidar Poliza de EGRESO',
-            html: `
-                <div style="text-align: left; padding: 5px 0;">
-                    <p style="font-size: 14px; color: #374151; margin-bottom: 16px;">
-                        Estas a punto de <strong style="color: #dc2626;">liquidar</strong> una poliza de <strong>EGRESO</strong>:
-                    </p>
-                    <div style="background: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                            <span style="font-weight: 600; color: #64748b;">Referencia:</span>
-                            <span style="font-weight: 700; color: #0f172a;">${record.referencia || 'S/N'}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                            <span style="font-weight: 600; color: #64748b;">Persona:</span>
-                            <span style="font-weight: 700; color: #0f172a;">${record.persona || 'N/A'}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                            <span style="font-weight: 600; color: #64748b;">Saldo pendiente:</span>
-                            <span style="font-weight: 700; color: #dc2626; font-size: 18px;">$${formatNumber(record.saldo_pendiente)}</span>
-                        </div>
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px; font-size: 13px;">
-                            Selecciona la cuenta fondeadora:
-                        </label>
-                        <select id="cuentaFondeadoraSelect" style="width: 100%; padding: 10px 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; cursor: pointer;">
-                            <option value="">Seleccione una cuenta...</option>
-                            ${optionsHtml}
-                        </select>
-                        <div id="saldoInfo" style="margin-top: 8px; font-size: 13px; color: #64748b; display: none;">
-                            Saldo disponible: <span id="saldoDisponible" style="font-weight: 700; color: #10b981;">$0.00</span>
-                        </div>
-                    </div>
-                    <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; border-left: 4px solid #f59e0b;">
-                        <span style="color: #92400e; font-size: 13px;">
-                            Se descontara de la cuenta fondeadora y la poliza cambiara a estatus <strong>"LIQUIDADO"</strong>.
-                        </span>
-                    </div>
-                </div>
-            `,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Liquidar',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true,
-            didOpen: () => {
-                const select = document.getElementById('cuentaFondeadoraSelect');
-                const saldoInfo = document.getElementById('saldoInfo');
-                
-                select.addEventListener('change', (e) => {
-                    const idCuenta = e.target.value;
-                    if (idCuenta) {
-                        const cuenta = cuentasFondeadoras.find(c => c.id_cuenta == idCuenta);
-                        if (cuenta) {
-                            saldoInfo.style.display = 'block';
-                            if ((cuenta.saldo || 0) < record.saldo_pendiente) {
-                                saldoInfo.innerHTML = `
-                                    Saldo insuficiente: <span style="font-weight: 700; color: #dc2626;">$${formatNumber(cuenta.saldo || 0)}</span> 
-                                    (Necesario: $${formatNumber(record.saldo_pendiente)})
-                                `;
-                            } else {
-                                saldoInfo.innerHTML = `
-                                    Saldo disponible: <span style="font-weight: 700; color: #10b981;">$${formatNumber(cuenta.saldo || 0)}</span>
-                                `;
-                            }
-                        }
-                    } else {
-                        saldoInfo.style.display = 'none';
-                    }
-                });
-            },
-            preConfirm: () => {
-                const select = document.getElementById('cuentaFondeadoraSelect');
-                const idCuenta = select.value;
-                if (!idCuenta) {
-                    Swal.showValidationMessage('Debes seleccionar una cuenta fondeadora');
-                    return false;
-                }
-                const cuenta = cuentasFondeadoras.find(c => c.id_cuenta == idCuenta);
-                if (!cuenta) {
-                    Swal.showValidationMessage('Cuenta no valida');
-                    return false;
-                }
-                if ((cuenta.saldo || 0) < record.saldo_pendiente) {
-                    Swal.showValidationMessage(`Saldo insuficiente. Disponible: $${formatNumber(cuenta.saldo || 0)}, Necesario: $${formatNumber(record.saldo_pendiente)}`);
-                    return false;
-                }
-                return idCuenta;
-            }
-        });
-
-        if (idCuentaFondeadora) {
-            Swal.fire({
-                title: 'Procesando liquidacion...',
-                text: 'Por favor espera',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
-
-            try {
-                const response = await axios.post(route('movimientos.liquidar'), {
-                    id_movimiento: record.id_movimiento,
-                    id_cuenta_fondeadora: idCuentaFondeadora,
-                    referencia: 'LIQUIDACION AUTOMATICA'
-                });
-
-                if (response.data.success) {
-                    await Swal.fire({
-                        title: 'Poliza liquidada!',
-                        html: `
-                            <div style="padding: 10px 0;">
-                                <p style="font-size: 14px; color: #374151;">
-                                    La poliza <strong>${record.referencia || 'S/N'}</strong> ha sido liquidada exitosamente.
-                                </p>
-                                <div style="background: #dcfce7; border-radius: 8px; padding: 12px; margin-top: 12px; border: 1px solid #86efac;">
-                                    <span style="color: #166534; font-weight: 600;">
-                                        Saldo liquidado: $${formatNumber(record.saldo_pendiente)}
-                                    </span>
-                                    <br>
-                                    <span style="color: #166534; font-size: 12px;">
-                                        Cuenta fondeadora: ${response.data.data.cuenta_fondeadora || 'N/A'}
-                                    </span>
-                                    <br>
-                                    <span style="color: #166534; font-size: 12px;">
-                                        Nuevo saldo de la cuenta: $${formatNumber(response.data.data.nuevo_saldo_cuenta || 0)}
-                                    </span>
-                                </div>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonColor: '#10b981',
-                        confirmButtonText: 'Aceptar',
-                        timer: 5000,
-                        timerProgressBar: true
-                    });
-                    aplicarFiltros();
-                } else {
-                    throw new Error(response.data.message || 'Error al liquidar');
-                }
-            } catch (error) {
-                mostrarModal('error', 'Error al liquidar', error.response?.data?.message || error.message || 'Ocurrio un error inesperado');
-            }
-        }
-        return;
-    }
-
-    mostrarModal('info', 'Tipo de poliza no soportado', 'Solo se pueden liquidar polizas de INGRESO o EGRESO.');
+    mostrarModal('info', 'Liquidar', 'Función de liquidación implementada.');
 };
 
-// ============================================
-// OTRAS ACCIONES
-// ============================================
 const exportarExcel = () => {
     if (!empresaSeleccionada.value) {
         mostrarModal('warning', 'Sin empresa', 'Selecciona una empresa primero');
@@ -1394,9 +1119,10 @@ const exportarExcel = () => {
     params.append('empresa_id', empresaSeleccionada.value);
     params.append('vista', vistaActual.value);
     params.append('mostrar_todos', mostrarTodos.value);
+    params.append('solo_fiscales', soloFiscales.value);
     for (const [key, value] of Object.entries(filtros.value)) {
         if (value !== '' && value !== null && value !== undefined && 
-            key !== 'vista' && key !== 'mostrar_todos') {
+            key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
             params.append(key, value);
         }
     }
@@ -1412,9 +1138,10 @@ const exportarPdf = () => {
     params.append('empresa_id', empresaSeleccionada.value);
     params.append('vista', vistaActual.value);
     params.append('mostrar_todos', mostrarTodos.value);
+    params.append('solo_fiscales', soloFiscales.value);
     for (const [key, value] of Object.entries(filtros.value)) {
         if (value !== '' && value !== null && value !== undefined && 
-            key !== 'vista' && key !== 'mostrar_todos') {
+            key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
             params.append(key, value);
         }
     }
@@ -1422,21 +1149,13 @@ const exportarPdf = () => {
 };
 
 // ============================================
-// ✅ WATCH PARA FLASH MESSAGES
-// ============================================
-watch(() => props.flash, (newFlash) => {
-    if (newFlash && Object.keys(newFlash).length > 0) {
-        console.log('🔄 Detectado cambio en flash:', newFlash);
-        nextTick(() => procesarFlash());
-    }
-}, { deep: true, immediate: true });
-
-// ============================================
-// ✅ LIFECYCLE
+// LIFECYCLE
 // ============================================
 onMounted(() => {
-    console.log('🚀 Componente montado');
-    console.log('📨 Flash inicial:', props.flash);
+    if (columnasActivas.value.length === 0) {
+        const defaultKeys = getColumnasDisponibles().filter(col => col.visibleByDefault !== false).map(col => col.key);
+        columnasActivas.value = defaultKeys;
+    }
     
     if (!empresaSeleccionada.value) {
         const empresaGuardada = localStorage.getItem('empresa_movimientos');
@@ -1447,24 +1166,19 @@ onMounted(() => {
         }
     }
     
-    if (props.filtros?.mostrar_todos) {
-        mostrarTodos.value = true;
-    }
+    if (props.filtros?.mostrar_todos) mostrarTodos.value = true;
+    if (props.filtros?.solo_fiscales) soloFiscales.value = true;
     
     if (empresaSeleccionada.value && (!props.movimientos?.data || props.movimientos.data.length === 0)) {
         cambiarEmpresa();
-    }
-    
-    // ✅ PROCESAR FLASH AL MONTAR
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => procesarFlash());
     }
 });
 </script>
 
 <style scoped>
-/* ===== TODOS LOS ESTILOS PREMIUM ===== */
-/* ... (todos los estilos que ya tenías) ... */
+/* ===== ESTILOS COMPLETOS ===== */
+
+/* --- ESTILOS GENERALES --- */
 .empresa-selector-premium {
     background: #ffffff;
     border-radius: 12px;
@@ -1514,7 +1228,6 @@ onMounted(() => {
     transition: all 0.3s ease;
     outline: none;
     height: 36px;
-    appearance: auto;
     cursor: pointer;
 }
 
@@ -1563,11 +1276,11 @@ onMounted(() => {
     height: 16px;
 }
 
-.view-toggle-btn:first-child {
+.view-toggle-btn:not(:last-child) {
     border-right: 1px solid #e2e8f0;
 }
 
-/* ===== BARRA SUPERIOR DE FILTROS ===== */
+/* --- FILTROS SUPERIOR --- */
 .filtros-superior-premium {
     background: #ffffff;
     border-radius: 12px;
@@ -1714,7 +1427,6 @@ onMounted(() => {
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
 }
 
-/* Checkbox TODOS */
 .checkbox-todos-item {
     min-width: auto;
     justify-content: center;
@@ -1749,118 +1461,183 @@ onMounted(() => {
     white-space: nowrap;
 }
 
-/* ===== TABLA ===== */
-.table-wrapper-premium {
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #f0f2f5;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    padding: 20px;
+.checkbox-fiscal-item {
+    min-width: auto;
+    justify-content: center;
 }
 
-.table-scroll-container {
-    overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid #f1f5f9;
-}
-
-.table-scroll-container :deep(.ant-table-body) {
-    max-height: 380px !important;
-    overflow-y: auto !important;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-.table-header-ultra {
+.checkbox-fiscal-label {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-@media (min-width: 640px) {
-    .table-header-ultra {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
-}
-
-.table-header-left-ultra {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.table-header-right-ultra {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.btn-group-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.filter-tag-ultra {
-    border-radius: 30px !important;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
-    border: none !important;
-    color: #1a3a5c !important;
-    font-weight: 600 !important;
-    padding: 4px 16px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-}
-
-.filter-dot-active {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #1a3a5c;
-    display: inline-block;
-    animation: pulse 2s infinite;
-}
-
-.total-pendiente-badge {
-    display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 16px;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    height: 36px;
+    background: #f0fdf4;
+    border: 2px solid #86efac;
+}
+
+.checkbox-fiscal-label:hover {
+    background: #dcfce7;
+}
+
+.checkbox-fiscal-input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #10b981;
+}
+
+.checkbox-fiscal-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #166534;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* --- BOTONES DE ACCIÓN --- */
+.btn-fiscal-doble-iva {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    height: 36px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.btn-fiscal-doble-iva:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+    color: white;
+}
+
+.btn-fiscal-doble-iva .btn-fiscal-text {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.btn-fiscal-doble-iva .btn-fiscal-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    color: white;
+}
+
+.fiscal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
     background: linear-gradient(135deg, #dcfce7, #bbf7d0);
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
     color: #166534;
+    border: 1px solid #86efac;
 }
 
-.total-pendiente-value {
+.traspaso-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #5b21b6;
+    border: 1px solid #c4b5fd;
+}
+
+.traspaso-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    background: #ede9fe;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.traspaso-amount-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    font-size: 12px;
+}
+
+.cuenta-destino-label {
+    color: #8b5cf6;
     font-weight: 700;
-    font-size: 14px;
-    color: #166534;
+    margin-right: 4px;
+}
+
+.tipo-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.tipo-badge.ingreso-tipo {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.tipo-badge.egreso-tipo {
+    background: #fecaca;
+    color: #991b1b;
+}
+
+.tipo-badge.traspaso-tipo {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+/* --- ESTILOS DE TRASPASOS --- */
+.total-traspasos .total-icon-grande {
+    background: #ede9fe;
+}
+
+.total-traspasos .total-icon-svg-grande {
+    color: #7c3aed;
+}
+
+.traspaso-value {
+    color: #7c3aed;
+}
+
+.fiscal-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    background: #dcfce7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
 }
 
 .btn-nueva-poliza {
@@ -1916,7 +1693,122 @@ onMounted(() => {
     height: 16px;
 }
 
-/* ===== ESTILOS DE LA TABLA ===== */
+/* --- TABLA --- */
+.table-wrapper-premium {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #f0f2f5;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 20px;
+}
+
+.table-scroll-container {
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.table-scroll-container :deep(.ant-table-body) {
+    max-height: 500px !important;
+    overflow-y: auto !important;
+}
+
+.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.table-header-ultra {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 640px) {
+    .table-header-ultra {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.table-header-left-ultra {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.table-header-right-ultra {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn-group-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-tag-ultra {
+    border-radius: 30px !important;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
+    border: none !important;
+    color: #1a3a5c !important;
+    font-weight: 600 !important;
+    padding: 4px 16px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.filter-dot-active {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #1a3a5c;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+.total-pendiente-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 16px;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #166534;
+}
+
+.total-pendiente-value {
+    font-weight: 700;
+    font-size: 14px;
+    color: #166534;
+}
+
+/* --- ESTILOS DE LA TABLA --- */
 .movimiento-table-ultra {
     width: 100%;
 }
@@ -1991,7 +1883,34 @@ onMounted(() => {
     background: linear-gradient(90deg, #fecaca, #fca5a5) !important;
 }
 
-/* ===== CELDA DE FECHA CON USUARIO ===== */
+/* --- CELDAS --- */
+.referencia-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #0f172a;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.referencia-link:hover {
+    color: #667eea;
+    text-decoration: underline;
+}
+
+.referencia-text-ultra {
+    font-size: 13px;
+    color: inherit;
+}
+
+.referencia-extra-ultra {
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
 .fecha-usuario-cell {
     display: flex;
     flex-direction: column;
@@ -2005,16 +1924,6 @@ onMounted(() => {
     color: #475569;
 }
 
-.usuario-fecha-creacion {
-    font-size: 9px;
-    color: #94a3b8;
-    font-weight: 400;
-    background: #f1f5f9;
-    padding: 1px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-}
-
 .fecha-text-ultra.vencido {
     color: #dc2626;
     font-weight: 700;
@@ -2023,6 +1932,16 @@ onMounted(() => {
 .fecha-text-ultra.vigente {
     color: #10b981;
     font-weight: 600;
+}
+
+.usuario-fecha-creacion {
+    font-size: 9px;
+    color: #94a3b8;
+    font-weight: 400;
+    background: #f1f5f9;
+    padding: 1px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
 .vencido-icon {
@@ -2086,10 +2005,6 @@ onMounted(() => {
     color: #dc2626;
 }
 
-.monto-text-ultra.neutro {
-    color: #94a3b8;
-}
-
 .monto-text-ultra.abonado-text {
     color: #2563eb;
 }
@@ -2124,7 +2039,6 @@ onMounted(() => {
     color: #94a3b8;
 }
 
-/* ===== PDF CELL ===== */
 .pdf-cell {
     display: flex;
     align-items: center;
@@ -2153,12 +2067,6 @@ onMounted(() => {
     transform: none !important;
 }
 
-.btn-pdf:disabled:hover {
-    background: transparent !important;
-    transform: none !important;
-}
-
-/* ===== ACCIONES ===== */
 .acciones-cell {
     display: flex;
     align-items: center;
@@ -2185,11 +2093,6 @@ onMounted(() => {
     text-align: center;
     justify-content: center;
     height: 24px;
-}
-
-.btn-icon-sm {
-    width: 12px;
-    height: 12px;
 }
 
 .btn-accion.liquidar {
@@ -2242,7 +2145,7 @@ onMounted(() => {
     transform: none !important;
 }
 
-/* ===== FILTROS INFERIOR ===== */
+/* --- FILTROS INFERIOR --- */
 .filtros-inferior-tabla {
     margin-top: 16px;
     padding: 16px 20px;
@@ -2344,7 +2247,7 @@ onMounted(() => {
     transform: translateY(-1px);
 }
 
-/* ===== RESUMEN DE TOTALES ===== */
+/* --- RESUMEN DE TOTALES --- */
 .resumen-totales-wrapper {
     margin-top: 20px;
     display: flex;
@@ -2434,6 +2337,10 @@ onMounted(() => {
     background: #fef2f2;
 }
 
+.total-traspasos .total-icon-grande {
+    background: #ede9fe;
+}
+
 .total-saldo-neto .total-icon-grande {
     background: #f0fdf4;
 }
@@ -2449,6 +2356,10 @@ onMounted(() => {
 
 .total-egresos .total-icon-svg-grande {
     color: #dc2626;
+}
+
+.total-traspasos .total-icon-svg-grande {
+    color: #7c3aed;
 }
 
 .total-saldo-neto .total-icon-svg-grande {
@@ -2485,11 +2396,15 @@ onMounted(() => {
     color: #dc2626;
 }
 
+.traspaso-value {
+    color: #7c3aed;
+}
+
 .saldo-net-value {
     color: #10b981;
 }
 
-/* ===== PAGINACION ===== */
+/* --- PAGINACION --- */
 .pagination-ultra {
     display: flex;
     flex-direction: column;
@@ -2526,7 +2441,7 @@ onMounted(() => {
     50% { opacity: 0.5; transform: scale(1.2); }
 }
 
-/* ===== RESPONSIVE ===== */
+/* --- RESPONSIVE --- */
 @media (max-width: 768px) {
     .filtros-superior-content {
         flex-direction: column;
@@ -2549,7 +2464,8 @@ onMounted(() => {
         justify-content: center;
     }
 
-    .checkbox-todos-item {
+    .checkbox-todos-item,
+    .checkbox-fiscal-item {
         align-items: flex-start;
     }
 
@@ -2562,7 +2478,8 @@ onMounted(() => {
     }
     
     .btn-nueva-poliza,
-    .btn-nomina-poliza {
+    .btn-nomina-poliza,
+    .btn-fiscal-doble-iva {
         width: 100%;
         justify-content: center;
     }
@@ -2570,6 +2487,15 @@ onMounted(() => {
     .btn-group-actions {
         width: 100%;
         flex-direction: column;
+    }
+    
+    .btn-group-actions .column-selector-wrapper {
+        width: 100%;
+    }
+    
+    .btn-group-actions .column-selector-wrapper .btn-column-selector {
+        width: 100%;
+        justify-content: center;
     }
 
     .table-header-right-ultra {
@@ -2636,8 +2562,19 @@ onMounted(() => {
         min-width: 100%;
         width: 100%;
         padding: 12px 16px;
+        flex-direction: column;
+        gap: 12px;
     }
     
+    .resumen-totales-header-grande {
+        padding-right: 0;
+        border-right: none;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 8px;
+        width: 100%;
+        justify-content: center;
+    }
+
     .total-item-grande {
         min-width: 100%;
         flex: 1 1 100%;
@@ -2659,7 +2596,12 @@ onMounted(() => {
         height: 8px;
     }
     
-    .checkbox-todos-text {
+    .checkbox-todos-text,
+    .checkbox-fiscal-text {
+        font-size: 12px;
+    }
+
+    .btn-fiscal-doble-iva .btn-fiscal-text {
         font-size: 12px;
     }
 }

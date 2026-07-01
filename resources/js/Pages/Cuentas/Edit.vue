@@ -1,5 +1,5 @@
 <template>
-    <AppLayout title="RIC - Editar Cuenta">
+    <AppLayout :title="`RIC - Editar Cuenta: ${form.nombre_cuenta || 'Sin nombre'}`">
         <template #header>
             <div class="header-premium">
                 <div class="header-content-premium">
@@ -15,7 +15,7 @@
                             </h2>
                             <p class="header-subtitle-premium">
                                 <span class="subtitle-line"></span>
-                                Modifica los datos de la cuenta contable
+                                {{ form.nombre_cuenta || 'Sin nombre' }} ({{ form.codigo_cuenta || 'Sin código' }})
                             </p>
                         </div>
                     </div>
@@ -75,7 +75,7 @@
                 <div class="form-card-premium">
                     <form @submit.prevent="submit" id="cuentaForm" novalidate>
                         <!-- ============================================ -->
-                        <!-- SECCIÓN 1: DATOS DE LA EMPRESA -->
+                        <!-- SECCIÓN 1: NOMBRE Y CÓDIGO -->
                         <!-- ============================================ -->
                         <div class="form-section-premium">
                             <div class="section-header-premium">
@@ -85,64 +85,13 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="section-title-premium">Datos de la Empresa</h3>
-                                    <p class="section-subtitle-premium">Selecciona la empresa a la que pertenecerá la cuenta</p>
-                                </div>
-                            </div>
-
-                            <div class="form-grid-premium">
-                                <div class="form-group-premium full-width">
-                                    <label class="form-label-premium">
-                                        <span class="label-icon-wrapper">
-                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </span>
-                                        Empresa <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium input-with-icon">
-                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        <select v-model="form.id_empresa" 
-                                                @change="clearError('id_empresa'); onEmpresaChange()"
-                                                class="form-input-premium"
-                                                :class="{ 'error': form.errors.id_empresa }"
-                                                :disabled="true">
-                                            <option value="">-- Selecciona una empresa --</option>
-                                            <option v-for="empresa in empresas" :key="empresa.id" :value="empresa.id">
-                                                {{ empresa.nombre_empresa }} ({{ empresa.rfc || 'Sin RFC' }})
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div v-if="form.errors.id_empresa" class="error-message-premium">
-                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.id_empresa }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 2: DATOS DE LA CUENTA -->
-                        <!-- ============================================ -->
-                        <div class="form-section-premium">
-                            <div class="section-header-premium">
-                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                                    <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-                                    </svg>
-                                </div>
-                                <div>
                                     <h3 class="section-title-premium">Datos de la Cuenta</h3>
                                     <p class="section-subtitle-premium">Información principal de la cuenta contable</p>
                                 </div>
                             </div>
 
                             <div class="form-grid-premium">
-                                <!-- Código de Cuenta -->
+                                <!-- Código -->
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">
                                         <span class="label-icon-wrapper">
@@ -186,93 +135,10 @@
                                         </svg>
                                         El código <strong>"{{ form.codigo_cuenta }}"</strong> ya está en uso
                                     </div>
-                                    <div class="input-helper-premium">
-                                        <span>Ej: AC001 (Activos), PA001 (Pasivos), CA001 (Capital)</span>
-                                    </div>
-                                </div>
-
-                                <!-- Nivel -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        <span class="label-icon-wrapper">
-                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                                            </svg>
-                                        </span>
-                                        Nivel <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium input-with-icon">
-                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                                        </svg>
-                                        <select v-model="form.nivel" 
-                                                @change="clearError('nivel'); onNivelChange()"
-                                                class="form-input-premium"
-                                                :class="{ 'error': form.errors.nivel }">
-                                            <option value="">-- Selecciona un nivel --</option>
-                                            <option v-for="n in 5" :key="n" :value="n">
-                                                Nivel {{ n }} {{ n === 1 ? 'Principal' : '' }}
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div v-if="form.errors.nivel" class="error-message-premium">
-                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.nivel }}
-                                    </div>
-                                </div>
-
-                                <!-- Cuenta Madre -->
-                                <div class="form-group-premium full-width" v-if="form.nivel > 1 && form.id_empresa">
-                                    <label class="form-label-premium">
-                                        <span class="label-icon-wrapper">
-                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/>
-                                            </svg>
-                                        </span>
-                                        Cuenta Madre <span class="required-star">*</span>
-                                        <span class="label-badge-premium">Nivel {{ form.nivel - 1 }}</span>
-                                        <span v-if="cargandoCuentasMadre" class="label-badge-premium" style="background: #f59e0b;">
-                                            Cargando...
-                                        </span>
-                                        <span v-else-if="cuentasMadreDisponibles.length > 0" class="label-badge-premium" style="background: #10b981;">
-                                            {{ cuentasMadreDisponibles.length }} disponibles
-                                        </span>
-                                    </label>
-                                    <div class="input-wrapper-premium input-with-icon">
-                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/>
-                                        </svg>
-                                        <select v-model="form.id_cuenta_madre" 
-                                                @change="clearError('id_cuenta_madre')"
-                                                class="form-input-premium"
-                                                :class="{ 'error': form.errors.id_cuenta_madre }"
-                                                :disabled="cargandoCuentasMadre">
-                                            <option value="">-- Selecciona una cuenta madre --</option>
-                                            <option v-for="cuenta in cuentasMadreDisponibles" :key="cuenta.id_cuenta" :value="cuenta.id_cuenta">
-                                                {{ cuenta.display }}
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div v-if="form.errors.id_cuenta_madre" class="error-message-premium">
-                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.id_cuenta_madre }}
-                                    </div>
-                                    <div class="input-helper-premium">
-                                        <span v-if="cuentasMadreDisponibles.length === 0 && !cargandoCuentasMadre" class="text-warning">
-                                            No hay cuentas de nivel {{ form.nivel - 1 }} disponibles
-                                        </span>
-                                        <span v-else class="text-muted">
-                                            La cuenta madre debe ser del nivel inmediato superior
-                                        </span>
-                                    </div>
                                 </div>
 
                                 <!-- Nombre -->
-                                <div class="form-group-premium full-width">
+                                <div class="form-group-premium">
                                     <label class="form-label-premium">
                                         <span class="label-icon-wrapper">
                                             <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,48 +164,22 @@
                                         {{ form.errors.nombre_cuenta }}
                                     </div>
                                 </div>
-
-                                <!-- Descripción -->
-                                <div class="form-group-premium full-width">
-                                    <label class="form-label-premium">
-                                        <span class="label-icon-wrapper">
-                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                            </svg>
-                                        </span>
-                                        Descripción
-                                    </label>
-                                    <div class="input-wrapper-premium">
-                                        <textarea v-model="form.descripcion"
-                                                  @input="clearError('descripcion')"
-                                                  class="form-textarea-premium"
-                                                  :class="{ 'error': form.errors.descripcion }"
-                                                  rows="3"
-                                                  placeholder="Describe el propósito de esta cuenta contable..."></textarea>
-                                    </div>
-                                    <div v-if="form.errors.descripcion" class="error-message-premium">
-                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.descripcion }}
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- SECCIÓN 3: CLASIFICACIÓN -->
+                        <!-- SECCIÓN 2: CLASIFICACIÓN (Naturaleza + Nivel + Tipo en línea) -->
                         <!-- ============================================ -->
                         <div class="form-section-premium">
                             <div class="section-header-premium">
-                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
                                     <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                 </div>
                                 <div>
                                     <h3 class="section-title-premium">Clasificación</h3>
-                                    <p class="section-subtitle-premium">Define el tipo y naturaleza de la cuenta</p>
+                                    <p class="section-subtitle-premium">Define la naturaleza, nivel y tipo de la cuenta</p>
                                 </div>
                             </div>
 
@@ -393,6 +233,28 @@
                                     </div>
                                 </div>
 
+                                <!-- Nivel (NO EDITABLE) -->
+                                <div class="form-group-premium">
+                                    <label class="form-label-premium">
+                                        <span class="label-icon-wrapper">
+                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                            </svg>
+                                        </span>
+                                        Nivel
+                                    </label>
+                                    <div class="input-wrapper-premium input-with-icon">
+                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                        </svg>
+                                        <input type="text" 
+                                               :value="'Nivel ' + form.nivel"
+                                               class="form-input-premium"
+                                               disabled
+                                               style="background: #f1f5f9; cursor: not-allowed; opacity: 0.8;">
+                                    </div>
+                                </div>
+
                                 <!-- Tipo -->
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">
@@ -411,7 +273,7 @@
                                                 @change="clearError('tipo_cuenta')"
                                                 class="form-input-premium"
                                                 :class="{ 'error': form.errors.tipo_cuenta }">
-                                            <option value="">-- Selecciona un tipo --</option>
+                                            <option value="">-- Selecciona --</option>
                                             <option value="FONDEADORA">Fondeadora</option>
                                             <option value="RESULTADO">Resultado</option>
                                             <option value="ORDEN">Orden</option>
@@ -423,48 +285,14 @@
                                         </svg>
                                         {{ form.errors.tipo_cuenta }}
                                     </div>
-                                    <div class="input-helper-premium">
-                                        <span>Fondeadora = Balance general | Resultado = Estado de resultados | Orden = Cuentas de orden</span>
-                                    </div>
                                 </div>
 
-                                <!-- Saldo Inicial -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        <span class="label-icon-wrapper">
-                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                        </span>
-                                        Saldo Inicial
-                                    </label>
-                                    <div class="input-wrapper-premium input-with-icon">
-                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <input type="number" v-model="form.saldo_inicial"
-                                               @input="clearError('saldo_inicial')"
-                                               class="form-input-premium"
-                                               :class="{ 'error': form.errors.saldo_inicial }"
-                                               placeholder="0.00"
-                                               step="0.01"
-                                               min="0">
-                                    </div>
-                                    <div v-if="form.errors.saldo_inicial" class="error-message-premium">
-                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.saldo_inicial }}
-                                    </div>
-                                    <div class="input-helper-premium">
-                                        <span>Déjalo en 0.00 si no tiene saldo inicial</span>
-                                    </div>
-                                </div>
-
-                                <!-- Checkboxes -->
-                                <div class="form-group-premium">
+                                <!-- ============================================ -->
+                                <!-- CHECKBOXES EN UNA SOLA LÍNEA -->
+                                <!-- ============================================ -->
+                                <div class="form-group-premium full-width">
                                     <label class="form-label-premium" style="visibility: hidden;">Configuraciones</label>
-                                    <div class="checkbox-group-premium">
+                                    <div class="checkbox-group-inline">
                                         <label class="checkbox-premium" 
                                                :class="{ 'checked': form.es_cuenta_resultados }"
                                                @click="form.es_cuenta_resultados = !form.es_cuenta_resultados">
@@ -473,10 +301,20 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                                 </svg>
                                             </div>
-                                            <div class="checkbox-content-premium">
-                                                <span class="checkbox-title-premium">Cuenta de resultados</span>
-                                                <span class="checkbox-desc-premium">Se utiliza en el estado de resultados (Pérdidas y Ganancias)</span>
+                                            <span class="checkbox-label-inline">Cuenta de resultados</span>
+                                        </label>
+
+                                        <label class="checkbox-premium" 
+                                               :class="{ 'checked': cuenta.en_uso }"
+                                               style="cursor: default; opacity: 0.8;">
+                                            <div class="checkbox-custom-premium" :style="{ background: cuenta.en_uso ? 'linear-gradient(135deg, #10b981, #059669)' : '#e5e7eb', borderColor: cuenta.en_uso ? '#10b981' : '#d1d5db' }">
+                                                <svg v-if="cuenta.en_uso" class="checkbox-check-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                                </svg>
                                             </div>
+                                            <span class="checkbox-label-inline" :style="{ color: cuenta.en_uso ? '#10b981' : '#94a3b8' }">
+                                                {{ cuenta.en_uso ? 'Activa' : 'Inactiva' }}
+                                            </span>
                                         </label>
 
                                         <label class="checkbox-premium" 
@@ -487,10 +325,7 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                                 </svg>
                                             </div>
-                                            <div class="checkbox-content-premium">
-                                                <span class="checkbox-title-premium">Cuenta fondeadora</span>
-                                                <span class="checkbox-desc-premium">Se utiliza para fondear cajas y cuentas de efectivo</span>
-                                            </div>
+                                            <span class="checkbox-label-inline">Cuenta fondeadora</span>
                                         </label>
                                     </div>
                                 </div>
@@ -498,9 +333,9 @@
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- SECCIÓN 4: RESUMEN DE JERARQUÍA -->
+                        <!-- SECCIÓN 3: JERARQUÍA + BOTÓN CREAR HIJA -->
                         <!-- ============================================ -->
-                        <div class="form-section-premium" v-if="form.id_empresa && form.nivel">
+                        <div class="form-section-premium">
                             <div class="section-header-premium">
                                 <div class="section-icon-premium" style="background: linear-gradient(135deg, #10b981, #059669);">
                                     <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -508,12 +343,60 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="section-title-premium">Resumen de Jerarquía</h3>
-                                    <p class="section-subtitle-premium">Estructura completa de la cuenta en el sistema</p>
+                                    <h3 class="section-title-premium">Jerarquía de la Cuenta</h3>
+                                    <p class="section-subtitle-premium">Estructura completa en el sistema</p>
                                 </div>
                             </div>
 
                             <div class="form-grid-premium">
+                                <!-- Cuenta Madre (si nivel > 1) -->
+                                <div class="form-group-premium full-width" v-if="form.nivel > 1 && form.id_empresa">
+                                    <label class="form-label-premium">
+                                        <span class="label-icon-wrapper">
+                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/>
+                                            </svg>
+                                        </span>
+                                        Cuenta Madre <span class="required-star">*</span>
+                                        <span class="label-badge-premium">Nivel {{ form.nivel - 1 }}</span>
+                                        <span v-if="cargandoCuentasMadre" class="label-badge-premium" style="background: #f59e0b;">
+                                            Cargando...
+                                        </span>
+                                        <span v-else-if="cuentasMadre.length > 0" class="label-badge-premium" style="background: #10b981;">
+                                            {{ cuentasMadre.length }} disponibles
+                                        </span>
+                                    </label>
+                                    <div class="input-wrapper-premium input-with-icon">
+                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/>
+                                        </svg>
+                                        <select v-model="form.id_cuenta_madre" 
+                                                @change="clearError('id_cuenta_madre')"
+                                                class="form-input-premium"
+                                                :class="{ 'error': form.errors.id_cuenta_madre }"
+                                                :disabled="cargandoCuentasMadre">
+                                            <option value="">-- Selecciona una cuenta madre --</option>
+                                            <option v-for="cuenta in cuentasMadre" :key="cuenta.id_cuenta" :value="cuenta.id_cuenta">
+                                                {{ cuenta.display }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div v-if="form.errors.id_cuenta_madre" class="error-message-premium">
+                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        {{ form.errors.id_cuenta_madre }}
+                                    </div>
+                                    <div class="input-helper-premium">
+                                        <span v-if="cuentasMadre.length === 0 && !cargandoCuentasMadre" class="text-warning">
+                                            No hay cuentas de nivel {{ form.nivel - 1 }} disponibles
+                                        </span>
+                                        <span v-else class="text-muted">
+                                            La cuenta madre debe ser del nivel inmediato superior
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div class="form-group-premium full-width">
                                     <div class="jerarquia-resumen-premium">
                                         <!-- Ruta lineal -->
@@ -539,8 +422,8 @@
                                             <div class="jerarquia-resumen-item actual">
                                                 <span class="jerarquia-resumen-badge" style="background: #10b981;">N{{ form.nivel }}</span>
                                                 <span class="jerarquia-resumen-codigo">{{ form.codigo_cuenta || '???' }}</span>
-                                                <span class="jerarquia-resumen-nombre">{{ form.nombre_cuenta || 'Nueva Cuenta' }}</span>
-                                                <span class="jerarquia-resumen-badge-nuevo">Editando</span>
+                                                <span class="jerarquia-resumen-nombre">{{ form.nombre_cuenta || 'Sin nombre' }}</span>
+                                                <span class="jerarquia-resumen-badge-editar">EDITANDO</span>
                                             </div>
                                         </div>
 
@@ -559,7 +442,7 @@
                                                         <span style="color: #f59e0b; font-weight: 600;">Seleccionar cuenta madre</span>
                                                     </span>
                                                     <span style="color: #94a3b8;"> → </span>
-                                                    <span style="color: #10b981; font-weight: 700;">{{ form.codigo_cuenta || '???' }} - {{ form.nombre_cuenta || 'Nueva Cuenta' }}</span>
+                                                    <span style="color: #10b981; font-weight: 700;">{{ form.codigo_cuenta || '???' }} - {{ form.nombre_cuenta || 'Sin nombre' }}</span>
                                                 </span>
                                             </div>
                                             <div class="jerarquia-resumen-linea" v-if="form.nivel > 1 && !cuentaMadreSeleccionada">
@@ -584,6 +467,62 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Botón para crear cuenta hija -->
+                            <div class="crear-hija-container" v-if="cuenta.en_uso">
+                                <button type="button" class="btn-crear-hija-premium" @click="abrirModalCrearHija">
+                                    <svg class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                    <span>Crear cuenta hija</span>
+                                    <span class="btn-crear-hija-badge">Nuevo</span>
+                                </button>
+                                <span class="crear-hija-desc">Crea una nueva cuenta que será hija de esta cuenta</span>
+                            </div>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- SECCIÓN 4: DESCRIPCIÓN -->
+                        <!-- ============================================ -->
+                        <div class="form-section-premium">
+                            <div class="section-header-premium">
+                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                    <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="section-title-premium">Descripción</h3>
+                                    <p class="section-subtitle-premium">Notas adicionales sobre la cuenta</p>
+                                </div>
+                            </div>
+
+                            <div class="form-grid-premium">
+                                <div class="form-group-premium full-width">
+                                    <label class="form-label-premium">
+                                        <span class="label-icon-wrapper">
+                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </span>
+                                        Descripción
+                                    </label>
+                                    <div class="input-wrapper-premium">
+                                        <textarea v-model="form.descripcion"
+                                                  @input="clearError('descripcion')"
+                                                  class="form-textarea-premium"
+                                                  :class="{ 'error': form.errors.descripcion }"
+                                                  rows="4"
+                                                  placeholder="Describe el propósito y uso de esta cuenta contable..."></textarea>
+                                    </div>
+                                    <div v-if="form.errors.descripcion" class="error-message-premium">
+                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        {{ form.errors.descripcion }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- ============================================ -->
@@ -604,13 +543,206 @@
                                 Cancelar
                             </Link>
                             <button type="submit" 
-                                    :disabled="form.processing"
+                                    :disabled="form.processing || !isFormValid"
                                     class="btn-submit-premium">
                                 <span v-if="form.processing" class="spinner-border spinner-border-sm me-2" role="status"></span>
                                 <svg v-else class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
                                 </svg>
                                 {{ form.processing ? 'Guardando...' : 'Actualizar Cuenta' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- MODAL: CREAR CUENTA HIJA (SIMPLIFICADO SIN SALDO) -->
+        <!-- ============================================ -->
+        <div v-if="modalHijaVisible" class="modal-overlay-premium" @click.self="cerrarModalHija">
+            <div class="modal-container-premium modal-hija">
+                <div class="modal-header-premium">
+                    <div class="modal-header-info">
+                        <div class="modal-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <svg class="modal-icon-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="modal-title-premium">Crear Cuenta Hija</h3>
+                            <p class="modal-subtitle-premium">
+                                Nueva cuenta de nivel <strong>Nivel {{ form.nivel + 1 }}</strong> 
+                                bajo "{{ form.nombre_cuenta || 'Sin nombre' }}"
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" @click="cerrarModalHija" class="modal-close-premium">
+                        <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="modal-body-premium">
+                    <form @submit.prevent="guardarCuentaHija" id="formHija">
+                        <div class="form-grid-modal">
+                            <!-- Código -->
+                            <div class="form-group-premium">
+                                <label class="form-label-premium">
+                                    Código <span class="required-star">*</span>
+                                    <span v-if="verificandoCodigoHija" class="label-badge-premium" style="background: #f59e0b;">
+                                        Verificando...
+                                    </span>
+                                    <span v-else-if="codigoExisteHija && formHija.codigo_cuenta" class="label-badge-premium" style="background: #ef4444;">
+                                        Ocupado
+                                    </span>
+                                    <span v-else-if="!codigoExisteHija && formHija.codigo_cuenta && formHija.codigo_cuenta.length > 0" class="label-badge-premium" style="background: #10b981;">
+                                        Disponible
+                                    </span>
+                                </label>
+                                <div class="input-wrapper-premium input-with-icon">
+                                    <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                    </svg>
+                                    <input type="text" v-model="formHija.codigo_cuenta"
+                                           @input="clearErrorHija('codigo_cuenta'); verificarCodigoHija()"
+                                           class="form-input-premium"
+                                           :class="{ 'error': formHija.errors.codigo_cuenta || codigoExisteHija }"
+                                           placeholder="Ej: AC001-01">
+                                </div>
+                                <div v-if="formHija.errors.codigo_cuenta" class="error-message-premium">
+                                    <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    {{ formHija.errors.codigo_cuenta }}
+                                </div>
+                            </div>
+
+                            <!-- Nombre -->
+                            <div class="form-group-premium">
+                                <label class="form-label-premium">
+                                    Nombre <span class="required-star">*</span>
+                                </label>
+                                <div class="input-wrapper-premium input-with-icon">
+                                    <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                    </svg>
+                                    <input type="text" v-model="formHija.nombre_cuenta"
+                                           @input="clearErrorHija('nombre_cuenta')"
+                                           class="form-input-premium"
+                                           :class="{ 'error': formHija.errors.nombre_cuenta }"
+                                           placeholder="Ej: Bancos Nacionales">
+                                </div>
+                                <div v-if="formHija.errors.nombre_cuenta" class="error-message-premium">
+                                    <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    {{ formHija.errors.nombre_cuenta }}
+                                </div>
+                            </div>
+
+                            <!-- Naturaleza -->
+                            <div class="form-group-premium">
+                                <label class="form-label-premium">
+                                    Naturaleza <span class="required-star">*</span>
+                                </label>
+                                <div class="radio-group-modal">
+                                    <div class="radio-card-modal" 
+                                         :class="{ 'selected': formHija.Naturaleza === 'DEUDORA' }"
+                                         @click="formHija.Naturaleza = 'DEUDORA'; clearErrorHija('Naturaleza')">
+                                        <span class="radio-emoji-modal">📉</span>
+                                        <span class="radio-label-modal">Deudora</span>
+                                    </div>
+                                    <div class="radio-card-modal" 
+                                         :class="{ 'selected': formHija.Naturaleza === 'ACREEDORA' }"
+                                         @click="formHija.Naturaleza = 'ACREEDORA'; clearErrorHija('Naturaleza')">
+                                        <span class="radio-emoji-modal">📈</span>
+                                        <span class="radio-label-modal">Acreedora</span>
+                                    </div>
+                                </div>
+                                <div v-if="formHija.errors.Naturaleza" class="error-message-premium">
+                                    {{ formHija.errors.Naturaleza }}
+                                </div>
+                            </div>
+
+                            <!-- Tipo -->
+                            <div class="form-group-premium">
+                                <label class="form-label-premium">
+                                    Tipo <span class="required-star">*</span>
+                                </label>
+                                <div class="input-wrapper-premium input-with-icon">
+                                    <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                    </svg>
+                                    <select v-model="formHija.tipo_cuenta" 
+                                            @change="clearErrorHija('tipo_cuenta')"
+                                            class="form-input-premium"
+                                            :class="{ 'error': formHija.errors.tipo_cuenta }">
+                                        <option value="">-- Selecciona --</option>
+                                        <option value="FONDEADORA">Fondeadora</option>
+                                        <option value="RESULTADO">Resultado</option>
+                                        <option value="ORDEN">Orden</option>
+                                    </select>
+                                </div>
+                                <div v-if="formHija.errors.tipo_cuenta" class="error-message-premium">
+                                    {{ formHija.errors.tipo_cuenta }}
+                                </div>
+                            </div>
+
+                            <!-- ============================================ -->
+                            <!-- CHECKBOXES DEL MODAL EN LÍNEA -->
+                            <!-- ============================================ -->
+                            <div class="form-group-premium full-width-modal">
+                                <div class="checkbox-group-inline-modal">
+                                    <label class="checkbox-modal" 
+                                           :class="{ 'checked': formHija.es_cuenta_resultados }"
+                                           @click="formHija.es_cuenta_resultados = !formHija.es_cuenta_resultados">
+                                        <div class="checkbox-custom-modal">
+                                            <svg v-if="formHija.es_cuenta_resultados" class="checkbox-check-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
+                                        <span class="checkbox-label-modal">Cuenta de resultados</span>
+                                    </label>
+
+                                    <label class="checkbox-modal" 
+                                           :class="{ 'checked': formHija.fondeo_c }"
+                                           @click="formHija.fondeo_c = !formHija.fondeo_c">
+                                        <div class="checkbox-custom-modal">
+                                            <svg v-if="formHija.fondeo_c" class="checkbox-check-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
+                                        <span class="checkbox-label-modal">Cuenta fondeadora</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="form-group-premium full-width-modal">
+                                <label class="form-label-premium">Descripción</label>
+                                <div class="input-wrapper-premium">
+                                    <textarea v-model="formHija.descripcion"
+                                              class="form-textarea-premium"
+                                              rows="2"
+                                              placeholder="Breve descripción de la cuenta hija..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions-premium">
+                            <button type="button" @click="cerrarModalHija" class="btn-cancel-premium">
+                                Cancelar
+                            </button>
+                            <button type="submit" 
+                                    :disabled="guardandoHija || !isFormHijaValid"
+                                    class="btn-submit-premium">
+                                <span v-if="guardandoHija" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                <svg v-else class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                                </svg>
+                                {{ guardandoHija ? 'Guardando...' : 'Crear Hija' }}
                             </button>
                         </div>
                     </form>
@@ -630,6 +762,9 @@ import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
+// ============================================
+// PROPS
+// ============================================
 const props = defineProps({
     cuenta: {
         type: Object,
@@ -645,16 +780,26 @@ const props = defineProps({
     }
 });
 
+// ============================================
+// REFS
+// ============================================
 const alertRef = ref(null);
-const cuentasMadreDisponibles = ref([]);
+const cuentasMadre = ref([]);
 const cargandoCuentasMadre = ref(false);
 const verificandoCodigo = ref(false);
 const codigoExiste = ref(false);
 const codigoOriginal = ref('');
 let timeoutVerificar = null;
 
+// Modal Hija
+const modalHijaVisible = ref(false);
+const guardandoHija = ref(false);
+const verificandoCodigoHija = ref(false);
+const codigoExisteHija = ref(false);
+let timeoutVerificarHija = null;
+
 // ============================================
-// FORMULARIO
+// FORMULARIO PRINCIPAL (SIN SALDO INICIAL)
 // ============================================
 const form = useForm({
     id_empresa: props.cuenta.id_empresa || '',
@@ -666,15 +811,24 @@ const form = useForm({
     id_cuenta_madre: props.cuenta.id_cuenta_madre || null,
     es_cuenta_resultados: props.cuenta.es_cuenta_resultados || false,
     fondeo_c: props.cuenta.fondeo_c || false,
-    saldo_inicial: props.cuenta.saldo_inicial || 0,
     nivel: props.cuenta.nivel || ''
 });
 
-// Guardar código original para validación
-codigoOriginal.value = props.cuenta.codigo_cuenta || '';
-
-// Inicializar cuentas madre disponibles
-cuentasMadreDisponibles.value = props.cuentasMadre || [];
+// ============================================
+// FORMULARIO HIJA (SIN SALDO INICIAL)
+// ============================================
+const formHija = useForm({
+    id_empresa: form.id_empresa,
+    codigo_cuenta: '',
+    nombre_cuenta: '',
+    descripcion: '',
+    Naturaleza: '',
+    tipo_cuenta: '',
+    id_cuenta_madre: props.cuenta.id_cuenta,
+    es_cuenta_resultados: false,
+    fondeo_c: false,
+    nivel: (parseInt(form.nivel) || 0) + 1
+});
 
 // ============================================
 // COMPUTED
@@ -685,7 +839,7 @@ const empresaSeleccionada = computed(() => {
 
 const cuentaMadreSeleccionada = computed(() => {
     if (!form.id_cuenta_madre) return null;
-    return cuentasMadreDisponibles.value.find(c => c.id_cuenta === form.id_cuenta_madre);
+    return cuentasMadre.value.find(c => c.id_cuenta === form.id_cuenta_madre);
 });
 
 const isFormValid = computed(() => {
@@ -702,6 +856,18 @@ const isFormValid = computed(() => {
     
     if (codigoExiste.value && form.codigo_cuenta !== codigoOriginal.value) return false;
     
+    return true;
+});
+
+const isFormHijaValid = computed(() => {
+    if (!formHija.id_empresa || formHija.id_empresa.toString().trim() === '') return false;
+    if (!formHija.codigo_cuenta || formHija.codigo_cuenta.trim() === '') return false;
+    if (!formHija.nombre_cuenta || formHija.nombre_cuenta.trim() === '') return false;
+    if (!formHija.Naturaleza || formHija.Naturaleza.trim() === '') return false;
+    if (!formHija.tipo_cuenta || formHija.tipo_cuenta.trim() === '') return false;
+    if (!formHija.id_cuenta_madre || formHija.id_cuenta_madre.toString().trim() === '') return false;
+    if (!formHija.nivel || formHija.nivel.toString().trim() === '') return false;
+    if (codigoExisteHija.value) return false;
     return true;
 });
 
@@ -739,21 +905,14 @@ const statusClass = computed(() => {
 });
 
 // ============================================
-// FUNCIONES
+// FUNCIONES PRINCIPALES
 // ============================================
 const clearError = (field) => {
     if (form.errors[field]) delete form.errors[field];
 };
 
-const onEmpresaChange = () => {
-    codigoExiste.value = false;
-    cargarCuentasMadre();
-};
-
-const onNivelChange = () => {
-    form.id_cuenta_madre = null;
-    codigoExiste.value = false;
-    cargarCuentasMadre();
+const clearErrorHija = (field) => {
+    if (formHija.errors[field]) delete formHija.errors[field];
 };
 
 // ============================================
@@ -803,16 +962,57 @@ const verificarCodigo = async () => {
 };
 
 // ============================================
+// VERIFICAR CÓDIGO HIJA
+// ============================================
+const verificarCodigoHija = async () => {
+    const codigo = formHija.codigo_cuenta?.trim();
+    const empresaId = formHija.id_empresa;
+    
+    if (!codigo || codigo.length < 2 || !empresaId) {
+        codigoExisteHija.value = false;
+        return;
+    }
+
+    clearTimeout(timeoutVerificarHija);
+    verificandoCodigoHija.value = true;
+    
+    timeoutVerificarHija = setTimeout(async () => {
+        try {
+            const response = await axios.get('/cuentas/verificar-codigo', {
+                params: {
+                    empresa_id: empresaId,
+                    codigo: codigo
+                }
+            });
+            
+            codigoExisteHija.value = response.data.exists;
+            
+            if (codigoExisteHija.value) {
+                formHija.errors.codigo_cuenta = 'El código ya está en uso';
+            } else {
+                if (formHija.errors.codigo_cuenta) {
+                    delete formHija.errors.codigo_cuenta;
+                }
+            }
+        } catch (error) {
+            console.error('Error al verificar código hija:', error);
+        } finally {
+            verificandoCodigoHija.value = false;
+        }
+    }, 500);
+};
+
+// ============================================
 // CARGAR CUENTAS MADRE
 // ============================================
 const cargarCuentasMadre = async () => {
     if (!form.id_empresa || !form.nivel) {
-        cuentasMadreDisponibles.value = [];
+        cuentasMadre.value = [];
         return;
     }
 
     if (form.nivel == 1) {
-        cuentasMadreDisponibles.value = [];
+        cuentasMadre.value = [];
         return;
     }
 
@@ -827,23 +1027,105 @@ const cargarCuentasMadre = async () => {
         });
         
         if (response.data.success) {
-            cuentasMadreDisponibles.value = response.data.data;
+            cuentasMadre.value = response.data.data;
             
             if (form.id_cuenta_madre) {
-                const existe = cuentasMadreDisponibles.value.some(c => c.id_cuenta === form.id_cuenta_madre);
+                const existe = cuentasMadre.value.some(c => c.id_cuenta === form.id_cuenta_madre);
                 if (!existe) {
                     form.id_cuenta_madre = null;
                 }
             }
         } else {
-            cuentasMadreDisponibles.value = [];
+            cuentasMadre.value = [];
         }
     } catch (error) {
         console.error('Error al cargar cuentas madre:', error);
-        cuentasMadreDisponibles.value = [];
+        cuentasMadre.value = [];
     } finally {
         cargandoCuentasMadre.value = false;
     }
+};
+
+// ============================================
+// MODAL HIJA
+// ============================================
+const abrirModalCrearHija = () => {
+    formHija.id_empresa = form.id_empresa;
+    formHija.id_cuenta_madre = props.cuenta.id_cuenta;
+    formHija.nivel = (parseInt(form.nivel) || 0) + 1;
+    formHija.codigo_cuenta = '';
+    formHija.nombre_cuenta = '';
+    formHija.descripcion = '';
+    formHija.Naturaleza = '';
+    formHija.tipo_cuenta = '';
+    formHija.es_cuenta_resultados = false;
+    formHija.fondeo_c = false;
+    formHija.clearErrors();
+    codigoExisteHija.value = false;
+    
+    modalHijaVisible.value = true;
+};
+
+const cerrarModalHija = () => {
+    modalHijaVisible.value = false;
+    formHija.clearErrors();
+    codigoExisteHija.value = false;
+};
+
+const guardarCuentaHija = () => {
+    if (codigoExisteHija.value) {
+        alertRef.value?.show({
+            type: 'error',
+            title: 'Código no disponible',
+            message: 'El código "' + formHija.codigo_cuenta + '" ya está en uso. Por favor, elige otro diferente.',
+            buttonText: 'Entendido'
+        });
+        return;
+    }
+
+    if (!isFormHijaValid.value) {
+        alertRef.value?.show({
+            type: 'error',
+            title: 'Campos incompletos',
+            message: 'Por favor, complete todos los campos obligatorios para crear la cuenta hija.',
+            buttonText: 'Entendido'
+        });
+        return;
+    }
+
+    guardandoHija.value = true;
+
+    formHija.post(route('cuentas.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            guardandoHija.value = false;
+            cerrarModalHija();
+            
+            alertRef.value?.show({
+                type: 'success',
+                title: '¡Cuenta hija creada!',
+                message: 'La cuenta hija se ha registrado exitosamente bajo "' + form.nombre_cuenta + '".',
+                buttonText: 'Ir al listado'
+            });
+            
+            setTimeout(() => {
+                router.visit(route('cuentas.index', { empresa_id: form.id_empresa }));
+            }, 1500);
+        },
+        onError: (errors) => {
+            guardandoHija.value = false;
+            if (errors.codigo_cuenta) {
+                codigoExisteHija.value = true;
+            }
+            const errorMsg = Object.values(errors).join('<br>');
+            alertRef.value?.show({
+                type: 'error',
+                title: 'Error al crear',
+                message: errorMsg || 'Ocurrió un error al crear la cuenta hija.',
+                buttonText: 'Intentar de nuevo'
+            });
+        }
+    });
 };
 
 // ============================================
@@ -883,9 +1165,6 @@ const confirmarEliminar = () => {
             popup: 'swal-premium-popup',
             confirmButton: 'swal-premium-confirm',
             cancelButton: 'swal-premium-cancel'
-        },
-        didOpen: () => {
-            agregarEstilosSwal();
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -966,9 +1245,6 @@ const confirmarReactivar = () => {
             popup: 'swal-premium-popup',
             confirmButton: 'swal-premium-confirm',
             cancelButton: 'swal-premium-cancel'
-        },
-        didOpen: () => {
-            agregarEstilosSwal();
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -1012,53 +1288,6 @@ const confirmarReactivar = () => {
             });
         }
     });
-};
-
-// ============================================
-// ESTILOS PARA SWEETALERT2
-// ============================================
-const agregarEstilosSwal = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-premium-popup {
-            border-radius: 20px !important;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-        .swal-premium-confirm {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-confirm:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-        }
-        .swal-premium-cancel {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-cancel:hover {
-            transform: translateY(-2px);
-            background: #f1f5f9 !important;
-        }
-        .swal2-actions {
-            padding: 0 32px 24px !important;
-            gap: 12px !important;
-        }
-        .swal2-timer-progress-bar {
-            height: 4px !important;
-            background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
-        }
-        .swal2-popup {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-        }
-    `;
-    document.head.appendChild(style);
 };
 
 // ============================================
@@ -1173,7 +1402,9 @@ watch(() => form.nivel, (newVal, oldVal) => {
 // MOUNTED
 // ============================================
 onMounted(() => {
-    agregarEstilosSwal();
+    codigoOriginal.value = props.cuenta.codigo_cuenta || '';
+    cuentasMadre.value = props.cuentasMadre || [];
+    
     if (form.nivel > 1 && form.id_empresa) {
         cargarCuentasMadre();
     }
@@ -1181,7 +1412,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ===== TODOS LOS ESTILOS IGUALES ===== */
+/* ===== HEADER PREMIUM ===== */
 .header-premium {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 20px;
@@ -1256,6 +1487,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .btn-back-premium {
@@ -1296,22 +1528,20 @@ onMounted(() => {
     background: #fee2e2;
     border-color: #f87171;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
 }
 
-.btn-delete-premium.btn-reactivate {
+.btn-reactivate {
     background: #ecfdf5;
     color: #059669;
     border-color: #a7f3d0;
 }
 
-.btn-delete-premium.btn-reactivate:hover {
+.btn-reactivate:hover {
     background: #d1fae5;
     border-color: #6ee7b7;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
 }
 
-.btn-delete-premium .btn-icon-premium {
+.btn-icon-premium {
     width: 18px;
     height: 18px;
 }
@@ -1487,7 +1717,7 @@ onMounted(() => {
 /* ============================================ */
 .form-grid-premium {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 20px;
 }
 
@@ -1719,22 +1949,22 @@ onMounted(() => {
 }
 
 /* ============================================ */
-/* CHECKBOX MEJORADO */
+/* CHECKBOX EN LÍNEA */
 /* ============================================ */
-.checkbox-group-premium {
+.checkbox-group-inline {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    gap: 20px;
+    flex-wrap: wrap;
     padding-top: 4px;
 }
 
 .checkbox-premium {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px 20px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
     border: 2px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     background: white;
@@ -1752,16 +1982,15 @@ onMounted(() => {
 }
 
 .checkbox-custom-premium {
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
     border: 2px solid #d1d5db;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    margin-top: 2px;
 }
 
 .checkbox-premium.checked .checkbox-custom-premium {
@@ -1774,21 +2003,11 @@ onMounted(() => {
     height: 14px;
 }
 
-.checkbox-content-premium {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.checkbox-title-premium {
-    font-size: 14px;
-    font-weight: 600;
+.checkbox-label-inline {
+    font-size: 13px;
+    font-weight: 500;
     color: #1f2937;
-}
-
-.checkbox-desc-premium {
-    font-size: 12px;
-    color: #94a3b8;
+    white-space: nowrap;
 }
 
 /* ============================================ */
@@ -1855,7 +2074,7 @@ onMounted(() => {
     color: #374151;
 }
 
-.jerarquia-resumen-badge-nuevo {
+.jerarquia-resumen-badge-editar {
     font-size: 9px;
     font-weight: 700;
     background: #f59e0b;
@@ -1895,6 +2114,64 @@ onMounted(() => {
 
 .jerarquia-resumen-valor {
     color: #0f172a;
+    font-weight: 500;
+}
+
+/* ============================================ */
+/* CREAR HIJA */
+/* ============================================ */
+.crear-hija-container {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-radius: 12px;
+    border: 2px dashed #86efac;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.btn-crear-hija-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-crear-hija-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
+}
+
+.btn-crear-hija-premium .btn-icon-premium {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-crear-hija-badge {
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 2px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.crear-hija-desc {
+    font-size: 13px;
+    color: #065f46;
     font-weight: 500;
 }
 
@@ -1985,58 +2262,230 @@ onMounted(() => {
     transform: none;
 }
 
-.btn-icon-premium {
+/* ============================================ */
+/* MODAL HIJA */
+/* ============================================ */
+.modal-overlay-premium {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-container-premium {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header-premium {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 24px 28px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.modal-header-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.modal-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.modal-icon-premium {
+    width: 24px;
+    height: 24px;
+    stroke: white;
+}
+
+.modal-title-premium {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.modal-subtitle-premium {
+    font-size: 13px;
+    color: #94a3b8;
+    margin: 2px 0 0 0;
+}
+
+.modal-close-premium {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 50%;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.modal-close-premium:hover {
+    background: #fecaca;
+    color: #dc2626;
+    transform: rotate(90deg);
+}
+
+.modal-body-premium {
+    padding: 24px 28px 28px;
+}
+
+.form-grid-modal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.full-width-modal {
+    grid-column: 1 / -1;
+}
+
+.radio-group-modal {
+    display: flex;
+    gap: 8px;
+}
+
+.radio-card-modal {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.radio-card-modal:hover {
+    border-color: #9ca3af;
+}
+
+.radio-card-modal.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.radio-emoji-modal {
+    font-size: 18px;
+}
+
+.radio-label-modal {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* ============================================ */
+/* CHECKBOX MODAL EN LÍNEA */
+/* ============================================ */
+.checkbox-group-inline-modal {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.checkbox-modal {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.checkbox-modal:hover {
+    border-color: #9ca3af;
+}
+
+.checkbox-modal.checked {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.checkbox-custom-modal {
     width: 18px;
     height: 18px;
+    min-width: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
 }
 
-/* ============================================ */
-/* SWEETALERT2 OVERRIDES */
-/* ============================================ */
-:deep(.swal-premium-popup) {
-    border-radius: 20px !important;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-    padding: 0 !important;
-    overflow: hidden !important;
+.checkbox-modal.checked .checkbox-custom-modal {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: #667eea;
 }
 
-:deep(.swal-premium-confirm) {
-    padding: 10px 28px !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease !important;
+.checkbox-label-modal {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1f2937;
+    white-space: nowrap;
 }
 
-:deep(.swal-premium-confirm:hover) {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-}
-
-:deep(.swal-premium-cancel) {
-    padding: 10px 28px !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease !important;
-}
-
-:deep(.swal-premium-cancel:hover) {
-    transform: translateY(-2px);
-    background: #f1f5f9 !important;
-}
-
-:deep(.swal2-actions) {
-    padding: 0 32px 24px !important;
-    gap: 12px !important;
-}
-
-:deep(.swal2-timer-progress-bar) {
-    height: 4px !important;
-    background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
+.modal-actions-premium {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid #f1f5f9;
 }
 
 /* ============================================ */
 /* RESPONSIVE */
 /* ============================================ */
+@media (max-width: 992px) {
+    .form-grid-premium {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .form-grid-premium {
         grid-template-columns: 1fr;
@@ -2131,8 +2580,57 @@ onMounted(() => {
         justify-content: center;
     }
     
+    .checkbox-group-inline {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
     .checkbox-premium {
-        padding: 12px 16px;
+        width: 100%;
+    }
+    
+    .form-grid-modal {
+        grid-template-columns: 1fr;
+    }
+    
+    .full-width-modal {
+        grid-column: 1;
+    }
+    
+    .modal-container-premium {
+        margin: 16px;
+        max-height: 85vh;
+    }
+    
+    .modal-header-premium {
+        padding: 16px 20px;
+    }
+    
+    .modal-body-premium {
+        padding: 16px 20px 20px;
+    }
+    
+    .radio-group-modal {
+        flex-direction: column;
+    }
+    
+    .checkbox-group-inline-modal {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .checkbox-modal {
+        width: 100%;
+    }
+    
+    .crear-hija-container {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .btn-crear-hija-premium {
+        justify-content: center;
     }
 }
 
@@ -2145,6 +2643,21 @@ onMounted(() => {
     .section-header-premium {
         flex-direction: column;
         align-items: flex-start;
+    }
+    
+    .modal-header-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .modal-icon-wrapper {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .modal-icon-premium {
+        width: 20px;
+        height: 20px;
     }
 }
 </style>

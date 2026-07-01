@@ -47,6 +47,31 @@ Route::middleware(['auth'])->group(function () {
     Route::post('movimientos/traspaso/store', [MovimientoController::class, 'storeTraspaso'])->name('movimientos.traspaso.store');
     Route::get('movimientos/export/excel', [MovimientoController::class, 'exportExcel'])->name('movimientos.export.excel');
     Route::get('movimientos/export/pdf', [MovimientoController::class, 'exportPdf'])->name('movimientos.export.pdf');
+    Route::get('/movimientos/fiscal-doble-iva/create', [MovimientoController::class, 'createFiscalDobleIva'])->name('movimientos.fiscal.doble.iva.create');
+    Route::post('/movimientos/fiscal-doble-iva/store', [MovimientoController::class, 'storeFiscalDobleIva'])->name('movimientos.fiscal.doble.iva.store');
+    
+    // 🔹 Movimientos - Obtener última póliza de una persona
+    Route::get('/movimientos/ultima-poliza', [MovimientoController::class, 'obtenerUltimaPoliza'])->name('movimientos.ultima.poliza');
+    
+    // 🔹 Movimientos - Exportar PDF de póliza
+    Route::get('/movimientos/export-pdf/{id}', [MovimientoController::class, 'exportPdfPoliza'])->name('movimientos.export.pdf.poliza');
+
+    // ============================================
+    // ✅ ACCIONES DE PÓLIZA (FLUJO DE APROBACIÓN)
+    // ============================================
+    Route::post('/movimientos/{id}/revisar', [MovimientoController::class, 'revisarPoliza'])->name('movimientos.revisar');
+    Route::post('/movimientos/{id}/autorizar', [MovimientoController::class, 'autorizarPoliza'])->name('movimientos.autorizar');
+    Route::post('/movimientos/{id}/rechazar', [MovimientoController::class, 'rechazarPoliza'])->name('movimientos.rechazar');
+    Route::post('/movimientos/{id}/cerrar', [MovimientoController::class, 'cerrarPoliza'])->name('movimientos.cerrar');
+    Route::post('/movimientos/{id}/reabrir', [MovimientoController::class, 'reabrirPoliza'])->name('movimientos.reabrir');
+    Route::post('/movimientos/{id}/revertir-revision', [MovimientoController::class, 'revertirRevision'])->name('movimientos.revertir.revision');
+
+    // ============================================
+    // 📊 INFORMACIÓN ADICIONAL DE PÓLIZA (API)
+    // ============================================
+    Route::get('/movimientos/{id}/detalle', [MovimientoController::class, 'getDetallePoliza'])->name('movimientos.detalle');
+    Route::get('/movimientos/{id}/estadisticas', [MovimientoController::class, 'getEstadisticasPoliza'])->name('movimientos.estadisticas');
+    Route::get('/movimientos/{id}/historial', [MovimientoController::class, 'getHistorialPoliza'])->name('movimientos.historial');
 
     // ============================================
     // 🟢 RESOURCE - DEBE IR AL FINAL
@@ -56,7 +81,6 @@ Route::middleware(['auth'])->group(function () {
 
 // ✅ PERSONAS - PRIMERO LAS RUTAS PERSONALIZADAS, LUEGO EL RESOURCE
 Route::middleware(['auth'])->group(function () {
-    // 🟢 RUTAS PERSONALIZADAS - DEBEN IR ANTES DEL RESOURCE
     Route::post('/personas/{id}/toggle-active', [PersonaController::class, 'toggleActive'])->name('personas.toggle-active');
     Route::post('/personas/generar-rfc', [PersonaController::class, 'generarRFC'])->name('personas.generar-rfc');
     Route::get('/personas/{id}/documentos', [PersonaController::class, 'getDocumentos'])->name('personas.documentos');
@@ -64,32 +88,24 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/personas/documentos/{id}/descargar', [PersonaController::class, 'descargarDocumento'])->name('personas.descargar-documento');
     Route::delete('/personas/documentos/{id}/eliminar', [PersonaController::class, 'eliminarDocumento'])->name('personas.eliminar-documento');
     Route::patch('/personas/documentos/{id}/toggle-finalizado', [PersonaController::class, 'toggleFinalizado'])->name('personas.toggle-finalizado');
-
-    // 🟢 RESOURCE - DESPUÉS DE LAS RUTAS PERSONALIZADAS
     Route::resource('personas', PersonaController::class);
 });
 
 // ✅ CUENTAS - PRIMERO LAS RUTAS PERSONALIZADAS, LUEGO EL RESOURCE
 Route::middleware(['auth'])->group(function () {
-    // 🟢 RUTAS PERSONALIZADAS - DEBEN IR ANTES DEL RESOURCE
     Route::get('/cuentas/get-cuentas-madre', [CuentaController::class, 'getCuentasMadre'])->name('cuentas.get-cuentas-madre');
     Route::get('/cuentas/datatable', [CuentaController::class, 'getCuentas'])->name('cuentas.datatable');
     Route::post('/cuentas/{cuenta}/cambiar-estado', [CuentaController::class, 'cambiarEstado'])->name('cuentas.cambiar-estado');
     Route::get('/cuentas/inactivas', [CuentaController::class, 'inactivas'])->name('cuentas.inactivas');
     Route::post('/cuentas/{id}/restaurar', [CuentaController::class, 'restaurar'])->name('cuentas.restaurar');
-
-    // 🟢 RESOURCE - DESPUÉS DE LAS RUTAS PERSONALIZADAS
     Route::resource('cuentas', CuentaController::class);
 });
 
 // ✅ EMPRESAS - PRIMERO LAS RUTAS PERSONALIZADAS, LUEGO EL RESOURCE
 Route::middleware(['auth'])->group(function () {
-    // 🟢 RUTAS PERSONALIZADAS - DEBEN IR ANTES DEL RESOURCE
     Route::post('/empresas/{id}/toggle-active', [EmpresaController::class, 'toggleActive'])->name('empresas.toggle-active');
     Route::post('/empresas/{empresa}/cambiar-estado', [EmpresaController::class, 'cambiarEstado'])->name('empresas.cambiar-estado');
     Route::get('/empresas/select', [EmpresaController::class, 'getEmpresasSelect'])->name('empresas.select');
-
-    // 🟢 RESOURCE - DESPUÉS DE LAS RUTAS PERSONALIZADAS
     Route::resource('empresas', EmpresaController::class);
 });
 
@@ -106,9 +122,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     Route::get('/reportes/movimientos', [ReporteController::class, 'getMovimientos'])->name('reportes.movimientos');
     Route::get('/reportes/movimientos-cuenta', [ReporteController::class, 'getMovimientosCuenta'])->name('reportes.movimientos.cuenta');
-    Route::get('/reportes/export/excel', [ReporteController::class, 'exportExcel'])->name('reportes.export.excel');
-    Route::get('/reportes/export/pdf', [ReporteController::class, 'exportPdf'])->name('reportes.export.pdf');
-    Route::get('/reportes/movimientos', [ReporteController::class, 'getMovimientos'])->name('reportes.movimientos');
     Route::get('/reportes/export/excel', [ReporteController::class, 'exportExcel'])->name('reportes.export.excel');
     Route::get('/reportes/export/pdf', [ReporteController::class, 'exportPdf'])->name('reportes.export.pdf');
 });

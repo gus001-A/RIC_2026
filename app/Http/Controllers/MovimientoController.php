@@ -24,8 +24,9 @@ use Illuminate\Support\Facades\Gate;
 
 class MovimientoController extends Controller
 {
-    // ============================================
-    // 📄 INDEX - LISTADO DE MOVIMIENTOS
+
+   // ============================================
+    // 📄 INDEX - LISTADO DE MOVIMIENTOS (CON TRASPASOS)
     // ============================================
     public function index(Request $request)
     {
@@ -70,6 +71,7 @@ class MovimientoController extends Controller
         $request->session()->put('empresa_movimientos', $empresaId);
 
         $vista = $request->get('vista', 'normal');
+        $soloFiscales = $request->boolean('solo_fiscales', false);
 
         $query = MovimientoPoliza::with([
             'poliza.persona',
@@ -92,31 +94,43 @@ class MovimientoController extends Controller
 
         $query->whereHas('poliza', function($q) use ($empresaId) {
             $q->where('id_empresa', $empresaId)
-              ->whereHas('empresa', function($sub) {
-                  $sub->where('activo', true);
-              });
+            ->whereHas('empresa', function($sub) {
+                $sub->where('activo', true);
+            });
         });
 
-        // ✅ FILTRAR POR VISTA
+        if ($soloFiscales) {
+            $query->whereHas('poliza', function($q) {
+                $q->where('categoria', 'FISCAL');
+            });
+        }
+
+        // ✅ FILTROS POR VISTA - INCLUYENDO TRASPASOS
         if ($vista === 'diferidas') {
             $query->whereHas('poliza', function($q) {
                 $q->where('es_por_pagar', true);
             });
         } elseif ($vista === 'pendientes') {
             $query->whereHas('poliza', function($q) {
-                $q->whereIn('estatus', ['CAPTURADO', 'REVISADO']);
+                $q->whereIn('estatus', ['PENDIENTE', 'CAPTURADO', 'REVISADO']);
             });
         } elseif ($vista === 'autorizadas') {
             $query->whereHas('poliza', function($q) {
                 $q->where('estatus', 'AUTORIZADO');
             });
+        } elseif ($vista === 'traspasos') {
+            // ✅ NUEVA VISTA: SOLO TRASPASOS
+            $query->whereHas('poliza', function($q) {
+                $q->where('tipo_poliza', 'TRASPASO');
+            });
         } else {
+            // Vista normal: mostrar INGRESO, EGRESO y TRASPASO
             $query->whereHas('poliza', function($q) {
                 $q->where('es_por_pagar', false);
             });
         }
 
-        // 📌 FILTROS
+        // FILTROS
         if ($request->filled('fecha_desde')) {
             $query->whereHas('poliza', function($q) use ($request) {
                 $q->whereDate('fecha_poliza', '>=', $request->fecha_desde);
@@ -132,26 +146,26 @@ class MovimientoController extends Controller
         if ($request->filled('referencia')) {
             $query->whereHas('poliza', function($q) use ($request) {
                 $q->where('folio', 'LIKE', '%' . $request->referencia . '%')
-                  ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
+                ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
             });
         }
 
         if ($request->filled('persona')) {
             $query->whereHas('poliza.persona', function($q) use ($request) {
                 $q->where('Nombre', 'LIKE', '%' . $request->persona . '%')
-                  ->orWhere('Paterno', 'LIKE', '%' . $request->persona . '%')
-                  ->orWhere('Materno', 'LIKE', '%' . $request->persona . '%')
-                  ->orWhereRaw("CONCAT(Nombre, ' ', Paterno, ' ', Materno) LIKE ?", ['%' . $request->persona . '%']);
+                ->orWhere('Paterno', 'LIKE', '%' . $request->persona . '%')
+                ->orWhere('Materno', 'LIKE', '%' . $request->persona . '%')
+                ->orWhereRaw("CONCAT(Nombre, ' ', Paterno, ' ', Materno) LIKE ?", ['%' . $request->persona . '%']);
             });
         }
 
         if ($request->filled('cuenta')) {
             $query->whereHas('cuenta', function($q) use ($request) {
                 $q->where('en_uso', true)
-                  ->where(function($sub) use ($request) {
-                      $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta . '%')
-                          ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta . '%');
-                  });
+                ->where(function($sub) use ($request) {
+                    $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta . '%')
+                        ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta . '%');
+                });
             });
         }
 
@@ -167,7 +181,30 @@ class MovimientoController extends Controller
             });
         }
 
-        // 📌 ORDENAMIENTO
+        if ($request->filled('cuenta_fondeadora')) {
+            $query->whereHas('cuentaFondeadora', function($q) use ($request) {
+                $q->where('en_uso', true)
+                ->where(function($sub) use ($request) {
+                    $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta_fondeadora . '%')
+                        ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta_fondeadora . '%');
+                });
+            });
+        }
+
+        if ($request->filled('nota')) {
+            $query->whereHas('poliza', function($q) use ($request) {
+                $q->where('nota', 'LIKE', '%' . $request->nota . '%');
+            });
+        }
+
+        if ($request->filled('usuario')) {
+            $query->whereHas('poliza.usuarioCreador', function($q) use ($request) {
+                $q->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
+                ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
+            });
+        }
+
+        // ORDENAMIENTO
         $sortBy = $request->get('sort_by', 'fecha_poliza');
         $sortOrder = $request->get('sort_order', 'desc');
         
@@ -177,6 +214,7 @@ class MovimientoController extends Controller
             'referencia' => 'polizas.folio',
             'estatus' => 'polizas.estatus',
             'monto' => 'movimientos_poliza.monto',
+            'monto_traspaso' => 'movimientos_poliza.monto_traspaso',
             'persona' => 'polizas.id_persona',
             'cuenta' => 'movimientos_poliza.id_cuenta'
         ];
@@ -184,8 +222,8 @@ class MovimientoController extends Controller
         if (isset($sortMap[$sortBy])) {
             if (strpos($sortMap[$sortBy], '.') !== false) {
                 $query->join('polizas', 'movimientos_poliza.id_poliza', '=', 'polizas.id')
-                      ->orderBy($sortMap[$sortBy], $sortOrder)
-                      ->select('movimientos_poliza.*');
+                    ->orderBy($sortMap[$sortBy], $sortOrder)
+                    ->select('movimientos_poliza.*');
             } else {
                 $query->orderBy($sortMap[$sortBy], $sortOrder);
             }
@@ -209,6 +247,10 @@ class MovimientoController extends Controller
                 ]);
             }
 
+            // ✅ DETECTAR SI ES TRASPASO
+            $esTraspaso = $movimiento->poliza->tipo_poliza === 'TRASPASO';
+            $montoMostrar = $esTraspaso ? $movimiento->monto_traspaso : $movimiento->monto;
+
             return [
                 'id_movimiento' => $movimiento->id,
                 'id_poliza' => $movimiento->id_poliza,
@@ -225,10 +267,11 @@ class MovimientoController extends Controller
                 'cuenta_fondeadora' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
                 'cuenta_fondeadora_id' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->id_caja_fondo : null,
                 'nota' => $movimiento->poliza->nota ?? null,
-                'monto' => $movimiento->monto,
-                'monto_abs' => abs($movimiento->monto),
+                'monto' => $montoMostrar, // ✅ Mostrar monto_traspaso si es traspaso
+                'monto_abs' => abs($montoMostrar),
                 'monto_base' => $movimiento->monto_base,
                 'monto_iva' => $movimiento->monto_iva,
+                'monto_traspaso' => $movimiento->monto_traspaso,
                 'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
                 'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
                 'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
@@ -258,6 +301,8 @@ class MovimientoController extends Controller
                 'comentario_revision' => $movimiento->poliza->comentario_revision,
                 'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
                 'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
+                'es_traspaso' => $esTraspaso, // ✅ Flag para identificar traspasos
+                'cuenta_destino' => $movimiento->cuentaDestino ? $movimiento->cuentaDestino->nombre_cuenta : null, // ✅ Cuenta destino del traspaso
             ];
         });
 
@@ -265,7 +310,8 @@ class MovimientoController extends Controller
         if ($vista === 'diferidas') {
             $saldoTotal = $query->get()->sum(function($movimiento) {
                 $totalAbonado = AbonoPoliza::where('id_poliza', $movimiento->id_poliza)->sum('monto_abonado');
-                return abs($movimiento->monto) - $totalAbonado;
+                $monto = $movimiento->poliza->tipo_poliza === 'TRASPASO' ? $movimiento->monto_traspaso : $movimiento->monto;
+                return abs($monto) - $totalAbonado;
             });
         } else {
             $saldoTotal = (float) $query->sum('monto');
@@ -274,16 +320,16 @@ class MovimientoController extends Controller
         $filtros = $request->only([
             'fecha_desde', 'fecha_hasta', 'referencia', 
             'estatus', 'tipo_poliza', 'persona', 'cuenta', 'cuenta_fondeadora', 'nota', 'usuario',
-            'sort_by', 'sort_order', 'vista', 'mostrar_todos'
+            'sort_by', 'sort_order', 'vista', 'mostrar_todos', 'solo_fiscales'
         ]);
 
-        // 📊 CONTADORES POR ESTADO
         $contadores = [
-            'capturados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'CAPTURADO')->count(),
+            'capturados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'PENDIENTE')->count(),
             'revisados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'REVISADO')->count(),
             'autorizados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'AUTORIZADO')->count(),
             'abonados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'ABONADO')->count(),
             'liquidados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'LIQUIDADO')->count(),
+            'traspasos' => Poliza::where('id_empresa', $empresaId)->where('tipo_poliza', 'TRASPASO')->count(), // ✅ Contador de traspasos
         ];
 
         return Inertia::render('Movimientos/Index', [
@@ -296,13 +342,11 @@ class MovimientoController extends Controller
             'contadores' => $contadores,
         ]);
     }
-
     // ============================================
     // 📄 CREATE - FORMULARIO DE CREACIÓN
     // ============================================
     public function create()
     {
-        // ✅ Verificar permiso para crear movimientos
         if (!Gate::allows('crear-movimientos')) {
             return redirect()->route('movimientos.index')
                 ->with('error', 'No tienes permiso para crear movimientos');
@@ -320,6 +364,7 @@ class MovimientoController extends Controller
                 ->with('error', 'No tienes una empresa seleccionada.');
         }
 
+        // ✅ INCLUIR saldo_inicial EN LAS CUENTAS FONDEADORAS
         $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->where('fondeo_c', 1)
@@ -329,10 +374,11 @@ class MovimientoController extends Controller
                 return [
                     'id_cuenta' => $cuenta->id_cuenta,
                     'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'saldo' => $cuenta->saldo_inicial ?? 0
+                    'saldo' => (float) ($cuenta->saldo_inicial ?? 0)
                 ];
             });
 
+        // ✅ INCLUIR saldo_inicial EN LAS CUENTAS NORMALES TAMBIÉN
         $cuentas = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->orderBy('nombre_cuenta')
@@ -341,6 +387,7 @@ class MovimientoController extends Controller
                 return [
                     'id_cuenta' => $cuenta->id_cuenta,
                     'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
                 ];
             });
 
@@ -376,107 +423,13 @@ class MovimientoController extends Controller
         ]);
     }
 
-    // ============================================
-    // 📄 CREATE NÓMINA
-    // ============================================
-    public function createNomina()
-    {
-        // ✅ Verificar permiso para crear movimientos
-        if (!Gate::allows('crear-movimientos')) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes permiso para crear movimientos');
-        }
-
-        $empresaId = session('empresa_movimientos');
-        
-        if (!$empresaId) {
-            $empresa = auth()->user()->empresas()->first();
-            $empresaId = $empresa ? $empresa->id : null;
-        }
-
-        if (!$empresaId) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes una empresa seleccionada.');
-        }
-
-        \Log::info('🔍 Buscando personas activas para nómina...');
-        
-        $empleados = Persona::where('activo', true)
-            ->orderBy('Nombre')
-            ->orderBy('Paterno')
-            ->orderBy('Materno')
-            ->get()
-            ->map(function($persona) {
-                return [
-                    'id_persona' => $persona->id_persona,
-                    'nombre_completo' => $persona->nombre_completo,
-                    'rfc' => $persona->rfc,
-                ];
-            });
-
-        \Log::info('📊 Empleados encontrados:', ['count' => $empleados->count()]);
-
-        $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->where('fondeo_c', 1)
-            ->orderBy('nombre_cuenta')
-            ->get()
-            ->map(function($cuenta) {
-                return [
-                    'id_cuenta' => $cuenta->id_cuenta,
-                    'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'saldo' => $cuenta->saldo_inicial ?? 0
-                ];
-            });
-
-        $cuentas = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->orderBy('nombre_cuenta')
-            ->get()
-            ->map(function($cuenta) {
-                return [
-                    'id_cuenta' => $cuenta->id_cuenta,
-                    'nombre_cuenta' => $cuenta->nombre_cuenta,
-                ];
-            });
-
-        $marcadores = Marcador::where('activo', true)
-            ->orderBy('nombre_marcador')
-            ->get()
-            ->map(function($marcador) {
-                return [
-                    'id' => $marcador->id,
-                    'nombre_marcador' => $marcador->nombre_marcador,
-                    'descripcion' => $marcador->descripcion
-                ];
-            });
-
-        if ($empleados->isEmpty()) {
-            return redirect()->route('movimientos.index')
-                ->with('info', 'No hay empleados registrados. Primero debes registrar personas.');
-        }
-
-        return Inertia::render('Movimientos/NominaCreate', [
-            'empresa_id' => (int) $empresaId,
-            'empleados' => $empleados,
-            'cuentas_fondeadoras' => $cuentasFondeadoras,
-            'cuentas' => $cuentas,
-            'marcadores' => $marcadores
-        ]);
-    }
-
-    // ============================================
-    // 📄 STORE - GUARDAR PÓLIZA
-    // ============================================
+   
     public function store(Request $request)
     {
-        // ✅ Verificar permiso para crear movimientos
         if (!Gate::allows('crear-movimientos')) {
             return redirect()->route('movimientos.index')
                 ->with('error', 'No tienes permiso para crear movimientos');
         }
-
-        \Log::info('📝 DATOS RECIBIDOS EN STORE:', $request->all());
 
         $rules = [
             'tipo_poliza' => 'required|in:INGRESO,EGRESO',
@@ -503,7 +456,7 @@ class MovimientoController extends Controller
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            \Log::error('❌ VALIDACIÓN FALLÓ:', $validator->errors()->all());
+            \Log::error('Validación store fallida:', $validator->errors()->toArray());
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput()
@@ -528,41 +481,37 @@ class MovimientoController extends Controller
             $esFiscal = filter_var($request->es_fiscal, FILTER_VALIDATE_BOOLEAN);
             $categoria = $esFiscal ? 'FISCAL' : 'NO_FISCAL';
 
-            // 📄 GUARDAR DOCUMENTOS FISCALES
             $rutaPdf = null;
             $nombrePdf = null;
-            $rutaXml = null;
             $nombreXml = null;
 
-            if ($esFiscal) {
-                if ($request->hasFile('pdf_file')) {
-                    try {
-                        $pdfFile = $request->file('pdf_file');
-                        if ($pdfFile->isValid()) {
-                            $nombrePdf = $pdfFile->getClientOriginalName();
-                            $rutaPdf = $pdfFile->store('documentos_fiscales/pdfs', 'public');
-                            \Log::info('📄 PDF guardado:', ['ruta' => $rutaPdf]);
-                        }
-                    } catch (\Exception $e) {
-                        \Log::error('❌ Error al guardar PDF:', ['message' => $e->getMessage()]);
-                    }
-                }
-
-                if ($request->hasFile('xml_file')) {
-                    try {
-                        $xmlFile = $request->file('xml_file');
-                        if ($xmlFile->isValid()) {
-                            $nombreXml = $xmlFile->getClientOriginalName();
-                            $rutaXml = $xmlFile->store('documentos_fiscales/xmls', 'public');
-                            \Log::info('📄 XML guardado:', ['ruta' => $rutaXml]);
-                        }
-                    } catch (\Exception $e) {
-                        \Log::error('❌ Error al guardar XML:', ['message' => $e->getMessage()]);
-                    }
+            // ✅ PROCESAR PDF
+            if ($request->hasFile('pdf_file')) {
+                $pdfFile = $request->file('pdf_file');
+                if ($pdfFile->isValid()) {
+                    $nombrePdf = $pdfFile->getClientOriginalName();
+                    $rutaPdf = $pdfFile->store('documentos_fiscales/pdfs', 'public');
+                    \Log::info('PDF guardado:', ['ruta' => $rutaPdf]);
                 }
             }
 
-            // ✅ CREAR PÓLIZA CON ESTADO CAPTURADO
+            if ($request->hasFile('xml_file')) {
+                $xmlFile = $request->file('xml_file');
+                \Log::info('Procesando XML:', [
+                    'name' => $xmlFile->getClientOriginalName(),
+                    'size' => $xmlFile->getSize(),
+                    'mime' => $xmlFile->getMimeType(),
+                    'is_valid' => $xmlFile->isValid()
+                ]);
+                
+                if ($xmlFile->isValid()) {
+                    $nombreXml = $xmlFile->getClientOriginalName();
+                    \Log::info('XML procesado:', ['nombre' => $nombreXml]);
+                } else {
+                    \Log::error('XML no válido');
+                }
+            }
+
             $poliza = Poliza::create([
                 'id_empresa' => $empresaId,
                 'tipo_poliza' => $request->tipo_poliza,
@@ -576,15 +525,12 @@ class MovimientoController extends Controller
                 'id_persona' => $request->id_persona,
                 'id_usuario_creador' => auth()->id(),
                 'id_usuario_autorizador' => null,
-                'id_usuario_revisor' => null,
                 'fecha_autorizacion' => null,
-                'fecha_revision' => null,
                 'fecha_factura' => $request->fecha_factura,
                 'numero_factura' => $request->numero_factura,
                 'id_marcador' => $request->id_marcador,
                 'fecha_creacion' => now(),
                 'ruta_pdf' => $rutaPdf,
-                'ruta_xml' => $rutaXml,
                 'nombre_pdf' => $nombrePdf,
                 'nombre_xml' => $nombreXml,
                 'uuid_factura' => $request->uuid_factura,
@@ -594,7 +540,6 @@ class MovimientoController extends Controller
 
             $poliza->refresh();
 
-            // 🔥 CREAR MOVIMIENTO
             $signo = $request->tipo_poliza === 'EGRESO' ? -1 : 1;
             $totalFactura = round($request->total_factura, 2);
 
@@ -615,17 +560,17 @@ class MovimientoController extends Controller
             $montoIva = round($desglose['monto_iva'] * $signo, 2);
             $monto = round(($desglose['monto_base'] + $desglose['monto_iva']) * $signo, 2);
 
-            $movimiento = MovimientoPoliza::create([
+            MovimientoPoliza::create([
                 'id_poliza' => $poliza->id,
                 'id_cuenta' => $request->id_cuenta,
                 'id_caja_fondo' => $request->id_cuenta_fondeadora,
                 'id_tipo_iva' => $idTipoIva,
                 'monto' => $monto,
                 'monto_base' => $montoBase,
-                'monto_iva' => $montoIva
+                'monto_iva' => $montoIva,
+                'monto_traspaso' => null,
             ]);
 
-            // ✅ ACTUALIZAR SALDOS
             if ($request->id_cuenta_fondeadora) {
                 $this->actualizarSaldoCuenta($request->id_cuenta_fondeadora);
             }
@@ -640,523 +585,485 @@ class MovimientoController extends Controller
             if ($esFiscal) {
                 $mensaje .= ' Documentos fiscales: ';
                 if ($rutaPdf) $mensaje .= 'PDF ✓ ';
-                if ($rutaXml) $mensaje .= 'XML ✓';
+                if ($nombreXml) $mensaje .= 'XML ✓';
             }
+
+            \Log::info('Póliza creada exitosamente:', [
+                'id' => $poliza->id,
+                'folio' => $poliza->folio,
+                'ruta_pdf' => $rutaPdf,
+                'nombre_pdf' => $nombrePdf,
+                'nombre_xml' => $nombreXml
+            ]);
 
             return redirect()->route('movimientos.index')
                 ->with('success', $mensaje);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('❌ ERROR:', [
+            \Log::error('Error en store:', [
                 'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ]);
             return redirect()->back()
-                ->with('error', $e->getMessage())
+                ->with('error', 'Error al crear la póliza: ' . $e->getMessage())
                 ->withInput();
         }
     }
 
+
     // ============================================
-    // 📄 STORE NÓMINA
+    // 🔄 STORE TRASPASO - CON CUENTA ORIGEN EN id_caja_fondo Y DESTINO EN id_cuenta
     // ============================================
-    public function storeNomina(Request $request)
+    public function storeTraspaso(Request $request)
     {
-        // ✅ Verificar permiso para crear movimientos
+        \Log::info('=== INICIO storeTraspaso ===');
+        \Log::info('Datos recibidos:', $request->all());
+
         if (!Gate::allows('crear-movimientos')) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes permiso para crear movimientos');
+            \Log::warning('Permiso denegado para crear traspasos');
+            return back()->with('error', 'No tienes permiso para crear traspasos');
         }
 
-        $validator = Validator::make($request->all(), [
-            'quincena' => 'required|in:1,2',
-            'fecha_pago' => 'required|date',
-            'id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
-            'tipo_poliza' => 'required|in:EGRESO',
+        // ✅ VALIDACIÓN
+        $rules = [
+            'tipo_poliza' => 'required|in:TRASPASO',
+            'id_cuenta_origen' => 'required|exists:cuentas,id_cuenta|different:id_cuenta_destino',
+            'id_cuenta_destino' => 'required|exists:cuentas,id_cuenta|different:id_cuenta_origen',
+            'monto' => 'required|numeric|min:0.01',
+            'es_fiscal' => 'nullable|in:true,false,1,0,on,off',
+            'id_tipo_iva' => 'nullable|exists:tipos_iva,id',
             'id_marcador' => 'nullable|exists:marcadores,id',
-            'descripcion' => 'nullable|string|max:255',
-            'id_cuenta' => 'required|exists:cuentas,id_cuenta',
-            'empleados' => 'required|array|min:1',
-            'empleados.*.id_persona' => 'required|exists:personas,id_persona',
-            'empleados.*.monto' => 'required|numeric|min:0.01',
-            'empleados.*.id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
-            'empleados.*.observacion' => 'nullable|string|max:255'
-        ]);
+            'referencia' => 'nullable|string|max:100',
+            'nota' => 'nullable|string',
+            'fecha_factura' => 'nullable|date',
+            'numero_factura' => 'nullable|string|max:50',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
+            'xml_file' => 'nullable|file|max:5120',
+            'uuid_factura' => 'nullable|string|max:50',
+            'serie_factura' => 'nullable|string|max:20',
+            'folio_factura' => 'nullable|string|max:20',
+        ];
+
+        // Si es fiscal, el PDF es obligatorio
+        $esFiscal = filter_var($request->es_fiscal, FILTER_VALIDATE_BOOLEAN);
+        if ($esFiscal) {
+            $rules['pdf_file'] = 'required|file|mimes:pdf|max:10240';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            \Log::error('Validación falló:', $validator->errors()->all());
+            \Log::error('Validación fallida:', $validator->errors()->toArray());
             return back()->withErrors($validator)->withInput();
         }
 
+        \Log::info('Validación pasó correctamente');
+
         try {
             DB::beginTransaction();
+            \Log::info('Transacción iniciada');
 
             $empresaId = session('empresa_movimientos');
+            \Log::info('Empresa ID desde sesión:', ['empresa_id' => $empresaId]);
             
             if (!$empresaId) {
                 $empresa = auth()->user()->empresas()->first();
                 $empresaId = $empresa ? $empresa->id : null;
+                \Log::info('Empresa obtenida desde usuario:', ['empresa_id' => $empresaId]);
             }
 
             if (!$empresaId) {
-                throw new \Exception('No se pudo determinar la empresa para la póliza');
+                throw new \Exception('No se pudo determinar la empresa');
             }
 
-            $fechaPago = $request->fecha_pago;
-            $descripcion = $request->descripcion ?? 'Pago de nómina quincenal';
-            $idMarcador = $request->id_marcador;
-            $idCuenta = $request->id_cuenta;
+            // ✅ VERIFICAR SALDO DE LA CUENTA ORIGEN
+            $cuentaOrigen = Cuenta::find($request->id_cuenta_origen);
+            $saldoOrigen = $cuentaOrigen ? (float) ($cuentaOrigen->saldo_inicial ?? 0) : 0;
+            $monto = round($request->monto, 2);
 
-            $totalNomina = 0;
-            $totalEmpleados = 0;
+            \Log::info('Cuenta origen:', [
+                'id_cuenta' => $request->id_cuenta_origen,
+                'saldo' => $saldoOrigen,
+                'monto' => $monto
+            ]);
 
-            foreach ($request->empleados as $empleadoData) {
-                $monto = round($empleadoData['monto'], 2);
-                $totalNomina += $monto;
-                $totalEmpleados++;
-
-                $folio = 'NOM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-
-                // ✅ PÓLIZA CON ESTADO CAPTURADO
-                $poliza = Poliza::create([
-                    'id_empresa' => $empresaId,
-                    'tipo_poliza' => 'EGRESO',
-                    'fecha_poliza' => $fechaPago,
-                    'fecha_vencimiento' => null,
-                    'categoria' => 'NO_FISCAL',
-                    'estatus' => 'CAPTURADO',
-                    'es_por_pagar' => false,
-                    'referencia' => $folio,
-                    'nota' => $descripcion . ' - ' . ($empleadoData['observacion'] ?? 'Sueldo quincenal'),
-                    'id_persona' => $empleadoData['id_persona'],
-                    'id_usuario_creador' => auth()->id(),
-                    'id_usuario_autorizador' => null,
-                    'id_usuario_revisor' => null,
-                    'fecha_autorizacion' => null,
-                    'fecha_revision' => null,
-                    'id_marcador' => $idMarcador,
-                    'fecha_creacion' => now(),
+            if ($saldoOrigen < $monto) {
+                \Log::warning('Saldo insuficiente:', [
+                    'saldo' => $saldoOrigen,
+                    'monto' => $monto
                 ]);
-
-                MovimientoPoliza::create([
-                    'id_poliza' => $poliza->id,
-                    'id_cuenta' => $idCuenta,
-                    'id_caja_fondo' => $empleadoData['id_cuenta_fondeadora'],
-                    'id_tipo_iva' => null,
-                    'monto' => -$monto,
-                    'monto_base' => -$monto,
-                    'monto_iva' => 0
-                ]);
-
-                $this->actualizarSaldoCuenta($empleadoData['id_cuenta_fondeadora']);
-                $this->actualizarSaldoCuenta($idCuenta);
-
-                \Log::info('✅ Póliza de nómina creada:', [
-                    'id_poliza' => $poliza->id,
-                    'folio' => $poliza->folio,
-                    'persona' => $empleadoData['id_persona'],
-                    'monto' => $monto,
-                    'id_cuenta' => $idCuenta,
-                    'id_caja_fondo' => $empleadoData['id_cuenta_fondeadora']
-                ]);
+                return back()->with('error', "Saldo insuficiente en la cuenta origen. Disponible: $" . number_format($saldoOrigen, 2))->withInput();
             }
+
+            $categoria = $esFiscal ? 'FISCAL' : 'NO_FISCAL';
+
+            \Log::info('Configuración fiscal:', [
+                'es_fiscal_raw' => $request->es_fiscal,
+                'es_fiscal_parsed' => $esFiscal,
+                'categoria' => $categoria
+            ]);
+
+            // ✅ GUARDAR ARCHIVOS - SOLO NOMBRE PARA XML
+            $rutaPdf = null;
+            $nombrePdf = null;
+            $rutaXml = null;
+            $nombreXml = null;
+
+            \Log::info('Archivos recibidos:', [
+                'has_pdf' => $request->hasFile('pdf_file'),
+                'has_xml' => $request->hasFile('xml_file')
+            ]);
+
+            if ($esFiscal) {
+                \Log::info('Procesando archivos fiscales...');
+                
+                // 📄 PROCESAR PDF (OBLIGATORIO)
+                if ($request->hasFile('pdf_file')) {
+                    $pdfFile = $request->file('pdf_file');
+                    \Log::info('PDF File:', [
+                        'name' => $pdfFile->getClientOriginalName(),
+                        'size' => $pdfFile->getSize(),
+                        'is_valid' => $pdfFile->isValid()
+                    ]);
+                    
+                    if ($pdfFile->isValid()) {
+                        $nombrePdf = $pdfFile->getClientOriginalName();
+                        $rutaPdf = $pdfFile->store('documentos_fiscales/pdfs', 'public');
+                        \Log::info('PDF guardado:', ['ruta' => $rutaPdf]);
+                    }
+                }
+
+                // 📄 PROCESAR XML - SOLO GUARDA EL NOMBRE
+                if ($request->hasFile('xml_file')) {
+                    $xmlFile = $request->file('xml_file');
+                    \Log::info('XML File:', [
+                        'name' => $xmlFile->getClientOriginalName(),
+                        'size' => $xmlFile->getSize(),
+                        'is_valid' => $xmlFile->isValid()
+                    ]);
+                    
+                    if ($xmlFile->isValid()) {
+                        $nombreXml = $xmlFile->getClientOriginalName();
+                        \Log::info('XML - Solo nombre guardado:', ['nombre' => $nombreXml]);
+                    }
+                }
+            }
+
+            \Log::info('Creando póliza con datos:', [
+                'empresa_id' => $empresaId,
+                'categoria' => $categoria,
+                'referencia' => $request->referencia ?? 'TRASPASO-' . date('YmdHis'),
+                'id_marcador' => $request->id_marcador
+            ]);
+
+            // ✅ CREAR PÓLIZA - CON ESTATUS 'CAPTURADO'
+            $poliza = Poliza::create([
+                'id_empresa' => $empresaId,
+                'tipo_poliza' => 'TRASPASO',
+                'fecha_poliza' => now(),
+                'fecha_vencimiento' => null,
+                'categoria' => $categoria,
+                'estatus' => 'CAPTURADO',  // ✅ CAMBIADO: Ahora es CAPTURADO
+                'es_por_pagar' => false,
+                'referencia' => $request->referencia ?? 'TRASPASO-' . date('YmdHis'),
+                'nota' => $request->nota,
+                'id_persona' => null,  // ✅ TRASPASO: SIN PERSONA
+                'id_usuario_creador' => auth()->id(),
+                'id_usuario_autorizador' => null,
+                'fecha_creacion' => now(),
+                'fecha_autorizacion' => null,
+                'fecha_factura' => $request->fecha_factura,
+                'numero_factura' => $request->numero_factura,
+                'id_marcador' => $request->id_marcador,
+                'ruta_pdf' => $rutaPdf,
+                'nombre_pdf' => $nombrePdf,
+                'nombre_xml' => $nombreXml,
+                'uuid_factura' => $request->uuid_factura,
+                'serie_factura' => $request->serie_factura,
+                'folio_factura' => $request->folio_factura,
+            ]);
+
+            \Log::info('Póliza creada:', [
+                'id' => $poliza->id,
+                'folio' => $poliza->folio,
+                'estatus' => $poliza->estatus,
+                'nombre_xml' => $nombreXml
+            ]);
+
+            $poliza->refresh();
+
+            // ✅ CALCULAR IVA SI CORRESPONDE
+            $montoBase = $monto;
+            $montoIva = 0;
+            $idTipoIva = null;
+
+            if ($request->filled('id_tipo_iva')) {
+                $idTipoIva = (int) $request->id_tipo_iva;
+                $tipoIva = TipoIva::find($idTipoIva);
+                \Log::info('Tipo IVA encontrado:', [
+                    'id' => $idTipoIva,
+                    'tipo_iva' => $tipoIva ? $tipoIva->toArray() : null
+                ]);
+                
+                if ($tipoIva && $tipoIva->porcentaje > 0) {
+                    $porcentaje = $tipoIva->porcentaje;
+                    $factor = 1 + ($porcentaje / 100);
+                    $montoBase = round($monto / $factor, 2);
+                    $montoIva = round($monto - $montoBase, 2);
+                    
+                    \Log::info('Cálculo IVA:', [
+                        'monto' => $monto,
+                        'porcentaje' => $porcentaje,
+                        'monto_base' => $montoBase,
+                        'monto_iva' => $montoIva
+                    ]);
+                }
+            }
+
+            // ✅ CREAR MOVIMIENTO DE TRASPASO
+            // id_cuenta = Cuenta DESTINO
+            // id_caja_fondo = Cuenta ORIGEN (fondeadora)
+            $movimiento = MovimientoPoliza::create([
+                'id_poliza' => $poliza->id,
+                'id_cuenta' => $request->id_cuenta_destino,        // ✅ Cuenta DESTINO
+                'id_caja_fondo' => $request->id_cuenta_origen,    // ✅ Cuenta ORIGEN (fondeadora)
+                'id_tipo_iva' => $idTipoIva,
+                'monto_traspaso' => $monto,
+                'monto' => 0,
+                'monto_base' => 0,
+                'monto_iva' => 0,
+            ]);
+
+            \Log::info('Movimiento de traspaso creado:', [
+                'id' => $movimiento->id,
+                'id_cuenta' => $movimiento->id_cuenta,           // Destino
+                'id_caja_fondo' => $movimiento->id_caja_fondo,   // Origen
+                'monto_traspaso' => $movimiento->monto_traspaso
+            ]);
+
+            // ✅ ACTUALIZAR SALDOS DE AMBAS CUENTAS
+            $this->actualizarSaldoCuenta($request->id_cuenta_origen);
+            $this->actualizarSaldoCuenta($request->id_cuenta_destino);
 
             DB::commit();
+            \Log::info('Transacción completada exitosamente');
+
+            $mensaje = "Traspaso creado exitosamente. Folio: {$poliza->folio} | Estado: CAPTURADO";
+            if ($esFiscal) {
+                $mensaje .= ' Documentos fiscales: ';
+                if ($rutaPdf) $mensaje .= 'PDF ✓ ';
+                if ($nombreXml) $mensaje .= 'XML (nombre guardado) ✓ ';
+            }
+
+            \Log::info('Mensaje de éxito:', ['mensaje' => $mensaje]);
 
             return redirect()->route('movimientos.index')
-                ->with('success', "Nómina generada exitosamente. {$totalEmpleados} pólizas creadas por un total de $" . number_format($totalNomina, 2));
+                ->with('success', $mensaje);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al generar pólizas de nómina:', [
+            \Log::error('Error en storeTraspaso:', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            return back()->with('error', 'Error al generar las pólizas de nómina: ' . $e->getMessage())->withInput();
-        }
-    }
-
-    // ============================================
-    // ✅ REVISAR PÓLIZA (CAPTURADO → REVISADO)
-    // ============================================
-    public function revisarPoliza(Request $request, $id)
-    {
-        // ✅ Verificar permiso para editar movimientos
-        if (!Gate::allows('editar-movimientos')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para revisar pólizas'
-            ], 403);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $poliza = Poliza::findOrFail($id);
-            
-            if ($poliza->estatus !== 'CAPTURADO') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La póliza debe estar en estado CAPTURADO para ser revisada'
-                ], 422);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'comentario' => 'nullable|string|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $poliza->estatus = 'REVISADO';
-            $poliza->id_usuario_revisor = auth()->id();
-            $poliza->fecha_revision = now();
-            $poliza->comentario_revision = $request->comentario;
-            $poliza->save();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Póliza revisada exitosamente',
-                'data' => [
-                    'estatus' => $poliza->estatus,
-                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
-                    'fecha_revision' => $poliza->fecha_revision?->format('d/m/Y H:i')
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al revisar póliza:', [
-                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al revisar la póliza: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ============================================
-    // ✅ AUTORIZAR PÓLIZA (REVISADO → AUTORIZADO)
-    // ============================================
-    public function autorizarPoliza(Request $request, $id)
-    {
-        // ✅ Verificar permiso para autorizar
-        if (!Gate::allows('autorizar-polizas')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para autorizar pólizas'
-            ], 403);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $poliza = Poliza::findOrFail($id);
             
-            if ($poliza->estatus !== 'REVISADO') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La póliza debe estar en estado REVISADO para ser autorizada'
-                ], 422);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'comentario' => 'nullable|string|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $poliza->estatus = 'AUTORIZADO';
-            $poliza->id_usuario_autorizador = auth()->id();
-            $poliza->fecha_autorizacion = now();
-            $poliza->comentario_autorizacion = $request->comentario;
-            $poliza->save();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Póliza autorizada exitosamente',
-                'data' => [
-                    'estatus' => $poliza->estatus,
-                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
-                    'fecha_autorizacion' => $poliza->fecha_autorizacion?->format('d/m/Y H:i')
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al autorizar póliza:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al autorizar la póliza: ' . $e->getMessage()
-            ], 500);
+            return back()->with('error', 'Error al crear el traspaso: ' . $e->getMessage())->withInput();
         }
     }
 
-    // ============================================
-    // ❌ RECHAZAR PÓLIZA (REVISADO/AUTORIZADO → CAPTURADO)
-    // ============================================
-    public function rechazarPoliza(Request $request, $id)
-    {
-        // ✅ Verificar permiso para editar movimientos
-        if (!Gate::allows('editar-movimientos')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para rechazar pólizas'
-            ], 403);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $poliza = Poliza::findOrFail($id);
-            
-            if (!in_array($poliza->estatus, ['REVISADO', 'AUTORIZADO'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La póliza debe estar en estado REVISADO o AUTORIZADO para ser rechazada'
-                ], 422);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'motivo' => 'required|string|min:10|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $poliza->estatus = 'CAPTURADO';
-            $poliza->id_usuario_revisor = null;
-            $poliza->fecha_revision = null;
-            $poliza->id_usuario_autorizador = null;
-            $poliza->fecha_autorizacion = null;
-            $poliza->comentario_revision = null;
-            $poliza->comentario_autorizacion = null;
-            $poliza->motivo_rechazo = $request->motivo;
-            $poliza->save();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Póliza rechazada. Regresa a estado CAPTURADO',
-                'data' => [
-                    'estatus' => $poliza->estatus,
-                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
-                    'motivo_rechazo' => $poliza->motivo_rechazo
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al rechazar póliza:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al rechazar la póliza: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ============================================
-    // 🔄 REVERTIR REVISIÓN (REVISADO → CAPTURADO)
-    // ============================================
-    public function revertirRevision(Request $request, $id)
-    {
-        // ✅ Verificar permiso para editar movimientos
-        if (!Gate::allows('editar-movimientos')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para revertir revisiones'
-            ], 403);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $poliza = Poliza::findOrFail($id);
-            
-            if ($poliza->estatus !== 'REVISADO') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La póliza debe estar en estado REVISADO para revertir'
-                ], 422);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'motivo' => 'required|string|min:10|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $poliza->estatus = 'CAPTURADO';
-            $poliza->id_usuario_revisor = null;
-            $poliza->fecha_revision = null;
-            $poliza->comentario_revision = null;
-            $poliza->motivo_rechazo = $request->motivo;
-            $poliza->save();
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Revisión revertida. La póliza regresa a estado CAPTURADO',
-                'data' => [
-                    'estatus' => $poliza->estatus,
-                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
-                    'motivo_rechazo' => $poliza->motivo_rechazo
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al revertir revisión:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al revertir la revisión: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ============================================
-    // 📄 SHOW - VER DETALLE
-    // ============================================
     public function show(string $id)
-    {
-        // ✅ Verificar permiso para ver movimientos
-        if (!Gate::allows('ver-movimientos')) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes permiso para ver movimientos');
-        }
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return redirect()->route('movimientos.index')
+            ->with('error', 'No tienes permiso para ver movimientos');
+    }
 
-        $movimiento = MovimientoPoliza::with([
-            'poliza.persona',
-            'poliza.usuarioCreador',
-            'poliza.usuarioRevisor',
-            'poliza.usuarioAutorizador',
-            'poliza.marcador',
-            'cuenta',
-            'cuentaFondeadora',
-            'poliza.abonos'
-        ])->find($id);
+    $movimiento = MovimientoPoliza::with([
+        'poliza.persona',
+        'poliza.usuarioCreador',
+        'poliza.usuarioRevisor',
+        'poliza.usuarioAutorizador',
+        'poliza.marcador',
+        'cuenta',
+        'cuentaFondeadora',
+        'poliza.abonos'
+    ])->find($id);
 
-        if (!$movimiento) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'Movimiento no encontrado');
-        }
+    if (!$movimiento) {
+        return redirect()->route('movimientos.index')
+            ->with('error', 'Movimiento no encontrado');
+    }
 
-        $abonos = $movimiento->poliza->abonos ?? collect();
+    $abonos = $movimiento->poliza->abonos ?? collect();
+    $totalAbonado = $abonos->sum('monto_abonado');
+    $saldoPendiente = abs($movimiento->monto) - $totalAbonado;
 
-        $pdfUrl = null;
-        if ($movimiento->poliza->categoria === 'FISCAL' && !empty($movimiento->poliza->ruta_pdf)) {
-            $pdfUrl = route('movimientos.documento.fiscal', [
-                'id' => $movimiento->id_poliza,
-                'tipo' => 'pdf'
-            ]);
-        }
+    // ✅ DETECTAR TIPO DE PÓLIZA
+    $tipoPoliza = $movimiento->poliza->tipo_poliza;
+    $esTraspaso = $tipoPoliza === 'TRASPASO';
+    $esIngresoEgreso = in_array($tipoPoliza, ['INGRESO', 'EGRESO']);
+    $esFiscal = $movimiento->poliza->categoria === 'FISCAL';
+    $esPorPagar = $movimiento->poliza->es_por_pagar ?? false;
 
-        $movimientoData = [
-            'id' => $movimiento->id,
-            'id_poliza' => $movimiento->id_poliza,
-            'tipo_poliza' => $movimiento->poliza->tipo_poliza,
-            'fecha_poliza' => $movimiento->poliza->fecha_poliza,
-            'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento,
-            'categoria' => $movimiento->poliza->categoria,
-            'estatus' => $movimiento->poliza->estatus,
-            'estatus_texto' => $this->getEstatusTexto($movimiento->poliza->estatus),
-            'es_por_pagar' => $movimiento->poliza->es_por_pagar,
-            'referencia' => $movimiento->poliza->referencia,
-            'nota' => $movimiento->poliza->nota,
-            'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
-            'persona_id' => $movimiento->poliza->id_persona,
-            'cuenta' => $movimiento->cuenta ? $movimiento->cuenta->nombre_cuenta : null,
-            'cuenta_id' => $movimiento->id_cuenta,
-            'cuenta_fondeadora' => $movimiento->cuentaFondeadora ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
-            'cuenta_fondeadora_id' => $movimiento->id_caja_fondo,
-            'monto' => $movimiento->monto,
-            'monto_abs' => abs($movimiento->monto),
-            'monto_base' => $movimiento->monto_base,
-            'monto_iva' => $movimiento->monto_iva,
-            'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
-            'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
-            'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
-            'usuario_revisor' => $movimiento->poliza->usuarioRevisor ? $movimiento->poliza->usuarioRevisor->nombre_usuario : null,
-            'usuario_autorizador' => $movimiento->poliza->usuarioAutorizador ? $movimiento->poliza->usuarioAutorizador->nombre_usuario : null,
-            'fecha_revision' => $movimiento->poliza->fecha_revision,
-            'fecha_autorizacion' => $movimiento->poliza->fecha_autorizacion,
-            'fecha_factura' => $movimiento->poliza->fecha_factura,
-            'numero_factura' => $movimiento->poliza->numero_factura,
-            'fecha_creacion' => $movimiento->created_at,
-            'fecha_actualizacion' => $movimiento->updated_at,
-            'pdf_url' => $pdfUrl,
-            'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
-            'tiene_xml_fiscal' => !empty($movimiento->poliza->ruta_xml),
-            'uuid_factura' => $movimiento->poliza->uuid_factura,
-            'serie_factura' => $movimiento->poliza->serie_factura,
-            'folio_factura' => $movimiento->poliza->folio_factura,
-            'comentario_revision' => $movimiento->poliza->comentario_revision,
-            'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
-            'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
-            'abonos' => $abonos->map(function($abono) {
-                return [
-                    'id' => $abono->id,
-                    'monto_abonado' => $abono->monto_abonado,
-                    'fecha_abono' => $abono->fecha_abono,
-                    'referencia' => $abono->referencia,
-                    'metodo_pago' => $abono->metodo_pago,
-                    'nota' => $abono->nota,
-                    'usuario' => $abono->usuario?->nombre_usuario ?? 'Sistema'
-                ];
-            }),
-            'total_abonado' => $abonos->sum('monto_abonado'),
-            'saldo_pendiente' => abs($movimiento->monto) - $abonos->sum('monto_abonado')
-        ];
-
-        return Inertia::render('Movimientos/Show', [
-            'movimiento' => $movimientoData
+    // ✅ PDF URL
+    $pdfUrl = null;
+    if ($esFiscal && !empty($movimiento->poliza->ruta_pdf)) {
+        $pdfUrl = route('movimientos.documento.fiscal', [
+            'id' => $movimiento->id_poliza,
+            'tipo' => 'pdf'
         ]);
     }
+
+    // ✅ XML URL
+    $xmlUrl = null;
+    if ($esFiscal && !empty($movimiento->poliza->ruta_xml)) {
+        $xmlUrl = route('movimientos.documento.fiscal', [
+            'id' => $movimiento->id_poliza,
+            'tipo' => 'xml'
+        ]);
+    }
+
+    // ✅ DATOS DE DOBLE IVA (si existen)
+    $montoIvaCero = $movimiento->monto_iva_cero ?? 0;
+    $montoIvaDieciseis = $movimiento->monto_iva_dieciseis ?? 0;
+    $ivaDieciseis = $movimiento->iva_dieciseis ?? 0;
+    $tieneDobleIva = ($montoIvaCero != 0 || $montoIvaDieciseis != 0 || $ivaDieciseis != 0);
+
+    // ✅ DATOS DE TRASPASO
+    $cuentaOrigen = null;
+    $cuentaDestino = null;
+    $montoTraspaso = null;
+    
+    if ($esTraspaso) {
+        // Buscar movimientos origen y destino del traspaso
+        $movimientosTraspaso = MovimientoPoliza::where('id_poliza', $movimiento->id_poliza)->get();
+        
+        // Origen: monto negativo o con monto_traspaso
+        $movOrigen = $movimientosTraspaso->firstWhere(function($m) {
+            return $m->monto < 0 || $m->monto_traspaso > 0;
+        });
+        
+        // Destino: monto positivo
+        $movDestino = $movimientosTraspaso->firstWhere(function($m) {
+            return $m->monto > 0;
+        });
+        
+        if ($movOrigen && $movOrigen->cuenta) {
+            $cuentaOrigen = $movOrigen->cuenta->nombre_cuenta;
+        }
+        if ($movDestino && $movDestino->cuenta) {
+            $cuentaDestino = $movDestino->cuenta->nombre_cuenta;
+        }
+        $montoTraspaso = $movimiento->monto_traspaso ?? abs($movimiento->monto);
+    }
+
+    // ✅ DATOS DEL MOVIMIENTO
+    $movimientoData = [
+        // 🔹 Datos básicos
+        'id' => $movimiento->id,
+        'id_poliza' => $movimiento->id_poliza,
+        'folio' => $movimiento->poliza->folio,
+        'tipo_poliza' => $tipoPoliza,
+        'fecha_poliza' => $movimiento->poliza->fecha_poliza,
+        'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento,
+        'categoria' => $movimiento->poliza->categoria,
+        'estatus' => $movimiento->poliza->estatus,
+        'estatus_texto' => $this->getEstatusTexto($movimiento->poliza->estatus),
+        'es_por_pagar' => $esPorPagar,
+        'referencia' => $movimiento->poliza->referencia,
+        'nota' => $movimiento->poliza->nota,
+
+        // 🔹 Banderas de tipo
+        'es_ingreso_egreso' => $esIngresoEgreso,
+        'es_traspaso' => $esTraspaso,
+        'es_fiscal' => $esFiscal,
+        'es_por_pagar' => $esPorPagar,
+        'tiene_doble_iva' => $tieneDobleIva,
+
+        // 🔹 Persona y cuentas
+        'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
+        'persona_id' => $movimiento->poliza->id_persona,
+        'cuenta' => $movimiento->cuenta ? $movimiento->cuenta->nombre_cuenta : null,
+        'cuenta_id' => $movimiento->id_cuenta,
+        'cuenta_fondeadora' => $movimiento->cuentaFondeadora ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
+        'cuenta_fondeadora_id' => $movimiento->id_caja_fondo,
+
+        // 🔹 Datos de traspaso
+        'cuenta_origen' => $cuentaOrigen,
+        'cuenta_destino' => $cuentaDestino,
+        'monto_traspaso' => $montoTraspaso,
+
+        // 🔹 Montos
+        'monto' => $movimiento->monto,
+        'monto_abs' => abs($movimiento->monto),
+        'monto_base' => $movimiento->monto_base,
+        'monto_iva' => $movimiento->monto_iva,
+
+        // 🔹 Doble IVA
+        'monto_iva_cero' => $montoIvaCero,
+        'monto_iva_dieciseis' => $montoIvaDieciseis,
+        'iva_dieciseis' => $ivaDieciseis,
+
+        // 🔹 Abonos
+        'abonos' => $abonos->map(function($abono) {
+            return [
+                'id' => $abono->id,
+                'monto_abonado' => $abono->monto_abonado,
+                'fecha_abono' => $abono->fecha_abono,
+                'referencia' => $abono->referencia,
+                'metodo_pago' => $abono->metodo_pago,
+                'nota' => $abono->nota,
+                'usuario' => $abono->usuario?->nombre_usuario ?? 'Sistema'
+            ];
+        }),
+        'total_abonado' => $totalAbonado,
+        'saldo_pendiente' => $saldoPendiente,
+
+        // 🔹 Marcador
+        'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
+
+        // 🔹 Usuarios
+        'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
+        'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
+        'usuario_revisor' => $movimiento->poliza->usuarioRevisor ? $movimiento->poliza->usuarioRevisor->nombre_usuario : null,
+        'usuario_autorizador' => $movimiento->poliza->usuarioAutorizador ? $movimiento->poliza->usuarioAutorizador->nombre_usuario : null,
+
+        // 🔹 Fechas
+        'fecha_revision' => $movimiento->poliza->fecha_revision,
+        'fecha_autorizacion' => $movimiento->poliza->fecha_autorizacion,
+        'fecha_factura' => $movimiento->poliza->fecha_factura,
+        'numero_factura' => $movimiento->poliza->numero_factura,
+        'fecha_creacion' => $movimiento->created_at,
+        'fecha_actualizacion' => $movimiento->updated_at,
+
+        // 🔹 Documentos fiscales
+        'pdf_url' => $pdfUrl,
+        'xml_url' => $xmlUrl,
+        'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
+        'tiene_xml_fiscal' => !empty($movimiento->poliza->ruta_xml),
+        'uuid_factura' => $movimiento->poliza->uuid_factura,
+        'serie_factura' => $movimiento->poliza->serie_factura,
+        'folio_factura' => $movimiento->poliza->folio_factura,
+
+        // 🔹 Comentarios
+        'comentario_revision' => $movimiento->poliza->comentario_revision,
+        'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
+        'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
+    ];
+
+    return Inertia::render('Movimientos/Show', [
+        'movimiento' => $movimientoData
+    ]);
+}
 
     // ============================================
     // 📄 SHOW ABONO
     // ============================================
     public function showAbono(string $id)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
             return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
                 ->with('error', 'No tienes permiso para ver movimientos');
@@ -1233,7 +1140,6 @@ class MovimientoController extends Controller
     // ============================================
     public function edit(string $id)
     {
-        // ✅ Verificar permiso para editar movimientos
         if (!Gate::allows('editar-movimientos')) {
             return redirect()->route('movimientos.index')
                 ->with('error', 'No tienes permiso para editar movimientos');
@@ -1254,7 +1160,6 @@ class MovimientoController extends Controller
                 ->with('error', 'Movimiento no encontrado');
         }
 
-        // Verificar que no esté en un estado que impida editar
         if (in_array($movimiento->poliza->estatus, ['AUTORIZADO', 'ABONADO', 'LIQUIDADO'])) {
             return redirect()->route('movimientos.index')
                 ->with('error', 'No se puede editar una póliza en estado ' . $this->getEstatusTexto($movimiento->poliza->estatus));
@@ -1275,6 +1180,7 @@ class MovimientoController extends Controller
                 return [
                     'id_cuenta' => $cuenta->id_cuenta,
                     'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
                 ];
             });
 
@@ -1287,7 +1193,7 @@ class MovimientoController extends Controller
                 return [
                     'id_cuenta' => $cuenta->id_cuenta,
                     'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'saldo' => $cuenta->saldo_inicial ?? 0
+                    'saldo' => (float) ($cuenta->saldo_inicial ?? 0)
                 ];
             });
 
@@ -1393,7 +1299,6 @@ class MovimientoController extends Controller
     // ============================================
     public function update(Request $request, string $id)
     {
-        // ✅ Verificar permiso para editar movimientos
         if (!Gate::allows('editar-movimientos')) {
             return redirect()->route('movimientos.index')
                 ->with('error', 'No tienes permiso para editar movimientos');
@@ -1463,7 +1368,6 @@ class MovimientoController extends Controller
                 'folio_factura' => $request->folio_factura,
             ];
 
-            // 📄 PROCESAR PDF
             if ($request->hasFile('pdf_file')) {
                 if ($poliza->ruta_pdf && Storage::disk('public')->exists($poliza->ruta_pdf)) {
                     Storage::disk('public')->delete($poliza->ruta_pdf);
@@ -1475,7 +1379,6 @@ class MovimientoController extends Controller
                 }
             }
 
-            // 📄 PROCESAR XML
             if ($request->hasFile('xml_file')) {
                 if ($poliza->ruta_xml && Storage::disk('public')->exists($poliza->ruta_xml)) {
                     Storage::disk('public')->delete($poliza->ruta_xml);
@@ -1557,102 +1460,126 @@ class MovimientoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al actualizar movimiento:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return back()->with('error', 'Error al actualizar el movimiento: ' . $e->getMessage());
         }
     }
 
     // ============================================
-    // 📄 DESTROY - ELIMINAR MOVIMIENTO
-    // ============================================
-    public function destroy(string $id)
-    {
-        // ✅ Verificar permiso para eliminar movimientos
-        if (!Gate::allows('eliminar-movimientos')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para eliminar movimientos'
-            ], 403);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $movimiento = MovimientoPoliza::with('poliza')->find($id);
-
-            if (!$movimiento) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Movimiento no encontrado'
-                ], 404);
-            }
-
-            $poliza = $movimiento->poliza;
-            
-            if (in_array($poliza->estatus, ['AUTORIZADO', 'ABONADO', 'LIQUIDADO'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se pueden eliminar movimientos de una póliza en estado ' . $this->getEstatusTexto($poliza->estatus)
-                ], 422);
-            }
-
-            $idCuenta = $movimiento->id_cuenta;
-            $idCajaFondo = $movimiento->id_caja_fondo;
-
-            AbonoPoliza::where('id_poliza', $poliza->id)->delete();
-
-            if ($poliza->ruta_pdf && Storage::disk('public')->exists($poliza->ruta_pdf)) {
-                Storage::disk('public')->delete($poliza->ruta_pdf);
-            }
-            if ($poliza->ruta_xml && Storage::disk('public')->exists($poliza->ruta_xml)) {
-                Storage::disk('public')->delete($poliza->ruta_xml);
-            }
-
-            $movimiento->delete();
-
-            if ($idCajaFondo) {
-                $this->actualizarSaldoCuenta($idCajaFondo);
-            }
-            if ($idCuenta && $idCuenta != $idCajaFondo) {
-                $this->actualizarSaldoCuenta($idCuenta);
-            }
-
-            $movimientosRestantes = MovimientoPoliza::where('id_poliza', $poliza->id)->count();
-            if ($movimientosRestantes === 0) {
-                $poliza->delete();
-            } else {
-                $this->actualizarEstatusPoliza($poliza);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Movimiento eliminado exitosamente'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al eliminar movimiento:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al eliminar el movimiento: ' . $e->getMessage()
-            ], 500);
-        }
+// 📄 DESTROY - ELIMINAR MOVIMIENTO (CON TRASPASOS)
+// ============================================
+public function destroy(string $id)
+{
+    if (!Gate::allows('eliminar-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso para eliminar movimientos'
+        ], 403);
     }
 
+    try {
+        DB::beginTransaction();
+
+        $movimiento = MovimientoPoliza::with('poliza')->find($id);
+
+        if (!$movimiento) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Movimiento no encontrado'
+            ], 404);
+        }
+
+        $poliza = $movimiento->poliza;
+        
+        // ✅ VERIFICAR SI ES TRASPASO
+        $esTraspaso = $poliza->tipo_poliza === 'TRASPASO';
+        
+        // ✅ OBTENER TODOS LOS MOVIMIENTOS DE LA PÓLIZA (PARA TRASPASOS)
+        $movimientosPoliza = MovimientoPoliza::where('id_poliza', $poliza->id)->get();
+        
+        // ✅ VERIFICAR ESTATUS - NO PERMITIR ELIMINAR PÓLIZAS AUTORIZADAS O LIQUIDADAS
+        if (in_array($poliza->estatus, ['AUTORIZADO', 'ABONADO', 'LIQUIDADO'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pueden eliminar movimientos de una póliza en estado ' . $this->getEstatusTexto($poliza->estatus)
+            ], 422);
+        }
+
+        // ✅ RECOLECTAR IDS DE CUENTAS A ACTUALIZAR
+        $cuentasAActualizar = [];
+        
+        foreach ($movimientosPoliza as $mov) {
+            if ($mov->id_cuenta) {
+                $cuentasAActualizar[] = $mov->id_cuenta;
+            }
+            if ($mov->id_caja_fondo) {
+                $cuentasAActualizar[] = $mov->id_caja_fondo;
+            }
+        }
+        
+        // ✅ ELIMINAR ABONOS DE LA PÓLIZA
+        AbonoPoliza::where('id_poliza', $poliza->id)->delete();
+
+        // ✅ ELIMINAR DOCUMENTOS FISCALES ASOCIADOS
+        if ($poliza->ruta_pdf && Storage::disk('public')->exists($poliza->ruta_pdf)) {
+            Storage::disk('public')->delete($poliza->ruta_pdf);
+        }
+        if ($poliza->ruta_xml && Storage::disk('public')->exists($poliza->ruta_xml)) {
+            Storage::disk('public')->delete($poliza->ruta_xml);
+        }
+
+        // ✅ ELIMINAR TODOS LOS MOVIMIENTOS DE LA PÓLIZA
+        foreach ($movimientosPoliza as $mov) {
+            $mov->delete();
+        }
+
+        // ✅ ELIMINAR LA PÓLIZA
+        $poliza->delete();
+
+        // ✅ ACTUALIZAR SALDOS DE TODAS LAS CUENTAS AFECTADAS
+        foreach (array_unique($cuentasAActualizar) as $idCuenta) {
+            if ($idCuenta) {
+                $this->actualizarSaldoCuenta($idCuenta);
+                \Log::info('Saldo actualizado para cuenta ID: ' . $idCuenta . ' después de eliminar póliza');
+            }
+        }
+
+        DB::commit();
+
+        $mensaje = 'Movimiento eliminado exitosamente';
+        if ($esTraspaso) {
+            $mensaje = 'Traspaso eliminado exitosamente. Los saldos de las cuentas han sido restaurados.';
+        }
+
+        \Log::info('Póliza eliminada:', [
+            'id_poliza' => $poliza->id,
+            'folio' => $poliza->folio,
+            'tipo' => $poliza->tipo_poliza,
+            'es_traspaso' => $esTraspaso,
+            'cuentas_actualizadas' => array_unique($cuentasAActualizar)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $mensaje
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error al eliminar movimiento:', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al eliminar el movimiento: ' . $e->getMessage()
+        ], 500);
+    }
+}
     // ============================================
     // 📄 STORE ABONO
     // ============================================
     public function storeAbono(Request $request)
     {
-        // ✅ Verificar permiso para editar movimientos
         if (!Gate::allows('editar-movimientos')) {
             return back()->with('error', 'No tienes permiso para registrar abonos');
         }
@@ -1715,10 +1642,6 @@ class MovimientoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al registrar abono:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return back()->with('error', 'Error al registrar el abono: ' . $e->getMessage())->withInput();
         }
     }
@@ -1728,7 +1651,6 @@ class MovimientoController extends Controller
     // ============================================
     public function destroyAbono(string $id)
     {
-        // ✅ Verificar permiso para editar movimientos
         if (!Gate::allows('editar-movimientos')) {
             return response()->json([
                 'success' => false,
@@ -1787,7 +1709,6 @@ class MovimientoController extends Controller
     // ============================================
     public function liquidarPoliza(Request $request)
     {
-        // ✅ Verificar permiso para editar movimientos
         if (!Gate::allows('editar-movimientos')) {
             return response()->json([
                 'success' => false,
@@ -1874,10 +1795,6 @@ class MovimientoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al liquidar póliza:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al liquidar la póliza: ' . $e->getMessage()
@@ -1890,7 +1807,6 @@ class MovimientoController extends Controller
     // ============================================
     public function liquidarIngreso(Request $request)
     {
-        // ✅ Verificar permiso para editar movimientos
         if (!Gate::allows('editar-movimientos')) {
             return response()->json([
                 'success' => false,
@@ -1952,7 +1868,6 @@ class MovimientoController extends Controller
                 'id_usuario' => auth()->id()
             ]);
 
-            // Cambiar a ABONADO primero y luego LIQUIDADO
             $poliza->estatus = 'ABONADO';
             $poliza->fecha_abono = now();
             $poliza->save();
@@ -1974,10 +1889,6 @@ class MovimientoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al liquidar póliza de ingreso:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al liquidar la póliza: ' . $e->getMessage()
@@ -1986,26 +1897,113 @@ class MovimientoController extends Controller
     }
 
     // ============================================
-    // 🔄 STORE TRASPASO
+    // 📄 CREATE NÓMINA
     // ============================================
-    public function storeTraspaso(Request $request)
+    public function createNomina()
     {
-        // ✅ Verificar permiso para crear movimientos
         if (!Gate::allows('crear-movimientos')) {
-            return back()->with('error', 'No tienes permiso para crear traspasos');
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No tienes permiso para crear movimientos');
+        }
+
+        $empresaId = session('empresa_movimientos');
+        
+        if (!$empresaId) {
+            $empresa = auth()->user()->empresas()->first();
+            $empresaId = $empresa ? $empresa->id : null;
+        }
+
+        if (!$empresaId) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No tienes una empresa seleccionada.');
+        }
+
+        $empleados = Persona::where('activo', true)
+            ->orderBy('Nombre')
+            ->orderBy('Paterno')
+            ->orderBy('Materno')
+            ->get()
+            ->map(function($persona) {
+                return [
+                    'id_persona' => $persona->id_persona,
+                    'nombre_completo' => $persona->nombre_completo,
+                    'rfc' => $persona->rfc,
+                ];
+            });
+
+        $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+            ->where('en_uso', true)
+            ->where('fondeo_c', 1)
+            ->orderBy('nombre_cuenta')
+            ->get()
+            ->map(function($cuenta) {
+                return [
+                    'id_cuenta' => $cuenta->id_cuenta,
+                    'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo' => (float) ($cuenta->saldo_inicial ?? 0)
+                ];
+            });
+
+        $cuentas = Cuenta::where('id_empresa', $empresaId)
+            ->where('en_uso', true)
+            ->orderBy('nombre_cuenta')
+            ->get()
+            ->map(function($cuenta) {
+                return [
+                    'id_cuenta' => $cuenta->id_cuenta,
+                    'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
+                ];
+            });
+
+        $marcadores = Marcador::where('activo', true)
+            ->orderBy('nombre_marcador')
+            ->get()
+            ->map(function($marcador) {
+                return [
+                    'id' => $marcador->id,
+                    'nombre_marcador' => $marcador->nombre_marcador,
+                    'descripcion' => $marcador->descripcion
+                ];
+            });
+
+        if ($empleados->isEmpty()) {
+            return redirect()->route('movimientos.index')
+                ->with('info', 'No hay empleados registrados. Primero debes registrar personas.');
+        }
+
+        return Inertia::render('Movimientos/NominaCreate', [
+            'empresa_id' => (int) $empresaId,
+            'empleados' => $empleados,
+            'cuentas_fondeadoras' => $cuentasFondeadoras,
+            'cuentas' => $cuentas,
+            'marcadores' => $marcadores
+        ]);
+    }
+
+    // ============================================
+    // 📄 STORE NÓMINA
+    // ============================================
+    public function storeNomina(Request $request)
+    {
+        if (!Gate::allows('crear-movimientos')) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No tienes permiso para crear movimientos');
         }
 
         $validator = Validator::make($request->all(), [
-            'tipo_poliza' => 'required|in:TRASPASO',
-            'id_cuenta_origen' => 'required|exists:cuentas,id_cuenta|different:id_cuenta_destino',
-            'id_cuenta_destino' => 'required|exists:cuentas,id_cuenta|different:id_cuenta_origen',
-            'monto' => 'required|numeric|min:0.01',
-            'es_fiscal' => 'boolean',
-            'es_por_pagar' => 'boolean',
-            'fecha_vencimiento' => 'nullable|date|after_or_equal:today',
+            'quincena' => 'required|in:1,2',
+            'fecha_pago' => 'required|date',
+            'id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
+            'tipo_poliza' => 'required|in:EGRESO',
             'id_marcador' => 'nullable|exists:marcadores,id',
-            'referencia' => 'nullable|string|max:100',
-            'nota' => 'nullable|string'
+            'descripcion' => 'nullable|string|max:255',
+            'id_cuenta' => 'required|exists:cuentas,id_cuenta',
+            'empleados' => 'required|array|min:1',
+            'empleados.*.id_persona' => 'required|exists:personas,id_persona',
+            'empleados.*.monto' => 'required|numeric|min:0.01',
+            'empleados.*.id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
+            'empleados.*.observacion' => 'nullable|string|max:255'
         ]);
 
         if ($validator->fails()) {
@@ -2023,132 +2021,624 @@ class MovimientoController extends Controller
             }
 
             if (!$empresaId) {
-                throw new \Exception('No se pudo determinar la empresa');
+                throw new \Exception('No se pudo determinar la empresa para la póliza');
             }
 
-            $categoria = $request->es_fiscal ? 'FISCAL' : 'NO_FISCAL';
+            $fechaPago = $request->fecha_pago;
+            $descripcion = $request->descripcion ?? 'Pago de nómina quincenal';
+            $idMarcador = $request->id_marcador;
+            $idCuenta = $request->id_cuenta;
 
-            $poliza = Poliza::create([
-                'id_empresa' => $empresaId,
-                'tipo_poliza' => 'TRASPASO',
-                'fecha_poliza' => now(),
-                'fecha_vencimiento' => $request->es_por_pagar ? $request->fecha_vencimiento : null,
-                'categoria' => $categoria,
-                'estatus' => 'CAPTURADO',
-                'es_por_pagar' => $request->es_por_pagar ?? false,
-                'referencia' => $request->referencia,
-                'nota' => $request->nota,
-                'id_persona' => null,
-                'id_usuario_creador' => auth()->id(),
-                'id_usuario_autorizador' => null,
-                'id_usuario_revisor' => null,
-                'fecha_autorizacion' => null,
-                'fecha_revision' => null,
-                'id_marcador' => $request->id_marcador,
-                'fecha_creacion' => now(),
-            ]);
+            $totalNomina = 0;
+            $totalEmpleados = 0;
 
-            $monto = round($request->monto, 2);
+            foreach ($request->empleados as $empleadoData) {
+                $monto = round($empleadoData['monto'], 2);
+                $totalNomina += $monto;
+                $totalEmpleados++;
 
-            MovimientoPoliza::create([
-                'id_poliza' => $poliza->id,
-                'id_cuenta' => $request->id_cuenta_origen,
-                'id_caja_fondo' => null,
-                'id_tipo_iva' => null,
-                'monto' => -$monto,
-                'monto_base' => -$monto,
-                'monto_iva' => 0
-            ]);
+                $folio = 'NOM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 
-            MovimientoPoliza::create([
-                'id_poliza' => $poliza->id,
-                'id_cuenta' => $request->id_cuenta_destino,
-                'id_caja_fondo' => null,
-                'id_tipo_iva' => null,
-                'monto' => $monto,
-                'monto_base' => $monto,
-                'monto_iva' => 0
-            ]);
+                $poliza = Poliza::create([
+                    'id_empresa' => $empresaId,
+                    'tipo_poliza' => 'EGRESO',
+                    'fecha_poliza' => $fechaPago,
+                    'fecha_vencimiento' => null,
+                    'categoria' => 'NO_FISCAL',
+                    'estatus' => 'CAPTURADO',
+                    'es_por_pagar' => false,
+                    'referencia' => $folio,
+                    'nota' => $descripcion . ' - ' . ($empleadoData['observacion'] ?? 'Sueldo quincenal'),
+                    'id_persona' => $empleadoData['id_persona'],
+                    'id_usuario_creador' => auth()->id(),
+                    'id_usuario_autorizador' => null,
+                    'id_usuario_revisor' => null,
+                    'fecha_autorizacion' => null,
+                    'fecha_revision' => null,
+                    'id_marcador' => $idMarcador,
+                    'fecha_creacion' => now(),
+                ]);
 
-            $this->actualizarSaldoCuenta($request->id_cuenta_origen);
-            $this->actualizarSaldoCuenta($request->id_cuenta_destino);
+                MovimientoPoliza::create([
+                    'id_poliza' => $poliza->id,
+                    'id_cuenta' => $idCuenta,
+                    'id_caja_fondo' => $empleadoData['id_cuenta_fondeadora'],
+                    'id_tipo_iva' => null,
+                    'monto' => -$monto,
+                    'monto_base' => -$monto,
+                    'monto_iva' => 0,
+                    'monto_traspaso' => null,
+                ]);
+
+                $this->actualizarSaldoCuenta($empleadoData['id_cuenta_fondeadora']);
+                $this->actualizarSaldoCuenta($idCuenta);
+            }
 
             DB::commit();
 
             return redirect()->route('movimientos.index')
-                ->with('success', 'Traspaso creado exitosamente');
+                ->with('success', "Nómina generada exitosamente. {$totalEmpleados} pólizas creadas por un total de $" . number_format($totalNomina, 2));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al crear traspaso:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return back()->with('error', 'Error al crear el traspaso: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Error al generar las pólizas de nómina: ' . $e->getMessage())->withInput();
         }
     }
 
     // ============================================
-    // 🔍 BUSCAR PERSONAS
+    // 📄 CREATE FISCAL DOBLE IVA
     // ============================================
-    public function buscarPersonas(Request $request)
+    public function createFiscalDobleIva()
     {
-        // ✅ Verificar permiso para ver movimientos
-        if (!Gate::allows('ver-movimientos')) {
-            return response()->json([], 403);
+        if (!Gate::allows('crear-movimientos')) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No tienes permiso para crear movimientos');
         }
 
-        $search = $request->get('q', '');
-
-        $personas = Persona::where(function($query) use ($search) {
-                $query->where('Nombre', 'LIKE', "%{$search}%")
-                      ->orWhere('Paterno', 'LIKE', "%{$search}%")
-                      ->orWhere('Materno', 'LIKE', "%{$search}%")
-                      ->orWhereRaw("CONCAT(Nombre, ' ', Paterno, ' ', Materno) LIKE ?", ["%{$search}%"]);
-            })
-            ->where('activo', 1)
-            ->limit(10)
-            ->get()
-            ->map(function($persona) {
-                return [
-                    'id_persona' => $persona->id_persona,
-                    'nombre_completo' => $persona->nombre_completo,
-                    'rfc' => $persona->rfc
-                ];
-            });
-
-        return response()->json($personas);
-    }
-
-    // ============================================
-    // 🔍 BUSCAR CUENTAS
-    // ============================================
-    public function buscarCuentas(Request $request)
-    {
-        // ✅ Verificar permiso para ver movimientos
-        if (!Gate::allows('ver-movimientos')) {
-            return response()->json([], 403);
-        }
-
-        $search = $request->get('q', '');
         $empresaId = session('empresa_movimientos');
+        
+        if (!$empresaId) {
+            $empresa = auth()->user()->empresas()->first();
+            $empresaId = $empresa ? $empresa->id : null;
+        }
 
-        $cuentas = Cuenta::where(function($query) use ($search) {
-                $query->where('nombre_cuenta', 'LIKE', "%{$search}%")
-                      ->orWhere('codigo_cuenta', 'LIKE', "%{$search}%");
+        if (!$empresaId) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No tienes una empresa seleccionada.');
+        }
+
+        $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+            ->where(function($query) {
+                $query->where('en_uso', true)
+                    ->orWhere('check_uso', 1);
             })
-            ->where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->limit(10)
+            ->where('fondeo_c', 1)
+            ->orderBy('nombre_cuenta')
             ->get()
             ->map(function($cuenta) {
                 return [
                     'id_cuenta' => $cuenta->id_cuenta,
                     'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo' => (float) ($cuenta->saldo_inicial ?? 0)
                 ];
             });
 
-        return response()->json($cuentas);
+        $cuentas = Cuenta::where('id_empresa', $empresaId)
+            ->where(function($query) {
+                $query->where('en_uso', true)
+                    ->orWhere('check_uso', 1);
+            })
+            ->orderBy('nombre_cuenta')
+            ->get()
+            ->map(function($cuenta) {
+                return [
+                    'id_cuenta' => $cuenta->id_cuenta,
+                    'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
+                ];
+            });
+
+        $marcadores = Marcador::where('activo', true)
+            ->orderBy('nombre_marcador')
+            ->get()
+            ->map(function($marcador) {
+                return [
+                    'id' => $marcador->id,
+                    'nombre_marcador' => $marcador->nombre_marcador,
+                    'descripcion' => $marcador->descripcion
+                ];
+            });
+
+        $personas = Persona::where('activo', true)
+            ->orderBy('Nombre')
+            ->orderBy('Paterno')
+            ->orderBy('Materno')
+            ->get()
+            ->map(function($persona) {
+                return [
+                    'id_persona' => $persona->id_persona,
+                    'nombre_completo' => $persona->nombre_completo,
+                    'rfc' => $persona->rfc,
+                ];
+            });
+
+        return Inertia::render('Movimientos/Poliza', [
+            'empresa_id' => (int) $empresaId,
+            'cuentas' => $cuentas,
+            'cuentas_fondeadoras' => $cuentasFondeadoras,
+            'marcadores' => $marcadores,
+            'personas' => $personas,
+        ]);
+    }
+
+
+    public function storeFiscalDobleIva(Request $request)
+{
+    \Log::info('=== INICIO storeFiscalDobleIva ===');
+    \Log::info('Datos recibidos:', $request->all());
+
+    if (!Gate::allows('crear-movimientos')) {
+        \Log::warning('Permiso denegado para crear movimientos fiscales doble IVA');
+        return back()->with('error', 'No tienes permiso para crear movimientos');
+    }
+
+    // ✅ Validación con los campos correctos
+    $validator = Validator::make($request->all(), [
+        'tipo_poliza' => 'required|in:INGRESO,EGRESO',
+        'id_persona' => 'nullable|exists:personas,id_persona',
+        'id_cuenta' => 'nullable|exists:cuentas,id_cuenta',
+        'id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
+        'es_por_pagar' => 'boolean',
+        'fecha_vencimiento' => 'nullable|date|after_or_equal:today',
+        'id_marcador' => 'nullable|exists:marcadores,id',
+        'monto_iva_cero' => 'required|numeric|min:0',
+        'monto_iva_dieciseis' => 'required|numeric|min:0', // ✅ Campo corregido
+        'total_factura' => 'required|numeric|min:0.01',
+        'fecha_factura' => 'nullable|date',
+        'numero_factura' => 'nullable|string|max:50',
+        'nota' => 'nullable|string',
+        'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
+        // ✅ XML es opcional - solo se pide
+        'xml_file' => 'nullable|file|max:5120',
+    ]);
+
+    \Log::info('Validación ejecutada');
+
+    if ($validator->fails()) {
+        \Log::error('Validación fallida:', $validator->errors()->toArray());
+        return back()->withErrors($validator)->withInput();
+    }
+
+    \Log::info('Validación pasó correctamente');
+
+    try {
+        \Log::info('Iniciando transacción DB');
+        DB::beginTransaction();
+
+        $empresaId = session('empresa_movimientos');
+        \Log::info('Empresa ID desde sesión:', ['empresa_id' => $empresaId]);
+        
+        if (!$empresaId) {
+            $empresa = auth()->user()->empresas()->first();
+            $empresaId = $empresa ? $empresa->id : null;
+            \Log::info('Empresa obtenida desde usuario:', ['empresa_id' => $empresaId]);
+        }
+
+        if (!$empresaId) {
+            throw new \Exception('No se pudo determinar la empresa');
+        }
+
+        $esPorPagar = filter_var($request->es_por_pagar, FILTER_VALIDATE_BOOLEAN);
+        $categoria = 'FISCAL';
+        \Log::info('Configuración:', [
+            'es_por_pagar' => $esPorPagar,
+            'categoria' => $categoria
+        ]);
+
+        // ✅ PROCESAR PDF (SI VIENE)
+        $rutaPdf = null;
+        $nombrePdf = null;
+        \Log::info('Procesando PDF:', ['has_file' => $request->hasFile('pdf_file')]);
+
+        if ($request->hasFile('pdf_file')) {
+            $pdfFile = $request->file('pdf_file');
+            \Log::info('PDF recibido:', [
+                'name' => $pdfFile->getClientOriginalName(),
+                'size' => $pdfFile->getSize(),
+                'is_valid' => $pdfFile->isValid()
+            ]);
+            if ($pdfFile->isValid()) {
+                $nombrePdf = $pdfFile->getClientOriginalName();
+                $rutaPdf = $pdfFile->store('documentos_fiscales/pdfs', 'public');
+                \Log::info('PDF guardado:', ['ruta' => $rutaPdf]);
+            } else {
+                \Log::error('PDF no válido');
+            }
+        }
+
+        // ✅ SOLO OBTENER EL NOMBRE DEL XML - NO SE GUARDA FÍSICAMENTE
+        $nombreXml = null;
+        \Log::info('Procesando XML (SOLO NOMBRE):', ['has_file' => $request->hasFile('xml_file')]);
+
+        if ($request->hasFile('xml_file')) {
+            $xmlFile = $request->file('xml_file');
+            \Log::info('XML recibido:', [
+                'name' => $xmlFile->getClientOriginalName(),
+                'size' => $xmlFile->getSize(),
+                'is_valid' => $xmlFile->isValid()
+            ]);
+            if ($xmlFile->isValid()) {
+                $nombreXml = $xmlFile->getClientOriginalName();
+                \Log::info('XML procesado - solo nombre guardado:', ['nombre' => $nombreXml]);
+            } else {
+                \Log::error('XML no válido');
+            }
+        }
+
+        // ✅ OBTENER LOS MONTOS
+        $montoIvaCero = round($request->monto_iva_cero, 2);
+        $montoIvaDieciseis = round($request->monto_iva_dieciseis, 2);
+        $totalFactura = round($request->total_factura, 2);
+
+        // ✅ CALCULAR IVA DEL 16%
+        $ivaDieciseis = round($montoIvaDieciseis * 0.16, 2);
+        $montoTotal = $montoIvaCero + $montoIvaDieciseis + $ivaDieciseis;
+
+        $signo = $request->tipo_poliza === 'EGRESO' ? -1 : 1;
+
+        \Log::info('Cálculos detallados:', [
+            'monto_iva_cero' => $montoIvaCero,
+            'monto_iva_dieciseis' => $montoIvaDieciseis,
+            'iva_dieciseis_calculado' => $ivaDieciseis,
+            'monto_total_sin_signo' => $montoTotal,
+            'signo' => $signo,
+            'monto_total_con_signo' => round($montoTotal * $signo, 2)
+        ]);
+
+        // ✅ CREAR PÓLIZA
+        $poliza = Poliza::create([
+            'id_empresa' => $empresaId,
+            'tipo_poliza' => $request->tipo_poliza,
+            'fecha_poliza' => now(),
+            'fecha_vencimiento' => $esPorPagar ? $request->fecha_vencimiento : null,
+            'categoria' => $categoria,
+            'estatus' => 'CAPTURADO',
+            'es_por_pagar' => $esPorPagar,
+            'referencia' => 'FISCAL-DOBLE-IVA-' . date('YmdHis'),
+            'nota' => $request->nota,
+            'id_persona' => $request->id_persona,
+            'id_usuario_creador' => auth()->id(),
+            'id_usuario_autorizador' => null,
+            'fecha_autorizacion' => null,
+            'fecha_factura' => $request->fecha_factura,
+            'numero_factura' => $request->numero_factura,
+            'id_marcador' => $request->id_marcador,
+            'fecha_creacion' => now(),
+            'ruta_pdf' => $rutaPdf,
+            'nombre_pdf' => $nombrePdf,
+            'nombre_xml' => $nombreXml,
+        ]);
+
+        \Log::info('Póliza creada:', ['id' => $poliza->id, 'folio' => $poliza->folio]);
+
+        $poliza->refresh();
+
+        // ✅ CREAR MOVIMIENTO CON LOS NUEVOS CAMPOS
+        $movimiento = MovimientoPoliza::create([
+            'id_poliza' => $poliza->id,
+            'id_cuenta' => $request->id_cuenta,
+            'id_caja_fondo' => $request->id_cuenta_fondeadora,
+            'id_tipo_iva' => null,
+            'monto' => round($montoTotal * $signo, 2),
+            'monto_base' => round(($montoIvaCero + $montoIvaDieciseis) * $signo, 2),
+            'monto_iva' => round($ivaDieciseis * $signo, 2),
+            'monto_traspaso' => null,
+            // ✅ NUEVOS CAMPOS PARA DOBLE IVA
+            'monto_iva_cero' => round($montoIvaCero * $signo, 2),
+            'monto_iva_dieciseis' => round($montoIvaDieciseis * $signo, 2),
+            'iva_dieciseis' => round($ivaDieciseis * $signo, 2),
+        ]);
+
+        \Log::info('Movimiento creado con doble IVA:', [
+            'id' => $movimiento->id,
+            'monto_iva_cero' => $movimiento->monto_iva_cero,
+            'monto_iva_dieciseis' => $movimiento->monto_iva_dieciseis,
+            'iva_dieciseis' => $movimiento->iva_dieciseis,
+            'monto_total' => $movimiento->monto
+        ]);
+
+        // ✅ ACTUALIZAR SALDOS
+        if ($request->id_cuenta_fondeadora) {
+            \Log::info('Actualizando saldo cuenta fondeadora:', ['id' => $request->id_cuenta_fondeadora]);
+            $this->actualizarSaldoCuenta($request->id_cuenta_fondeadora);
+        }
+        
+        if ($request->id_cuenta && $request->id_cuenta != $request->id_cuenta_fondeadora) {
+            \Log::info('Actualizando saldo cuenta:', ['id' => $request->id_cuenta]);
+            $this->actualizarSaldoCuenta($request->id_cuenta);
+        }
+
+        DB::commit();
+        \Log::info('✅ Transacción completada exitosamente');
+
+        // ✅ MENSAJE DE ÉXITO CON DETALLES DEL DOBLE IVA
+        $mensaje = sprintf(
+            "Póliza fiscal con doble IVA creada exitosamente. Folio: %s | " .
+            "IVA 0%%: $%.2f | IVA 16%%: $%.2f | IVA calculado: $%.2f | Total: $%.2f",
+            $poliza->folio,
+            $montoIvaCero,
+            $montoIvaDieciseis,
+            $ivaDieciseis,
+            $montoTotal
+        );
+
+        return redirect()->route('movimientos.index')
+            ->with('success', $mensaje);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('❌ Error en storeFiscalDobleIva:', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return back()->with('error', 'Error al crear la póliza: ' . $e->getMessage())->withInput();
+    }
+}
+
+    // ============================================
+    // ✅ REVISAR PÓLIZA (CAPTURADO → REVISADO)
+    // ============================================
+    public function revisarPoliza(Request $request, $id)
+    {
+        if (!Gate::allows('editar-movimientos')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para revisar pólizas'
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $poliza = Poliza::findOrFail($id);
+            
+            if ($poliza->estatus !== 'CAPTURADO') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La póliza debe estar en estado CAPTURADO para ser revisada'
+                ], 422);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'comentario' => 'nullable|string|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $poliza->estatus = 'REVISADO';
+            $poliza->id_usuario_revisor = auth()->id();
+            $poliza->fecha_revision = now();
+            $poliza->comentario_revision = $request->comentario;
+            $poliza->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Póliza revisada exitosamente',
+                'data' => [
+                    'estatus' => $poliza->estatus,
+                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
+                    'fecha_revision' => $poliza->fecha_revision?->format('d/m/Y H:i')
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al revisar la póliza: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================
+    // ✅ AUTORIZAR PÓLIZA (REVISADO → AUTORIZADO)
+    // ============================================
+    public function autorizarPoliza(Request $request, $id)
+    {
+        if (!Gate::allows('autorizar-polizas')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para autorizar pólizas'
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $poliza = Poliza::findOrFail($id);
+            
+            if ($poliza->estatus !== 'REVISADO') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La póliza debe estar en estado REVISADO para ser autorizada'
+                ], 422);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'comentario' => 'nullable|string|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $poliza->estatus = 'AUTORIZADO';
+            $poliza->id_usuario_autorizador = auth()->id();
+            $poliza->fecha_autorizacion = now();
+            $poliza->comentario_autorizacion = $request->comentario;
+            $poliza->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Póliza autorizada exitosamente',
+                'data' => [
+                    'estatus' => $poliza->estatus,
+                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
+                    'fecha_autorizacion' => $poliza->fecha_autorizacion?->format('d/m/Y H:i')
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al autorizar la póliza: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================
+    // ❌ RECHAZAR PÓLIZA (REVISADO/AUTORIZADO → CAPTURADO)
+    // ============================================
+    public function rechazarPoliza(Request $request, $id)
+    {
+        if (!Gate::allows('editar-movimientos')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para rechazar pólizas'
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $poliza = Poliza::findOrFail($id);
+            
+            if (!in_array($poliza->estatus, ['REVISADO', 'AUTORIZADO'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La póliza debe estar en estado REVISADO o AUTORIZADO para ser rechazada'
+                ], 422);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'motivo' => 'required|string|min:10|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $poliza->estatus = 'CAPTURADO';
+            $poliza->id_usuario_revisor = null;
+            $poliza->fecha_revision = null;
+            $poliza->id_usuario_autorizador = null;
+            $poliza->fecha_autorizacion = null;
+            $poliza->comentario_revision = null;
+            $poliza->comentario_autorizacion = null;
+            $poliza->motivo_rechazo = $request->motivo;
+            $poliza->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Póliza rechazada. Regresa a estado CAPTURADO',
+                'data' => [
+                    'estatus' => $poliza->estatus,
+                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
+                    'motivo_rechazo' => $poliza->motivo_rechazo
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al rechazar la póliza: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================
+    // 🔄 REVERTIR REVISIÓN (REVISADO → CAPTURADO)
+    // ============================================
+    public function revertirRevision(Request $request, $id)
+    {
+        if (!Gate::allows('editar-movimientos')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para revertir revisiones'
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $poliza = Poliza::findOrFail($id);
+            
+            if ($poliza->estatus !== 'REVISADO') {
+                return response()->json([
+                    'success' => false,
+
+                    'message' => 'La póliza debe estar en estado REVISADO para revertir'
+                ], 422);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'motivo' => 'required|string|min:10|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $poliza->estatus = 'CAPTURADO';
+            $poliza->id_usuario_revisor = null;
+            $poliza->fecha_revision = null;
+            $poliza->comentario_revision = null;
+            $poliza->motivo_rechazo = $request->motivo;
+            $poliza->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Revisión revertida. La póliza regresa a estado CAPTURADO',
+                'data' => [
+                    'estatus' => $poliza->estatus,
+                    'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
+                    'motivo_rechazo' => $poliza->motivo_rechazo
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al revertir la revisión: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // ============================================
@@ -2156,7 +2646,6 @@ class MovimientoController extends Controller
     // ============================================
     public function getDocumentoFiscal($id, $tipo)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
             abort(403, 'No tienes permiso para ver documentos fiscales');
         }
@@ -2182,38 +2671,34 @@ class MovimientoController extends Controller
     }
 
     // ============================================
-    // 🧮 CALCULAR DESGLOSE DE IVA (API)
+    // 🔍 BUSCAR CUENTAS (API)
     // ============================================
-    public function calcularDesglose(Request $request)
+    public function buscarCuentas(Request $request)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
-            return response()->json(['error' => 'No tienes permiso'], 403);
+            return response()->json([], 403);
         }
 
-        $totalFactura = round($request->get('total_factura', 0), 2);
-        $idTipoIva = (int) $request->get('id_tipo_iva', 0);
+        $search = $request->get('q', '');
+        $empresaId = session('empresa_movimientos');
 
-        $porcentajeIva = 0;
-        $nombreIva = 'Sin IVA';
+        $cuentas = Cuenta::where(function($query) use ($search) {
+                $query->where('nombre_cuenta', 'LIKE', "%{$search}%")
+                      ->orWhere('codigo_cuenta', 'LIKE', "%{$search}%");
+            })
+            ->where('id_empresa', $empresaId)
+            ->where('en_uso', true)
+            ->limit(10)
+            ->get()
+            ->map(function($cuenta) {
+                return [
+                    'id_cuenta' => $cuenta->id_cuenta,
+                    'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
+                ];
+            });
 
-        if ($idTipoIva > 0 && $totalFactura > 0) {
-            $tipoIva = TipoIva::find($idTipoIva);
-            if ($tipoIva) {
-                $porcentajeIva = $tipoIva->porcentaje;
-                $nombreIva = $tipoIva->nombre;
-            }
-        }
-
-        $desglose = $this->calcularDesgloseExacto($totalFactura, $porcentajeIva);
-
-        return response()->json([
-            'monto_base' => $desglose['monto_base'],
-            'monto_iva' => $desglose['monto_iva'],
-            'total_factura' => $desglose['total'],
-            'porcentaje_iva' => $porcentajeIva,
-            'nombre_iva' => $nombreIva
-        ]);
+        return response()->json($cuentas);
     }
 
     // ============================================
@@ -2221,7 +2706,6 @@ class MovimientoController extends Controller
     // ============================================
     public function getEmpleadosNomina(Request $request)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
             return response()->json([], 403);
         }
@@ -2258,7 +2742,6 @@ class MovimientoController extends Controller
     // ============================================
     public function calcularFechaPago(Request $request)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
             return response()->json(['error' => 'No tienes permiso'], 403);
         }
@@ -2299,164 +2782,10 @@ class MovimientoController extends Controller
     }
 
     // ============================================
-    // 🏷️ STORE MARCADOR
-    // ============================================
-    public function storeMarcador(Request $request)
-    {
-        // ✅ Verificar permiso para crear movimientos
-        if (!Gate::allows('crear-movimientos')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para crear marcadores'
-            ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'nombre_marcador' => 'required|string|max:100|unique:marcadores,nombre_marcador',
-            'descripcion' => 'nullable|string|max:255'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $marcador = Marcador::create([
-                'nombre_marcador' => strtoupper($request->nombre_marcador),
-                'descripcion' => $request->descripcion,
-                'activo' => true
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Marcador creado exitosamente',
-                'data' => [
-                    'id' => $marcador->id,
-                    'nombre_marcador' => $marcador->nombre_marcador,
-                    'descripcion' => $marcador->descripcion,
-                    'activo' => $marcador->activo
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear el marcador: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ============================================
-    // 💰 OBTENER SALDO DE CUENTA FONDEADORA
-    // ============================================
-    public function getSaldoCuentaFondeadora(Request $request)
-    {
-        // ✅ Verificar permiso para ver movimientos
-        if (!Gate::allows('ver-movimientos')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso'
-            ], 403);
-        }
-
-        $idCuenta = $request->get('id_cuenta');
-        
-        if (!$idCuenta) {
-            return response()->json([
-                'success' => false,
-                'message' => 'ID de cuenta no proporcionado'
-            ], 422);
-        }
-
-        $cuenta = Cuenta::find($idCuenta);
-        
-        if (!$cuenta) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cuenta no encontrada'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id_cuenta' => $cuenta->id_cuenta,
-                'nombre_cuenta' => $cuenta->nombre_cuenta,
-                'saldo' => $cuenta->saldo_inicial ?? 0,
-                'saldo_formateado' => '$' . number_format($cuenta->saldo_inicial ?? 0, 2)
-            ]
-        ]);
-    }
-
-    // ============================================
-    // 💰 OBTENER CUENTAS FONDEADORAS
-    // ============================================
-    public function getCuentasFondeadoras(Request $request)
-    {
-        // ✅ Verificar permiso para ver movimientos
-        if (!Gate::allows('ver-movimientos')) {
-            return response()->json(['data' => []]);
-        }
-
-        $empresaId = $request->get('empresa_id', session('empresa_movimientos'));
-        
-        if (!$empresaId) {
-            return response()->json(['data' => []]);
-        }
-        
-        $cuentas = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->where('fondeo_c', 1)
-            ->orderBy('nombre_cuenta')
-            ->get()
-            ->map(function($cuenta) {
-                return [
-                    'id_cuenta' => $cuenta->id_cuenta,
-                    'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'saldo' => $cuenta->saldo_inicial ?? 0
-                ];
-            });
-        
-        return response()->json(['data' => $cuentas]);
-    }
-
-    // ============================================
-    // 💰 OBTENER SALDO DE CUENTA
-    // ============================================
-    public function obtenerSaldoCuenta(Request $request)
-    {
-        // ✅ Verificar permiso para ver movimientos
-        if (!Gate::allows('ver-movimientos')) {
-            return response()->json([
-                'saldo' => 0,
-                'error' => 'No tienes permiso'
-            ], 403);
-        }
-
-        $cuenta = Cuenta::find($request->id);
-
-        if (!$cuenta) {
-            return response()->json([
-                'saldo' => 0,
-                'error' => 'Cuenta no encontrada'
-            ]);
-        }
-
-        return response()->json([
-            'saldo' => $cuenta->saldo_inicial ?? 0,
-            'cuenta' => $cuenta->nombre_cuenta,
-            'id_cuenta' => $cuenta->id_cuenta
-        ]);
-    }
-
-    // ============================================
     // 📊 EXPORTAR EXCEL
     // ============================================
     public function exportExcel(Request $request)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
             return redirect()->back()->with('error', 'No tienes permiso para exportar movimientos');
         }
@@ -2499,6 +2828,12 @@ class MovimientoController extends Controller
             } else {
                 $query->whereHas('poliza', function($q) {
                     $q->where('es_por_pagar', false);
+                });
+            }
+
+            if ($request->boolean('solo_fiscales')) {
+                $query->whereHas('poliza', function($q) {
+                    $q->where('categoria', 'FISCAL');
                 });
             }
 
@@ -2620,10 +2955,6 @@ class MovimientoController extends Controller
             return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
-            \Log::error('Error al exportar Excel:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return redirect()->back()->with('error', 'Error al exportar Excel: ' . $e->getMessage());
         }
     }
@@ -2633,7 +2964,6 @@ class MovimientoController extends Controller
     // ============================================
     public function exportPdf(Request $request)
     {
-        // ✅ Verificar permiso para ver movimientos
         if (!Gate::allows('ver-movimientos')) {
             return redirect()->back()->with('error', 'No tienes permiso para exportar movimientos');
         }
@@ -2676,6 +3006,12 @@ class MovimientoController extends Controller
             } else {
                 $query->whereHas('poliza', function($q) {
                     $q->where('es_por_pagar', false);
+                });
+            }
+
+            if ($request->boolean('solo_fiscales')) {
+                $query->whereHas('poliza', function($q) {
+                    $q->where('categoria', 'FISCAL');
                 });
             }
 
@@ -2752,10 +3088,6 @@ class MovimientoController extends Controller
             return $pdf->download('movimientos_' . date('Y-m-d_H-i-s') . '.pdf');
 
         } catch (\Exception $e) {
-            \Log::error('Error al exportar PDF:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return redirect()->back()->with('error', 'Error al exportar PDF: ' . $e->getMessage());
         }
     }
@@ -2764,9 +3096,6 @@ class MovimientoController extends Controller
     // 🔧 FUNCIONES AUXILIARES
     // ============================================
     
-    /**
-     * Obtener el texto del estatus
-     */
     private function getEstatusTexto($estatus)
     {
         $map = [
@@ -2785,20 +3114,16 @@ class MovimientoController extends Controller
         $totalMovimientos = $poliza->movimientos()->sum('monto');
         $totalAbonado = $poliza->abonos()->sum('monto_abonado');
 
-        // Si no tiene movimientos o está en estado CAPTURADO/REVISADO/AUTORIZADO
         if (in_array($poliza->estatus, ['CAPTURADO', 'REVISADO', 'AUTORIZADO'])) {
-            // Si tiene abonos, cambiar a ABONADO
             if ($totalAbonado > 0) {
                 $poliza->estatus = 'ABONADO';
                 $poliza->fecha_abono = now();
             }
-            // Si está totalmente pagado
             if ($totalAbonado >= abs($totalMovimientos) && $totalMovimientos != 0) {
                 $poliza->estatus = 'LIQUIDADO';
                 $poliza->fecha_liquidacion = now();
             }
         } elseif ($poliza->estatus === 'ABONADO') {
-            // Si está totalmente pagado
             if ($totalAbonado >= abs($totalMovimientos) && $totalMovimientos != 0) {
                 $poliza->estatus = 'LIQUIDADO';
                 $poliza->fecha_liquidacion = now();
@@ -2810,48 +3135,59 @@ class MovimientoController extends Controller
     }
 
     private function actualizarSaldoCuenta($idCuenta)
-    {
-        if (!$idCuenta) return 0;
-        
-        $totalMovimientos = MovimientoPoliza::where(function($query) use ($idCuenta) {
-            $query->where('id_cuenta', $idCuenta)
-                  ->orWhere('id_caja_fondo', $idCuenta);
-        })->sum('monto');
-        
-        $cuenta = Cuenta::find($idCuenta);
-        if ($cuenta) {
-            $cuenta->saldo_inicial = $totalMovimientos;
-            $cuenta->save();
-        }
-        
-        return $totalMovimientos;
+{
+    if (!$idCuenta) return 0;
+    
+    \Log::info('Actualizando saldo de cuenta:', ['id_cuenta' => $idCuenta]);
+    
+    // 🔥 Calcular saldo basado en movimientos
+    // Para traspasos:
+    // - Si la cuenta es ORIGEN (id_caja_fondo): se RESTA el monto_traspaso
+    // - Si la cuenta es DESTINO (id_cuenta): se SUMA el monto_traspaso
+    
+    $totalMonto = MovimientoPoliza::where(function($query) use ($idCuenta) {
+        $query->where('id_cuenta', $idCuenta)
+              ->orWhere('id_caja_fondo', $idCuenta);
+    })->sum('monto');
+    
+    // 🔥 Traspasos donde esta cuenta es ORIGEN (id_caja_fondo) - RESTAR
+    $traspasosOrigen = MovimientoPoliza::where('id_caja_fondo', $idCuenta)
+        ->whereNotNull('monto_traspaso')
+        ->where('monto_traspaso', '>', 0)
+        ->sum('monto_traspaso');
+    
+    // 🔥 Traspasos donde esta cuenta es DESTINO (id_cuenta) - SUMAR
+    $traspasosDestino = MovimientoPoliza::where('id_cuenta', $idCuenta)
+        ->whereNotNull('monto_traspaso')
+        ->where('monto_traspaso', '>', 0)
+        ->sum('monto_traspaso');
+    
+    // ✅ Calcular saldo total
+    $saldoTotal = $totalMonto - $traspasosOrigen + $traspasosDestino;
+    
+    \Log::info('Cálculo de saldo:', [
+        'id_cuenta' => $idCuenta,
+        'total_monto' => $totalMonto,
+        'traspasos_origen' => $traspasosOrigen,
+        'traspasos_destino' => $traspasosDestino,
+        'saldo_total' => $saldoTotal
+    ]);
+    
+    $cuenta = Cuenta::find($idCuenta);
+    if ($cuenta) {
+        $cuenta->saldo_inicial = $saldoTotal;
+        $cuenta->save();
+        \Log::info('Cuenta actualizada:', [
+            'id' => $cuenta->id_cuenta,
+            'nuevo_saldo' => $saldoTotal
+        ]);
+    } else {
+        \Log::warning('Cuenta no encontrada:', ['id_cuenta' => $idCuenta]);
     }
+    
+    return $saldoTotal;
+}
 
-    public function getSaldoPendiente($movimiento)
-    {
-        $totalAbonado = AbonoPoliza::where('id_poliza', $movimiento->id_poliza)->sum('monto_abonado');
-        return abs($movimiento->monto) - $totalAbonado;
-    }
-
-    private function formatFechaExcel($fecha)
-    {
-        if (!$fecha) return '—';
-        if ($fecha instanceof \DateTime) {
-            return $fecha->format('d/m/Y');
-        }
-        return date('d/m/Y', strtotime($fecha));
-    }
-
-    private function formatMonto($monto)
-    {
-        if ($monto === null || $monto === '') return '$0.00';
-        $signo = $monto < 0 ? '-' : '';
-        return $signo . '$' . number_format(abs($monto), 2);
-    }
-
-    // ============================================
-    // 🧮 CALCULAR DESGLOSE EXACTO DE IVA
-    // ============================================
     private function calcularDesgloseExacto($totalFactura, $porcentajeIva)
     {
         if ($porcentajeIva == 0) {
@@ -2883,4 +3219,504 @@ class MovimientoController extends Controller
             'total' => round($montoBase + $montoIva, 2)
         ];
     }
+
+    private function formatFechaExcel($fecha)
+    {
+        if (!$fecha) return '—';
+        if ($fecha instanceof \DateTime) {
+            return $fecha->format('d/m/Y');
+        }
+        return date('d/m/Y', strtotime($fecha));
+    }
+
+    private function formatMonto($monto)
+    {
+        if ($monto === null || $monto === '') return '$0.00';
+        $signo = $monto < 0 ? '-' : '';
+        return $signo . '$' . number_format(abs($monto), 2);
+    }
+
+
+    // ============================================
+// 🔍 BUSCAR PERSONAS (API)
+// ============================================
+public function buscarPersonas(Request $request)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return response()->json([], 403);
+    }
+
+    $search = $request->get('q', '');
+    $empresaId = session('empresa_movimientos');
+
+    $personas = Persona::where('activo', true)
+        ->where(function($query) use ($search) {
+            if (!empty($search)) {
+                $query->where('Nombre', 'LIKE', "%{$search}%")
+                    ->orWhere('Paterno', 'LIKE', "%{$search}%")
+                    ->orWhere('Materno', 'LIKE', "%{$search}%")
+                    ->orWhereRaw("CONCAT(Nombre, ' ', Paterno, ' ', Materno) LIKE ?", ["%{$search}%"]);
+            }
+        })
+        ->orderBy('Nombre')
+        ->orderBy('Paterno')
+        ->orderBy('Materno')
+        ->limit(20)
+        ->get()
+        ->map(function($persona) {
+            return [
+                'id_persona' => $persona->id_persona,
+                'nombre_completo' => $persona->nombre_completo,
+                'rfc' => $persona->rfc,
+            ];
+        });
+
+    return response()->json($personas);
+}
+
+// ============================================
+// 💰 OBTENER SALDO DE CUENTA (API)
+// ============================================
+public function saldoCuenta(Request $request)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return response()->json(['error' => 'No tienes permiso'], 403);
+    }
+
+    $idCuenta = $request->get('id');
+    if (!$idCuenta) {
+        return response()->json(['error' => 'ID de cuenta requerido'], 400);
+    }
+
+    $cuenta = Cuenta::find($idCuenta);
+    if (!$cuenta) {
+        return response()->json(['error' => 'Cuenta no encontrada'], 404);
+    }
+
+    // 🔥 Calcular saldo real de la cuenta
+    $saldo = $this->actualizarSaldoCuenta($idCuenta);
+
+    return response()->json([
+        'id_cuenta' => $cuenta->id_cuenta,
+        'nombre_cuenta' => $cuenta->nombre_cuenta,
+        'saldo' => (float) $saldo,
+        'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
+    ]);
+}
+
+
+// ============================================
+// 📄 OBTENER ÚLTIMA PÓLIZA DE UNA PERSONA (API)
+// ============================================
+public function obtenerUltimaPoliza(Request $request)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return response()->json(['error' => 'No tienes permiso'], 403);
+    }
+
+    $idPersona = $request->get('id');
+    if (!$idPersona) {
+        return response()->json(['error' => 'ID de persona requerido'], 400);
+    }
+
+    // ✅ Verificar que la persona existe
+    $persona = Persona::find($idPersona);
+    if (!$persona) {
+        return response()->json(['error' => 'Persona no encontrada'], 404);
+    }
+
+    // ✅ Buscar la última póliza de esta persona
+    $ultimaPoliza = Poliza::where('id_persona', $idPersona)
+        ->orderBy('created_at', 'desc')
+        ->first();
+
+    if (!$ultimaPoliza) {
+        return response()->json([
+            'existe' => false,
+            'persona_nombre' => $persona->nombre_completo,
+            'mensaje' => 'No hay pólizas registradas para esta persona'
+        ]);
+    }
+
+    // ✅ Obtener el movimiento asociado a la última póliza
+    $movimiento = MovimientoPoliza::where('id_poliza', $ultimaPoliza->id)->first();
+
+    if (!$movimiento) {
+        return response()->json([
+            'existe' => false,
+            'persona_nombre' => $persona->nombre_completo,
+            'mensaje' => 'La póliza no tiene movimiento asociado'
+        ]);
+    }
+
+    // ✅ Datos a auto-llenar
+    return response()->json([
+        'existe' => true,
+        'persona_nombre' => $persona->nombre_completo,
+        'id_cuenta' => $movimiento->id_cuenta,
+        'es_por_pagar' => (bool) $ultimaPoliza->es_por_pagar,
+        'fecha_vencimiento' => $ultimaPoliza->fecha_vencimiento ? $ultimaPoliza->fecha_vencimiento->format('Y-m-d') : null,
+        'es_fiscal' => $ultimaPoliza->categoria === 'FISCAL',
+        'id_marcador' => $ultimaPoliza->id_marcador,
+        'id_tipo_iva' => $movimiento->id_tipo_iva,
+        'concepto' => $ultimaPoliza->nota ?? 'Servicio general',
+        'fecha_factura' => $ultimaPoliza->fecha_factura ? $ultimaPoliza->fecha_factura->format('Y-m-d') : null,
+        'numero_factura' => $ultimaPoliza->numero_factura,
+        'nota' => $ultimaPoliza->nota,
+        'referencia' => $ultimaPoliza->referencia,
+        'id_cuenta_fondeadora' => $movimiento->id_caja_fondo, // También podemos auto-llenar la fondeadora
+    ]);
+}
+
+    // ============================================
+    // 📄 EXPORTAR PÓLIZA A PDF
+    // ============================================
+    public function exportPdfPoliza($id)
+    {
+        if (!Gate::allows('ver-movimientos')) {
+            abort(403, 'No tienes permiso para ver esta póliza');
+        }
+
+        $movimiento = MovimientoPoliza::with([
+            'poliza.persona',
+            'poliza.usuarioCreador',
+            'poliza.usuarioRevisor',
+            'poliza.usuarioAutorizador',
+            'poliza.marcador',
+            'cuenta',
+            'cuentaFondeadora',
+            'poliza.abonos'
+        ])->find($id);
+
+        if (!$movimiento) {
+            abort(404, 'Movimiento no encontrado');
+        }
+
+        $esTraspaso = $movimiento->poliza->tipo_poliza === 'TRASPASO';
+        $abonos = $movimiento->poliza->abonos ?? collect();
+        $totalAbonado = $abonos->sum('monto_abonado');
+        
+        if ($esTraspaso) {
+            $saldoPendiente = ($movimiento->monto_traspaso ?? 0) - $totalAbonado;
+            $montoMostrar = $movimiento->monto_traspaso ?? 0;
+        } else {
+            $saldoPendiente = abs($movimiento->monto) - $totalAbonado;
+            $montoMostrar = $movimiento->monto;
+        }
+
+        $data = [
+            'movimiento' => $movimiento,
+            'esTraspaso' => $esTraspaso,
+            'montoMostrar' => $montoMostrar,
+            'totalAbonado' => $totalAbonado,
+            'saldoPendiente' => $saldoPendiente,
+            'empresa' => $movimiento->poliza->empresa,
+            'fecha_exportacion' => now()->format('d/m/Y H:i:s')
+        ];
+
+        $pdf = Pdf::loadView('exports.poliza_pdf', $data);
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->download('poliza_' . ($movimiento->poliza->folio ?? 'sin_folio') . '.pdf');
+    }
+
+
+    // ============================================
+// 🔄 CERRAR PÓLIZA (CAMBIA ESTATUS A CERRADO)
+// ============================================
+public function cerrarPoliza(Request $request, $id)
+{
+    if (!Gate::allows('editar-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso para cerrar pólizas'
+        ], 403);
+    }
+
+    try {
+        DB::beginTransaction();
+
+        $poliza = Poliza::findOrFail($id);
+        
+        if (in_array($poliza->estatus, ['LIQUIDADO', 'AUTORIZADO'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede cerrar una póliza en estado ' . $this->getEstatusTexto($poliza->estatus)
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'motivo' => 'nullable|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // ✅ Guardar estado anterior antes de cerrar
+        $estadoAnterior = $poliza->estatus;
+        
+        $poliza->estatus = 'CERRADO';
+        $poliza->fecha_cierre = now();
+        $poliza->motivo_cierre = $request->motivo ?? 'Cierre manual de póliza';
+        $poliza->id_usuario_cierre = auth()->id();
+        $poliza->save();
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Póliza cerrada exitosamente',
+            'data' => [
+                'estatus' => $poliza->estatus,
+                'estatus_texto' => $this->getEstatusTexto($poliza->estatus),
+                'fecha_cierre' => $poliza->fecha_cierre?->format('d/m/Y H:i')
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al cerrar la póliza: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// ============================================
+// 📄 REABRIR PÓLIZA (CERRADO → CAPTURADO)
+// ============================================
+public function reabrirPoliza(Request $request, $id)
+{
+    if (!Gate::allows('editar-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso para reabrir pólizas'
+        ], 403);
+    }
+
+    try {
+        DB::beginTransaction();
+
+        $poliza = Poliza::findOrFail($id);
+        
+        if ($poliza->estatus !== 'CERRADO') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden reabrir pólizas en estado CERRADO'
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'motivo' => 'nullable|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $poliza->estatus = 'CAPTURADO';
+        $poliza->fecha_cierre = null;
+        $poliza->motivo_cierre = null;
+        $poliza->id_usuario_cierre = null;
+        $poliza->motivo_rechazo = $request->motivo ?? 'Póliza reabierta';
+        $poliza->save();
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Póliza reabierta exitosamente. Regresa a estado CAPTURADO',
+            'data' => [
+                'estatus' => $poliza->estatus,
+                'estatus_texto' => $this->getEstatusTexto($poliza->estatus)
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al reabrir la póliza: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// ============================================
+// 📄 OBTENER DETALLE DE PÓLIZA PARA SHOW (API)
+// ============================================
+public function getDetallePoliza($id)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso para ver esta póliza'
+        ], 403);
+    }
+
+    $movimiento = MovimientoPoliza::with([
+        'poliza.persona',
+        'poliza.usuarioCreador',
+        'poliza.usuarioRevisor',
+        'poliza.usuarioAutorizador',
+        'poliza.marcador',
+        'cuenta',
+        'cuentaFondeadora',
+        'poliza.abonos'
+    ])->find($id);
+
+    if (!$movimiento) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Movimiento no encontrado'
+        ], 404);
+    }
+
+    return response()->json([
+        'success' => true,
+        'data' => $movimiento
+    ]);
+}
+
+// ============================================
+// 📊 OBTENER ESTADÍSTICAS DE LA PÓLIZA
+// ============================================
+public function getEstadisticasPoliza($id)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso'
+        ], 403);
+    }
+
+    $movimiento = MovimientoPoliza::with(['poliza.abonos'])->find($id);
+
+    if (!$movimiento) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Movimiento no encontrado'
+        ], 404);
+    }
+
+    $abonos = $movimiento->poliza->abonos ?? collect();
+    $totalAbonado = $abonos->sum('monto_abonado');
+    $montoTotal = abs($movimiento->monto);
+    $saldoPendiente = $montoTotal - $totalAbonado;
+    $porcentajeAbonado = $montoTotal > 0 ? ($totalAbonado / $montoTotal) * 100 : 0;
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'monto_total' => $montoTotal,
+            'total_abonado' => $totalAbonado,
+            'saldo_pendiente' => $saldoPendiente,
+            'porcentaje_abonado' => round($porcentajeAbonado, 2),
+            'numero_abonos' => $abonos->count(),
+            'ultimo_abono' => $abonos->last(),
+            'estatus' => $movimiento->poliza->estatus
+        ]
+    ]);
+}
+
+// ============================================
+// 📝 OBTENER HISTORIAL DE CAMBIOS DE LA PÓLIZA
+// ============================================
+public function getHistorialPoliza($id)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso'
+        ], 403);
+    }
+
+    $poliza = Poliza::with([
+        'usuarioCreador',
+        'usuarioRevisor',
+        'usuarioAutorizador'
+    ])->find($id);
+
+    if (!$poliza) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Póliza no encontrada'
+        ], 404);
+    }
+
+    $historial = [];
+
+    // ✅ Evento de creación
+    $historial[] = [
+        'fecha' => $poliza->created_at?->format('d/m/Y H:i'),
+        'evento' => 'CREACIÓN',
+        'descripcion' => 'Póliza creada por ' . ($poliza->usuarioCreador?->nombre_completo ?? 'Sistema'),
+        'usuario' => $poliza->usuarioCreador?->nombre_completo ?? 'Sistema',
+        'estatus' => 'CAPTURADO'
+    ];
+
+    // ✅ Evento de revisión
+    if ($poliza->fecha_revision && $poliza->usuarioRevisor) {
+        $historial[] = [
+            'fecha' => $poliza->fecha_revision?->format('d/m/Y H:i'),
+            'evento' => 'REVISIÓN',
+            'descripcion' => 'Póliza revisada por ' . ($poliza->usuarioRevisor?->nombre_completo ?? 'Sistema'),
+            'usuario' => $poliza->usuarioRevisor?->nombre_completo ?? 'Sistema',
+            'estatus' => 'REVISADO',
+            'comentario' => $poliza->comentario_revision
+        ];
+    }
+
+    // ✅ Evento de autorización
+    if ($poliza->fecha_autorizacion && $poliza->usuarioAutorizador) {
+        $historial[] = [
+            'fecha' => $poliza->fecha_autorizacion?->format('d/m/Y H:i'),
+            'evento' => 'AUTORIZACIÓN',
+            'descripcion' => 'Póliza autorizada por ' . ($poliza->usuarioAutorizador?->nombre_completo ?? 'Sistema'),
+            'usuario' => $poliza->usuarioAutorizador?->nombre_completo ?? 'Sistema',
+            'estatus' => 'AUTORIZADO',
+            'comentario' => $poliza->comentario_autorizacion
+        ];
+    }
+
+    // ✅ Evento de cierre
+    if ($poliza->fecha_cierre) {
+        $historial[] = [
+            'fecha' => $poliza->fecha_cierre?->format('d/m/Y H:i'),
+            'evento' => 'CIERRE',
+            'descripcion' => 'Póliza cerrada',
+            'usuario' => $poliza->usuarioCierre?->nombre_completo ?? 'Sistema',
+            'estatus' => 'CERRADO',
+            'motivo' => $poliza->motivo_cierre
+        ];
+    }
+
+    // ✅ Evento de rechazo
+    if ($poliza->motivo_rechazo) {
+        $historial[] = [
+            'fecha' => $poliza->updated_at?->format('d/m/Y H:i'),
+            'evento' => 'RECHAZO',
+            'descripcion' => 'Póliza rechazada',
+            'usuario' => auth()->user()?->nombre_completo ?? 'Sistema',
+            'estatus' => 'RECHAZADO',
+            'motivo' => $poliza->motivo_rechazo
+        ];
+    }
+
+    // ✅ Ordenar por fecha (más reciente primero)
+    usort($historial, function($a, $b) {
+        return strtotime($b['fecha']) - strtotime($a['fecha']);
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $historial
+    ]);
+}
 }

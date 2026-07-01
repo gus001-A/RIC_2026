@@ -168,8 +168,9 @@
                                         <label class="form-label-premium">Persona</label>
                                         <div class="input-wrapper-premium">
                                             <select v-model="form.id_persona"
+                                                    @change="onPersonaChange"
                                                     class="form-input-premium form-select-premium"
-                                                    :class="{ 'error': form.errors.id_persona }">
+                                                    :class="{ 'error': form.errors.id_persona, 'has-data': polizaCargada }">
                                                 <option value="">Selecciona una persona</option>
                                                 <option v-for="p in personas" :key="p.id_persona" :value="p.id_persona">
                                                     {{ p.nombre_completo }}
@@ -180,8 +181,20 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                                 </svg>
                                             </div>
+                                            <!-- Indicador de carga -->
+                                            <div v-if="cargandoPoliza" class="loading-spinner-persona">
+                                                <span class="spinner-mini"></span>
+                                                Cargando...
+                                            </div>
                                         </div>
                                         <div class="field-hint-premium">Escribe para buscar personas</div>
+                                        <!-- Badge de póliza cargada -->
+                                        <div v-if="polizaCargada && form.id_persona" class="poliza-cargada-badge">
+                                            <svg class="icon-svg-sm" fill="none" stroke="#10b981" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Última póliza cargada
+                                        </div>
                                     </div>
 
                                     <div class="form-group-premium">
@@ -576,7 +589,7 @@
                                         <label class="form-label-premium">Opciones</label>
                                         <div class="checkbox-grid-premium">
                                             <label class="checkbox-premium">
-                                                <input type="checkbox" v-model="formTraspaso.es_fiscal" class="checkbox-input-premium">
+                                                <input type="checkbox" v-model="formTraspaso.es_fiscal" @change="toggleFiscalTraspaso" class="checkbox-input-premium">
                                                 <span class="checkbox-custom-premium"></span>
                                                 <span class="checkbox-text-premium">Fiscal</span>
                                             </label>
@@ -655,7 +668,6 @@
                                                         ${{ formatNumber(saldoCuentaOrigen) }}
                                                     </span>
                                                 </div>
-                                                <!-- ✅ NUEVO: Barra de progreso del saldo -->
                                                 <div v-if="formTraspaso.monto > 0 && saldoCuentaOrigen > 0" class="saldo-progress-premium">
                                                     <div class="saldo-progress-bar">
                                                         <div class="saldo-progress-fill" 
@@ -730,7 +742,6 @@
                                                         ${{ formatNumber(saldoCuentaDestino) }}
                                                     </span>
                                                 </div>
-                                                <!-- ✅ NUEVO: Indicador de saldo destino -->
                                                 <div v-if="formTraspaso.monto > 0" class="saldo-destino-preview-premium">
                                                     <span class="saldo-destino-label">Nuevo saldo después del traspaso:</span>
                                                     <span class="saldo-destino-value" :class="nuevoSaldoDestino > 0 ? 'text-success' : 'text-danger'">
@@ -742,57 +753,227 @@
                                     </div>
                                 </div>
 
-                                <!-- Monto a Transferir -->
+                                <!-- MONTO A TRANSFERIR -->
                                 <div class="monto-transferir-premium">
-                                    <label class="form-label-premium">Monto a Transferir <span class="required-star">*</span></label>
-                                    <div class="input-wrapper-premium">
-                                        <span class="input-prefix-premium">$</span>
-                                        <input type="number" step="0.01" v-model.number="formTraspaso.monto"
-                                               @input="clearErrorTraspaso('monto')"
-                                               class="form-input-premium"
-                                               :class="{ 'error': formTraspaso.errors.monto }"
-                                               placeholder="0.00"
-                                               min="0.01">
-                                    </div>
-                                    <div v-if="formTraspaso.errors.monto" class="error-message-premium">{{ formTraspaso.errors.monto }}</div>
-                                    <!-- ✅ NUEVO: Alerta de saldo insuficiente -->
-                                    <div v-if="formTraspaso.monto > 0 && formTraspaso.id_cuenta_origen && saldoCuentaOrigen < formTraspaso.monto" class="saldo-insuficiente-premium">
-                                        <span class="saldo-insuficiente-icon">⚠️</span>
-                                        <span class="saldo-insuficiente-text">Saldo insuficiente en la cuenta origen. Disponible: ${{ formatNumber(saldoCuentaOrigen) }}</span>
-                                    </div>
-                                </div>
+                                    <div class="form-grid-premium">
+                                        <div class="form-group-premium">
+                                            <label class="form-label-premium">Monto a Transferir <span class="required-star">*</span></label>
+                                            <div class="input-wrapper-premium">
+                                                <span class="input-prefix-premium">$</span>
+                                                <input type="number" step="0.01" v-model.number="formTraspaso.monto"
+                                                       @input="calcularDesgloseTraspaso; clearErrorTraspaso('monto')"
+                                                       class="form-input-premium"
+                                                       :class="{ 'error': formTraspaso.errors.monto }"
+                                                       placeholder="0.00"
+                                                       min="0.01">
+                                            </div>
+                                            <div v-if="formTraspaso.errors.monto" class="error-message-premium">{{ formTraspaso.errors.monto }}</div>
+                                            <div v-if="formTraspaso.monto > 0 && formTraspaso.id_cuenta_origen && saldoCuentaOrigen < formTraspaso.monto" class="saldo-insuficiente-premium">
+                                                <span class="saldo-insuficiente-icon">⚠️</span>
+                                                <span class="saldo-insuficiente-text">Saldo insuficiente en la cuenta origen. Disponible: ${{ formatNumber(saldoCuentaOrigen) }}</span>
+                                            </div>
+                                        </div>
 
-                                <!-- Desglose Fiscal Traspaso -->
-                                <div v-if="formTraspaso.es_fiscal && formTraspaso.monto > 0" class="desglose-fiscal-box-premium fade-slide">
-                                    <div class="desglose-fiscal-header-premium">
-                                        <span class="desglose-fiscal-title-premium">Desglose Fiscal del Traspaso</span>
-                                        <span class="desglose-fiscal-subtitle-premium">Este desglose se usará para efectos fiscales y contables</span>
-                                    </div>
-                                    <div class="desglose-fiscal-grid-premium">
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Concepto</span>
-                                            <span class="desglose-fiscal-value-premium">Traspaso de fondos</span>
-                                        </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Monto Transferido</span>
-                                            <span class="desglose-fiscal-value-premium" style="color: #2563eb;">${{ formatNumber(formTraspaso.monto) }}</span>
-                                        </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Cuenta Origen</span>
-                                            <span class="desglose-fiscal-value-premium">{{ cuentaOrigenNombre }}</span>
-                                        </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Cuenta Destino</span>
-                                            <span class="desglose-fiscal-value-premium">{{ cuentaDestinoNombre }}</span>
+                                        <div class="form-group-premium">
+                                            <label class="form-label-premium">IVA</label>
+                                            <div class="input-wrapper-premium">
+                                                <select v-model="formTraspaso.id_tipo_iva"
+                                                        @change="calcularDesgloseTraspaso"
+                                                        class="form-input-premium form-select-premium"
+                                                        :class="{ 'error': formTraspaso.errors.id_tipo_iva }">
+                                                    <option value="">Sin IVA</option>
+                                                    <option v-for="iva in tiposIva" :key="iva.id" :value="iva.id">
+                                                        {{ iva.nombre }} ({{ iva.porcentaje_formateado }})
+                                                    </option>
+                                                </select>
+                                                <div class="input-icon-premium">
+                                                    <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div v-if="formTraspaso.errors.id_tipo_iva" class="error-message-premium">{{ formTraspaso.errors.id_tipo_iva }}</div>
                                         </div>
                                     </div>
-                                    <div class="desglose-fiscal-footer-premium">
-                                        <span class="desglose-fiscal-leyenda-premium">Este desglose se usará para efectos fiscales y contables</span>
+
+                                    <!-- Desglose Automático para Traspaso -->
+                                    <div v-if="formTraspaso.monto > 0 && formTraspaso.id_tipo_iva" class="desglose-box-premium">
+                                        <div class="desglose-header-premium">
+                                            <span class="desglose-title-premium">Desglose Automático</span>
+                                            <span class="desglose-subtitle-premium">Cálculo del sistema</span>
+                                        </div>
+                                        <div class="desglose-grid-premium">
+                                            <div class="desglose-item-premium">
+                                                <span class="desglose-label-premium">Base Gravable</span>
+                                                <span class="desglose-value-premium" style="color: #2563eb;">${{ formatNumber(formTraspaso.monto_base) }}</span>
+                                            </div>
+                                            <div class="desglose-item-premium">
+                                                <span class="desglose-label-premium">IVA en Pesos</span>
+                                                <span class="desglose-value-premium" style="color: #f59e0b;">${{ formatNumber(formTraspaso.monto_iva) }}</span>
+                                            </div>
+                                            <div class="desglose-item-premium">
+                                                <span class="desglose-label-premium font-bold">Total Traspaso</span>
+                                                <span class="desglose-value-premium font-bold" style="color: #10b981;">${{ formatNumber(calcularSumaTotalTraspaso) }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="desglose-verificacion" v-if="mostrarAvisoRedondeoTraspaso">
+                                            <span class="desglose-verificacion-text">Ajuste por redondeo aplicado</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Desglose Fiscal para Traspaso -->
+                                    <div v-if="formTraspaso.es_fiscal && formTraspaso.monto > 0 && formTraspaso.id_tipo_iva" class="desglose-fiscal-box-premium fade-slide">
+                                        <div class="desglose-fiscal-header-premium">
+                                            <span class="desglose-fiscal-title-premium">Desglose Fiscal del Traspaso</span>
+                                            <span class="desglose-fiscal-subtitle-premium">Este desglose se usará para efectos fiscales y contables</span>
+                                        </div>
+                                        <div class="desglose-fiscal-grid-premium">
+                                            <div class="desglose-fiscal-item-premium">
+                                                <span class="desglose-fiscal-label-premium">Concepto</span>
+                                                <span class="desglose-fiscal-value-premium">Traspaso de fondos</span>
+                                            </div>
+                                            <div class="desglose-fiscal-item-premium">
+                                                <span class="desglose-fiscal-label-premium">Base Gravable</span>
+                                                <span class="desglose-fiscal-value-premium" style="color: #2563eb;">${{ formatNumber(formTraspaso.monto_base) }}</span>
+                                            </div>
+                                            <div class="desglose-fiscal-item-premium">
+                                                <span class="desglose-fiscal-label-premium">IVA</span>
+                                                <span class="desglose-fiscal-value-premium" style="color: #f59e0b;">${{ formatNumber(formTraspaso.monto_iva) }}</span>
+                                            </div>
+                                            <div class="desglose-fiscal-item-premium">
+                                                <span class="desglose-fiscal-label-premium">Total</span>
+                                                <span class="desglose-fiscal-value-premium" style="color: #10b981;">${{ formatNumber(calcularSumaTotalTraspaso) }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="desglose-fiscal-footer-premium">
+                                            <span class="desglose-fiscal-leyenda-premium">Este desglose se usará para efectos fiscales y contables</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- SECCIÓN 3: OBSERVACIONES TRASPASO -->
+                            <!-- SECCIÓN 3: FACTURACIÓN Y ARCHIVOS PARA TRASPASO -->
+                            <div v-if="formTraspaso.es_fiscal" class="section-block-premium fade-slide">
+                                <div class="section-header-premium">
+                                    <div class="section-icon-premium orange">
+                                        <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="section-title-text">Facturación del Traspaso</h3>
+                                        <p class="section-title-sub">Datos de la factura y archivos adjuntos para el traspaso</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid-premium">
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">Fecha Factura</label>
+                                        <div class="input-wrapper-premium">
+                                            <input type="date" v-model="formTraspaso.fecha_factura"
+                                                   class="form-input-premium"
+                                                   :max="fechaActual">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">Número Factura</label>
+                                        <div class="input-wrapper-premium">
+                                            <input type="text" v-model="formTraspaso.numero_factura"
+                                                   class="form-input-premium"
+                                                   placeholder="Ej: A-1258">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">PDF</label>
+                                        <div class="file-upload-wrapper-premium">
+                                            <div class="file-upload-area-premium" @click="$refs.pdfInputTraspaso.click()">
+                                                <span class="file-upload-icon-premium">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="file-upload-text-premium">
+                                                    {{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : 'Seleccionar archivo PDF' }}
+                                                </span>
+                                                <span class="file-upload-size-premium" v-if="archivosTraspaso.pdf">
+                                                    ({{ (archivosTraspaso.pdf.size / 1024).toFixed(2) }} KB)
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                ref="pdfInputTraspaso"
+                                                @change="handleFileUploadTraspaso('pdf', $event)" 
+                                                accept=".pdf"
+                                                class="file-input-hidden"
+                                            />
+                                            <button 
+                                                v-if="archivosTraspaso.pdf" 
+                                                type="button" 
+                                                @click="eliminarArchivoTraspaso('pdf')" 
+                                                class="file-remove-premium"
+                                                title="Eliminar archivo"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo PDF (máx. 5MB)</div>
+                                    </div>
+
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">XML</label>
+                                        <div class="file-upload-wrapper-premium">
+                                            <div class="file-upload-area-premium" @click="$refs.xmlInputTraspaso.click()">
+                                                <span class="file-upload-icon-premium">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="file-upload-text-premium">
+                                                    {{ archivosTraspaso.xml ? archivosTraspaso.xml.name : 'Seleccionar archivo XML' }}
+                                                </span>
+                                                <span class="file-upload-size-premium" v-if="archivosTraspaso.xml">
+                                                    ({{ (archivosTraspaso.xml.size / 1024).toFixed(2) }} KB)
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                ref="xmlInputTraspaso"
+                                                @change="handleFileUploadTraspaso('xml', $event)" 
+                                                accept=".xml"
+                                                class="file-input-hidden"
+                                            />
+                                            <button 
+                                                v-if="archivosTraspaso.xml" 
+                                                type="button" 
+                                                @click="eliminarArchivoTraspaso('xml')" 
+                                                class="file-remove-premium"
+                                                title="Eliminar archivo"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo XML (máx. 5MB)</div>
+                                    </div>
+                                </div>
+
+                                <div v-if="archivosTraspaso.pdf || archivosTraspaso.xml" class="archivos-seleccionados-premium">
+                                    <span class="archivos-seleccionados-title">Archivos seleccionados:</span>
+                                    <div class="archivos-seleccionados-list">
+                                        <span v-if="archivosTraspaso.pdf" class="archivo-item pdf">
+                                            {{ archivosTraspaso.pdf.name }}
+                                            <span class="archivo-size">({{ (archivosTraspaso.pdf.size / 1024).toFixed(2) }} KB)</span>
+                                        </span>
+                                        <span v-if="archivosTraspaso.xml" class="archivo-item xml">
+                                            {{ archivosTraspaso.xml.name }}
+                                            <span class="archivo-size">({{ (archivosTraspaso.xml.size / 1024).toFixed(2) }} KB)</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECCIÓN 4: OBSERVACIONES TRASPASO -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium teal">
@@ -835,7 +1016,7 @@
                             <div class="actions-left-premium">
                                 <div class="total-card-premium">
                                     <span class="total-label-premium">Total</span>
-                                    <span class="total-value-premium">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? calcularSumaTotal : formTraspaso.monto) }}</span>
+                                    <span class="total-value-premium">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? calcularSumaTotal : calcularSumaTotalTraspaso) }}</span>
                                 </div>
                             </div>
                             <div class="actions-right-premium">
@@ -930,6 +1111,8 @@ const props = defineProps({
 const alertRef = ref(null);
 const pdfInput = ref(null);
 const xmlInput = ref(null);
+const pdfInputTraspaso = ref(null);
+const xmlInputTraspaso = ref(null);
 const personas = ref([]);
 const cuentaFondeadoraSeleccionada = ref(null);
 const fechaActual = ref(new Date().toISOString().split('T')[0]);
@@ -938,9 +1121,13 @@ const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
 const archivos = ref({ pdf: null, xml: null });
+const archivosTraspaso = ref({ pdf: null, xml: null });
 const mostrarAvisoRedondeo = ref(false);
+const mostrarAvisoRedondeoTraspaso = ref(false);
+const cargandoPoliza = ref(false);
+const polizaCargada = ref(false);
 
-// ✅ NUEVOS REFS PARA SALDOS DE TRASPASO
+// SALDOS DE TRASPASO
 const saldoCuentaOrigen = ref(0);
 const saldoCuentaDestino = ref(0);
 
@@ -981,6 +1168,11 @@ const formTraspaso = useForm({
     monto: 0,
     es_fiscal: false,
     id_marcador: null,
+    id_tipo_iva: null,
+    monto_base: 0,
+    monto_iva: 0,
+    fecha_factura: null,
+    numero_factura: null,
     nota: null
 });
 
@@ -1037,6 +1229,14 @@ const calcularSumaTotal = computed(() => {
     return Math.round((base + iva) * 100) / 100;
 });
 
+const calcularSumaTotalTraspaso = computed(() => {
+    if (!formTraspaso.monto || formTraspaso.monto <= 0) return 0;
+    if (!formTraspaso.id_tipo_iva) return formTraspaso.monto;
+    const base = parseFloat(formTraspaso.monto_base) || 0;
+    const iva = parseFloat(formTraspaso.monto_iva) || 0;
+    return Math.round((base + iva) * 100) / 100;
+});
+
 const cuentaOrigenNombre = computed(() => {
     if (!formTraspaso.id_cuenta_origen) return 'Seleccionar';
     const cuenta = cuentas.value.find(c => c.id_cuenta === formTraspaso.id_cuenta_origen);
@@ -1049,7 +1249,6 @@ const cuentaDestinoNombre = computed(() => {
     return cuenta ? cuenta.nombre_cuenta : 'Seleccionar';
 });
 
-// ✅ NUEVOS COMPUTED PARA SALDOS
 const saldoOrigenColor = computed(() => {
     if (formTraspaso.monto <= 0 || !formTraspaso.id_cuenta_origen) return '';
     return saldoCuentaOrigen.value >= formTraspaso.monto ? 'text-success' : 'text-danger';
@@ -1088,7 +1287,6 @@ const isFormValidGeneral = computed(() => {
         if (!formTraspaso.id_cuenta_destino) return false;
         if (formTraspaso.monto <= 0) return false;
         if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) return false;
-        // ✅ NUEVA VALIDACIÓN: Saldo insuficiente
         if (saldoCuentaOrigen.value < formTraspaso.monto) return false;
         if (Object.keys(formTraspaso.errors).length > 0) return false;
         return true;
@@ -1135,19 +1333,86 @@ const cambiarCuentaFondeadora = async () => {
     } catch (error) { console.error('Error al obtener saldo:', error); }
 };
 
-// ✅ NUEVO: Obtener saldo de cuenta para traspaso
 const obtenerSaldoCuenta = (idCuenta) => {
     if (!idCuenta) return 0;
     const cuenta = cuentas.value.find(c => c.id_cuenta === idCuenta);
     return cuenta ? (cuenta.saldo_inicial || 0) : 0;
 };
 
-// ✅ NUEVO: Actualizar saldo cuenta origen
+// ============================================
+// 📄 OBTENER ÚLTIMA PÓLIZA DE PERSONA
+// ============================================
+const obtenerUltimaPoliza = async (idPersona) => {
+    if (!idPersona) {
+        polizaCargada.value = false;
+        return;
+    }
+    
+    cargandoPoliza.value = true;
+    
+    try {
+        const response = await axios.get(route('movimientos.ultima.poliza', { id: idPersona }));
+        const data = response.data;
+        
+        if (data && data.existe) {
+            // ✅ Auto llenar campos (excepto total_factura)
+            form.id_cuenta = data.id_cuenta || null;
+            form.es_por_pagar = data.es_por_pagar || false;
+            form.fecha_vencimiento = data.fecha_vencimiento || null;
+            form.es_fiscal = data.es_fiscal || false;
+            form.id_marcador = data.id_marcador || null;
+            form.id_tipo_iva = data.id_tipo_iva || null;
+            form.concepto = data.concepto || '';
+            form.fecha_factura = data.fecha_factura || null;
+            form.numero_factura = data.numero_factura || '';
+            form.nota = data.nota || '';
+            form.referencia = data.referencia || '';
+            
+            // ✅ Si tiene cuenta fondeadora, auto-llenarla también
+            if (data.id_cuenta_fondeadora) {
+                form.id_cuenta_fondeadora = data.id_cuenta_fondeadora;
+                await cambiarCuentaFondeadora();
+            }
+            
+            // ✅ Si tiene IVA y total_factura > 0, recalcular desglose
+            if (form.id_tipo_iva && form.total_factura > 0) {
+                await calcularDesglose();
+            }
+            
+            polizaCargada.value = true;
+            
+            // ✅ Mostrar mensaje de éxito
+            alertRef.value?.show({
+                type: 'success',
+                title: 'Póliza cargada',
+                message: `Se cargaron los datos de la última póliza de ${data.persona_nombre || 'la persona'}. Solo ingresa el nuevo total.`,
+                buttonText: 'Aceptar',
+                duration: 3000
+            });
+        } else {
+            polizaCargada.value = false;
+            // No mostrar mensaje, solo continuar
+        }
+    } catch (error) {
+        console.error('Error al obtener última póliza:', error);
+        polizaCargada.value = false;
+    } finally {
+        cargandoPoliza.value = false;
+    }
+};
+
+// ============================================
+// ON PERSONA CHANGE
+// ============================================
+const onPersonaChange = async () => {
+    polizaCargada.value = false;
+    await obtenerUltimaPoliza(form.id_persona);
+};
+
 const onCuentaOrigenChange = () => {
     saldoCuentaOrigen.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_origen);
     clearErrorTraspaso('id_cuenta_origen');
     
-    // Verificar si origen y destino son iguales
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
         formTraspaso.errors.id_cuenta_destino = 'La cuenta destino debe ser diferente a la cuenta origen';
     } else {
@@ -1155,23 +1420,16 @@ const onCuentaOrigenChange = () => {
     }
 };
 
-// ✅ NUEVO: Actualizar saldo cuenta destino
 const onCuentaDestinoChange = () => {
     saldoCuentaDestino.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_destino);
     clearErrorTraspaso('id_cuenta_destino');
     
-    // Verificar si origen y destino son iguales
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
         formTraspaso.errors.id_cuenta_destino = 'La cuenta destino debe ser diferente a la cuenta origen';
     } else {
         delete formTraspaso.errors.id_cuenta_destino;
     }
 };
-
-// Watch para actualizar saldos cuando cambia el monto
-watch(() => formTraspaso.monto, () => {
-    // Solo actualizar colores, los saldos ya se calculan
-});
 
 const calcularDesglose = async () => {
     if (!form.total_factura || form.total_factura <= 0 || !form.id_tipo_iva) {
@@ -1218,10 +1476,56 @@ const calcularDesglose = async () => {
     }
 };
 
+const calcularDesgloseTraspaso = async () => {
+    if (!formTraspaso.monto || formTraspaso.monto <= 0 || !formTraspaso.id_tipo_iva) {
+        formTraspaso.monto_base = 0;
+        formTraspaso.monto_iva = 0;
+        mostrarAvisoRedondeoTraspaso.value = false;
+        return;
+    }
+    
+    try {
+        const ivaSeleccionado = tiposIva.value.find(iva => iva.id === formTraspaso.id_tipo_iva);
+        if (!ivaSeleccionado) {
+            formTraspaso.monto_base = 0;
+            formTraspaso.monto_iva = 0;
+            mostrarAvisoRedondeoTraspaso.value = false;
+            return;
+        }
+        
+        const porcentaje = ivaSeleccionado.porcentaje || 0;
+        const total = parseFloat(formTraspaso.monto);
+        const factor = 1 + (porcentaje / 100);
+        
+        const base = total / factor;
+        const iva = total - base;
+        
+        formTraspaso.monto_base = Math.round(base * 100) / 100;
+        formTraspaso.monto_iva = Math.round(iva * 100) / 100;
+        
+        const suma = formTraspaso.monto_base + formTraspaso.monto_iva;
+        const diferencia = Math.abs(suma - total);
+        
+        if (diferencia > 0.01) {
+            const ajuste = total - suma;
+            formTraspaso.monto_iva = Math.round((formTraspaso.monto_iva + ajuste) * 100) / 100;
+            mostrarAvisoRedondeoTraspaso.value = true;
+        } else {
+            mostrarAvisoRedondeoTraspaso.value = false;
+        }
+    } catch (error) { 
+        console.error('Error al calcular desglose traspaso:', error); 
+        formTraspaso.monto_base = 0;
+        formTraspaso.monto_iva = 0;
+        mostrarAvisoRedondeoTraspaso.value = false;
+    }
+};
+
+// Watch para recalcular desglose de traspaso
 watch(
-    () => [form.total_factura, form.id_tipo_iva],
+    () => [formTraspaso.monto, formTraspaso.id_tipo_iva],
     () => {
-        calcularDesglose();
+        calcularDesgloseTraspaso();
     },
     { deep: true }
 );
@@ -1235,8 +1539,17 @@ const toggleFiscal = () => {
     }
 };
 
+const toggleFiscalTraspaso = () => {
+    if (!formTraspaso.es_fiscal) {
+        formTraspaso.fecha_factura = null;
+        formTraspaso.numero_factura = null;
+        archivosTraspaso.value.pdf = null;
+        archivosTraspaso.value.xml = null;
+    }
+};
+
 // ============================================
-// MANEJO DE ARCHIVOS
+// MANEJO DE ARCHIVOS INGRESO/EGRESO
 // ============================================
 const handleFileUpload = (tipo, event) => {
     const file = event.target.files[0];
@@ -1273,6 +1586,44 @@ const eliminarArchivo = (tipo) => {
     }
 };
 
+// ============================================
+// MANEJO DE ARCHIVOS TRASPASO
+// ============================================
+const handleFileUploadTraspaso = (tipo, event) => {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Archivo demasiado grande', 
+                message: `El archivo ${file.name} excede el límite de 5MB.`, 
+                buttonText: 'Entendido' 
+            });
+            event.target.value = '';
+            return;
+        }
+        
+        archivosTraspaso.value[tipo] = file;
+        
+        alertRef.value?.show({ 
+            type: 'success', 
+            title: 'Archivo seleccionado', 
+            message: `Se ha seleccionado ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 
+            buttonText: 'Aceptar' 
+        });
+    }
+};
+
+const eliminarArchivoTraspaso = (tipo) => {
+    archivosTraspaso.value[tipo] = null;
+    if (tipo === 'pdf' && pdfInputTraspaso.value) {
+        pdfInputTraspaso.value.value = '';
+    }
+    if (tipo === 'xml' && xmlInputTraspaso.value) {
+        xmlInputTraspaso.value.value = '';
+    }
+};
+
 const clearError = (field) => {
     if (form.errors[field]) delete form.errors[field];
 };
@@ -1290,7 +1641,6 @@ const seleccionarTipo = (tipo) => {
     tipoPolizaSeleccionado.value = tipo;
     form.clearErrors();
     formTraspaso.clearErrors();
-    // Resetear saldos
     saldoCuentaOrigen.value = 0;
     saldoCuentaDestino.value = 0;
 };
@@ -1387,7 +1737,6 @@ const submit = () => {
     processing.value = true;
 
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
-        // Verificar saldo SOLO para EGRESO
         if (esEgreso.value && cuentaFondeadoraSeleccionada.value) {
             if ((cuentaFondeadoraSeleccionada.value.saldo || 0) < form.total_factura) {
                 alertRef.value?.show({ 
@@ -1401,7 +1750,6 @@ const submit = () => {
             }
         }
 
-        // Calcular desglose si tiene IVA
         if (form.id_tipo_iva && form.total_factura > 0) {
             const suma = form.monto_base + form.monto_iva;
             const total = parseFloat(form.total_factura);
@@ -1411,7 +1759,6 @@ const submit = () => {
             }
         }
         
-        // Validaciones básicas
         if (!form.id_cuenta_fondeadora) {
             alertRef.value?.show({ type: 'error', title: 'Error', message: 'Selecciona una cuenta fondeadora', buttonText: 'Entendido' });
             processing.value = false;
@@ -1428,7 +1775,6 @@ const submit = () => {
             return;
         }
 
-        // Crear FORM DATA PARA ENVIAR ARCHIVOS
         const formData = new FormData();
         
         const formValues = form.data();
@@ -1448,7 +1794,6 @@ const submit = () => {
             }
         });
 
-        // Agregar archivos si existen
         if (archivos.value.pdf) {
             formData.append('pdf_file', archivos.value.pdf);
         }
@@ -1456,7 +1801,6 @@ const submit = () => {
             formData.append('xml_file', archivos.value.xml);
         }
 
-        // Enviar con axios
         axios.post(route('movimientos.store'), formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
@@ -1537,7 +1881,6 @@ const submit = () => {
             processing.value = false;
             return;
         }
-        // ✅ NUEVA VALIDACIÓN: Saldo insuficiente
         if (saldoCuentaOrigen.value < formTraspaso.monto) {
             alertRef.value?.show({ 
                 type: 'error', 
@@ -1549,28 +1892,92 @@ const submit = () => {
             return;
         }
 
-        formTraspaso.post(route('movimientos.traspaso.store'), {
-            preserveState: false,
-            preserveScroll: false,
-            onSuccess: () => {
-                processing.value = false;
-                alertRef.value?.show({ 
-                    type: 'success', 
-                    title: 'Éxito', 
-                    message: 'El traspaso se ha registrado correctamente.',
-                    buttonText: 'Ir al listado'
-                });
-                setTimeout(() => {
-                    router.visit(route('movimientos.index'), { method: 'get', replace: true });
-                }, 1500);
-            },
-            onError: (errors) => {
-                processing.value = false;
+        if (formTraspaso.id_tipo_iva && formTraspaso.monto > 0) {
+            const suma = formTraspaso.monto_base + formTraspaso.monto_iva;
+            const total = parseFloat(formTraspaso.monto);
+            if (Math.abs(suma - total) > 0.01) {
+                const ajuste = total - suma;
+                formTraspaso.monto_iva = Math.round((formTraspaso.monto_iva + ajuste) * 100) / 100;
+            }
+        }
+
+        const traspasoFormData = new FormData();
+        
+        const traspasoValues = formTraspaso.data();
+        Object.keys(traspasoValues).forEach(key => {
+            let value = traspasoValues[key];
+            
+            if (typeof value === 'boolean') {
+                value = value ? 'true' : 'false';
+            }
+            
+            if (value === null || value === undefined) {
+                value = '';
+            }
+            
+            if (value !== '' && value !== null && value !== undefined) {
+                traspasoFormData.append(key, value);
+            }
+        });
+
+        // Agregar campos de IVA
+        traspasoFormData.append('monto_base', formTraspaso.monto_base);
+        traspasoFormData.append('monto_iva', formTraspaso.monto_iva);
+        traspasoFormData.append('id_tipo_iva', formTraspaso.id_tipo_iva || '');
+
+        // Agregar archivos del traspaso
+        if (archivosTraspaso.value.pdf) {
+            traspasoFormData.append('pdf_file', archivosTraspaso.value.pdf);
+        }
+        if (archivosTraspaso.value.xml) {
+            traspasoFormData.append('xml_file', archivosTraspaso.value.xml);
+        }
+
+        axios.post(route('movimientos.traspaso.store'), traspasoFormData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        .then(() => {
+            processing.value = false;
+            alertRef.value?.show({ 
+                type: 'success', 
+                title: 'Éxito', 
+                message: 'El traspaso se ha registrado correctamente.',
+                buttonText: 'Ir al listado'
+            });
+            setTimeout(() => {
+                router.visit(route('movimientos.index'), { method: 'get', replace: true });
+            }, 1500);
+        })
+        .catch(error => {
+            processing.value = false;
+            console.error('Error completo:', error);
+            
+            if (error.response?.data?.errors) {
+                const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
                 alertRef.value?.show({ 
                     type: 'error', 
+                    title: 'Error de validación', 
+                    message: Array.isArray(firstError) ? firstError[0] : firstError,
+                    buttonText: 'Entendido' 
+                });
+                Object.keys(errors).forEach(key => {
+                    formTraspaso.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
+                });
+            } else if (error.response?.data?.message) {
+                alertRef.value?.show({ 
+                    type: 'error', 
                     title: 'Error', 
-                    message: firstError || 'Error al registrar el traspaso.', 
+                    message: error.response.data.message,
+                    buttonText: 'Entendido' 
+                });
+            } else {
+                alertRef.value?.show({ 
+                    type: 'error', 
+                    title: 'Error', 
+                    message: 'Error al registrar el traspaso. Intenta nuevamente.',
                     buttonText: 'Entendido' 
                 });
             }
@@ -1591,6 +1998,7 @@ onMounted(() => {
     if (props.tipos_iva && props.tipos_iva.length > 0) {
         tiposIva.value = props.tipos_iva;
         form.id_tipo_iva = null;
+        formTraspaso.id_tipo_iva = null;
     }
 
     if (props.cuentas && props.cuentas.length > 0) {
@@ -2002,6 +2410,16 @@ onMounted(() => {
     animation: shake 0.5s ease;
 }
 
+.form-input-premium.has-data {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.form-input-premium.has-data:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
 .form-select-premium {
     appearance: none;
     cursor: pointer;
@@ -2055,6 +2473,45 @@ onMounted(() => {
 .icon-svg-sm-premium {
     width: 18px;
     height: 18px;
+}
+
+/* ========== LOADING SPINNER PARA PERSONA ========== */
+.loading-spinner-persona {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.spinner-mini {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spinner 0.6s linear infinite;
+}
+
+/* ===== BADGE DE PÓLIZA CARGADA ===== */
+.poliza-cargada-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #166534;
+    border: 1px solid #86efac;
+    animation: fadeSlide 0.3s ease;
+    margin-top: 4px;
+    width: fit-content;
 }
 
 /* ========== CHECKBOX ========== */
@@ -2128,11 +2585,6 @@ onMounted(() => {
     gap: 4px;
     margin-top: 4px;
     animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .field-hint-premium {
@@ -2440,7 +2892,6 @@ onMounted(() => {
     color: #0f172a;
 }
 
-/* ✅ NUEVOS ESTILOS PARA SALDOS EN TRASPASO */
 .text-success {
     color: #10b981 !important;
 }
@@ -3107,6 +3558,11 @@ onMounted(() => {
         align-items: flex-start;
         gap: 4px;
     }
+    
+    .poliza-cargada-badge {
+        font-size: 10px;
+        padding: 2px 10px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -3131,6 +3587,16 @@ onMounted(() => {
     .icon-svg-premium {
         width: 16px;
         height: 16px;
+    }
+    
+    .loading-spinner-persona {
+        font-size: 10px;
+        right: 36px;
+    }
+    
+    .spinner-mini {
+        width: 12px;
+        height: 12px;
     }
 }
 </style>
