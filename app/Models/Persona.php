@@ -16,6 +16,7 @@ class Persona extends Model
         // Datos principales
         'tipo_persona',
         'activo',
+        'empleado', // ✅ AGREGADO: campo empleado
         
         // Persona Física y Moral (TODO EN EL MISMO CAMPO)
         'Nombre',
@@ -60,6 +61,7 @@ class Persona extends Model
 
     protected $casts = [
         'activo' => 'boolean',
+        'empleado' => 'boolean', // ✅ AGREGADO: cast a booleano
         'Fecha_nacimiento' => 'date',
         'representante_fecha_nacimiento' => 'date',
     ];
@@ -94,11 +96,9 @@ class Persona extends Model
     
     /**
      * Obtener el nombre completo de la persona
-     * 🔴 SIEMPRE usa el campo Nombre
      */
     public function getNombreCompletoAttribute()
     {
-
         $nombre = $this->Nombre ?? '';
         $paterno = $this->Paterno ?? '';
         $materno = $this->Materno ?? '';
@@ -108,7 +108,6 @@ class Persona extends Model
 
     /**
      * Obtener la razón social para mostrar
-     * 🔴 SIEMPRE devuelve el nombre completo
      */
     public function getRazonSocialDisplayAttribute()
     {
@@ -197,6 +196,14 @@ class Persona extends Model
         return $this->polizas()->count();
     }
 
+    /**
+     * ✅ NUEVO: Obtener el estado de empleado en texto
+     */
+    public function getEmpleadoTextoAttribute()
+    {
+        return $this->empleado ? 'Sí' : 'No';
+    }
+
     // ============================================
     // SCOPES
     // ============================================
@@ -214,6 +221,22 @@ class Persona extends Model
     public function scopeMorales($query)
     {
         return $query->where('tipo_persona', 'MORAL');
+    }
+
+    /**
+     * ✅ NUEVO: Scope para empleados
+     */
+    public function scopeEmpleados($query)
+    {
+        return $query->where('empleado', true);
+    }
+
+    /**
+     * ✅ NUEVO: Scope para no empleados
+     */
+    public function scopeNoEmpleados($query)
+    {
+        return $query->where('empleado', false);
     }
 
     public function scopeSearch($query, $search)
@@ -274,5 +297,4 @@ class Persona extends Model
     {
         $this->attributes['representante_materno'] = $value ? strtoupper($value) : null;
     }
-
 }

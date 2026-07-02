@@ -282,6 +282,7 @@
                                         <div class="field-hint-premium">La referencia se genera automáticamente al cargar</div>
                                     </div>
 
+                                    <!-- ✅ CAMPO CUENTA DE FONDO - OCULTO (toma el valor de la póliza original) -->
                                     <div class="form-group-premium">
                                         <label class="form-label-premium">Cuenta de Fondo</label>
                                         <div class="readonly-value">
@@ -292,6 +293,9 @@
                                             </span>
                                             <span>{{ movimiento.cuenta_fondeadora || 'N/A' }}</span>
                                         </div>
+                                        <!-- ✅ CAMPO OCULTO QUE ENVÍA EL ID -->
+                                        <input type="hidden" :value="movimiento.cuenta_fondeadora_id" />
+                                        <input type="hidden" v-model="abonoForm.id_cuenta_fondeadora" />
                                     </div>
 
                                     <div class="form-group-premium">
@@ -434,7 +438,8 @@ const abonoForm = useForm({
     fecha_abono: new Date().toISOString().split('T')[0],
     referencia: '',
     metodo_pago: 'TRANSFERENCIA',
-    nota: ''
+    nota: '',
+    id_cuenta_fondeadora: props.movimiento.cuenta_fondeadora_id || '' // ✅ TOMA EL ID DE LA PÓLIZA ORIGINAL
 });
 
 // ============================================
@@ -648,6 +653,20 @@ const submitAbono = () => {
         return;
     }
 
+    // ✅ VERIFICAR QUE TENGA CUENTA FONDEADORA
+    if (!abonoForm.id_cuenta_fondeadora) {
+        alertRef.value?.show({ 
+            type: 'error', 
+            title: 'Error', 
+            message: 'No se encontró una cuenta de fondo asociada a esta póliza', 
+            buttonText: 'Entendido' 
+        });
+        processing.value = false;
+        return;
+    }
+
+    console.log('Enviando abono:', abonoForm.data());
+
     abonoForm.post(route('movimientos.abono.store'), {
         preserveState: false,
         preserveScroll: false,
@@ -660,6 +679,7 @@ const submitAbono = () => {
         },
         onError: (errors) => {
             processing.value = false;
+            console.error('Errores:', errors);
             const firstError = Object.values(errors)[0];
             alertRef.value?.show({ 
                 type: 'error', 
@@ -713,6 +733,10 @@ onMounted(() => {
     }
     
     generarReferenciaInicial();
+    
+    // ✅ LOG PARA VERIFICAR QUE EL ID DE CUENTA FONDEADORA SE ESTÁ TOMANDO
+    console.log('ID Cuenta Fondeadora:', abonoForm.id_cuenta_fondeadora);
+    console.log('Movimiento:', props.movimiento);
 });
 </script>
 

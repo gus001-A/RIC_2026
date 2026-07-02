@@ -103,20 +103,8 @@ class ReporteController extends Controller
                 $data = $this->agruparPorPersona($movimientos);
             }
 
-            // Obtener cuentas fondeadoras con saldos
-            $fondeadoras = Cuenta::where('id_empresa', $empresaId)
-                ->where('en_uso', true)
-                ->where('fondeo_c', 1)
-                ->orderBy('codigo_cuenta')
-                ->get()
-                ->map(function($cuenta) {
-                    return [
-                        'id_cuenta' => $cuenta->id_cuenta,
-                        'codigo_cuenta' => $cuenta->codigo_cuenta,
-                        'nombre_cuenta' => $cuenta->nombre_cuenta,
-                        'saldo' => $cuenta->saldo_inicial ?? 0
-                    ];
-                });
+            // ✅ OBTENER CUENTAS FONDEADORAS CON SALDO REAL
+            $fondeadoras = $this->getCuentasFondeadorasConSaldo($empresaId, $fechaDesde, $fechaHasta);
 
             // Obtener cuentas de resultados con jerarquía
             $cuentasResultados = $this->getCuentasResultadosJerarquicas($empresaId);
@@ -148,12 +136,74 @@ class ReporteController extends Controller
     }
 
     /**
+     * ✅ OBTENER CUENTAS FONDEADORAS CON SALDO REAL
+     * Calcula el saldo sumando todos los movimientos de cada cuenta
+     */
+    private function getCuentasFondeadorasConSaldo($empresaId, $fechaDesde = null, $fechaHasta = null)
+    {
+        // Obtener todas las cuentas fondeadoras (fondeo_c = 1)
+        $cuentas = Cuenta::where('id_empresa', $empresaId)
+            ->where('en_uso', true)
+            ->where('fondeo_c', 1)
+            ->orderBy('codigo_cuenta')
+            ->get();
+
+        $resultado = [];
+
+        foreach ($cuentas as $cuenta) {
+            // Calcular saldo REAL sumando movimientos donde id_cuenta = $cuenta->id_cuenta
+            $saldo = $this->calcularSaldoFondeadora($cuenta->id_cuenta, $fechaDesde, $fechaHasta);
+
+            $resultado[] = [
+                'id_cuenta' => $cuenta->id_cuenta,
+                'codigo_cuenta' => $cuenta->codigo_cuenta,
+                'nombre_cuenta' => $cuenta->nombre_cuenta,
+                'saldo' => $saldo
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * ✅ CALCULAR SALDO REAL DE UNA CUENTA FONDEADORA
+     * Suma todos los movimientos donde id_cuenta = $idCuenta
+     */
+    private function calcularSaldoFondeadora($idCuenta, $fechaDesde = null, $fechaHasta = null)
+    {
+        $query = MovimientoPoliza::where('id_cuenta', $idCuenta);
+
+        // Aplicar filtros de fecha si existen (usando la relación poliza)
+        if ($fechaDesde) {
+            $query->whereHas('poliza', function($q) use ($fechaDesde) {
+                $q->whereDate('fecha_poliza', '>=', $fechaDesde);
+            });
+        }
+
+        if ($fechaHasta) {
+            $query->whereHas('poliza', function($q) use ($fechaHasta) {
+                $q->whereDate('fecha_poliza', '<=', $fechaHasta);
+            });
+        }
+
+        $movimientos = $query->get();
+
+        $saldo = 0;
+        foreach ($movimientos as $mov) {
+            // Si el movimiento es positivo, es ingreso (suma)
+            // Si es negativo, es egreso (resta)
+            $saldo += $mov->monto;
+        }
+
+        return $saldo;
+    }
+
+    /**
      * Obtener cuentas de resultados con jerarquía
-     * Busca cuentas de nivel 2 que sean de resultados y calcula su saldo sumando todas sus hijas
      */
     private function getCuentasResultadosJerarquicas($empresaId)
     {
-        // ✅ PASO 1: Obtener TODAS las cuentas activas de la empresa
+        // Obtener TODAS las cuentas activas de la empresa
         $todasLasCuentas = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->orderBy('codigo_cuenta')
@@ -163,7 +213,7 @@ class ReporteController extends Controller
             return [];
         }
 
-        // ✅ PASO 2: Construir mapa de cuentas por ID con sus datos
+        // Construir mapa de cuentas por ID
         $cuentasMap = [];
         foreach ($todasLasCuentas as $cuenta) {
             $cuentasMap[$cuenta->id_cuenta] = [
@@ -185,14 +235,10 @@ class ReporteController extends Controller
             ];
         }
 
-        // ✅ PASO 3: Identificar cuentas de nivel 2 que son de resultados
-        // Condiciones: 
-        // - nivel = 2
-        // - (tipo_cuenta = 'RESULTADO' OR es_cuenta_resultados = 1 OR cuenta_resultados = 1)
+        // Identificar cuentas de nivel 2 que son de resultados
         $cuentasNivel2Resultados = [];
         
         foreach ($cuentasMap as $id => &$cuentaData) {
-            // Verificar si es nivel 2 y es de resultados
             $esResultado = ($cuentaData['nivel'] == 2) && (
                 $cuentaData['tipo_cuenta'] === 'RESULTADO' ||
                 $cuentaData['es_cuenta_resultados'] == 1 ||
@@ -202,37 +248,28 @@ class ReporteController extends Controller
             );
             
             if ($esResultado) {
-                // Buscar todas las hijas de esta cuenta (recursivo)
                 $hijas = $this->getHijasCuenta($id, $cuentasMap);
                 
-                // Si tiene hijas o no, la incluimos
                 if (!empty($hijas)) {
                     $cuentaData['es_madre'] = true;
                     $cuentaData['hijas'] = $hijas;
-                    
-                    // ✅ Calcular SUBTOTAL = saldo de la cuenta madre + saldo de todas sus hijas
                     $subtotal = $cuentaData['saldo'];
                     foreach ($hijas as $hija) {
                         $subtotal += $hija['saldo'];
                     }
                     $cuentaData['subtotal'] = $subtotal;
                 } else {
-                    // No tiene hijas, el subtotal es su propio saldo
                     $cuentaData['es_madre'] = false;
                     $cuentaData['subtotal'] = $cuentaData['saldo'];
                 }
                 
-                // Verificar si tiene hijas fiscales
                 $cuentaData['es_fiscal'] = $this->tieneHijasFiscales($hijas);
-                
                 $cuentasNivel2Resultados[] = $cuentaData;
             }
         }
 
-        // ✅ PASO 4: Si no se encontraron cuentas con los campos tradicionales, 
-        // buscar todas las cuentas nivel 2 que tengan padre = cuenta "RESULTADOS"
+        // Si no se encontraron cuentas con los campos tradicionales
         if (empty($cuentasNivel2Resultados)) {
-            // Buscar la cuenta "RESULTADOS"
             $cuentaResultados = Cuenta::where('id_empresa', $empresaId)
                 ->where('en_uso', true)
                 ->where(function($q) {
@@ -243,7 +280,6 @@ class ReporteController extends Controller
                 ->first();
 
             if ($cuentaResultados) {
-                // Buscar todas las cuentas nivel 2 que tengan como madre a "RESULTADOS"
                 foreach ($cuentasMap as $id => &$cuentaData) {
                     if ($cuentaData['nivel'] == 2 && $cuentaData['id_cuenta_madre'] == $cuentaResultados->id_cuenta) {
                         $hijas = $this->getHijasCuenta($id, $cuentasMap);
@@ -268,7 +304,6 @@ class ReporteController extends Controller
             }
         }
 
-        // ✅ PASO 5: Ordenar por código
         usort($cuentasNivel2Resultados, function($a, $b) {
             return strcmp($a['codigo_cuenta'], $b['codigo_cuenta']);
         });
@@ -285,15 +320,12 @@ class ReporteController extends Controller
         
         foreach ($cuentasMap as $id => $cuentaData) {
             if ($cuentaData['id_cuenta_madre'] == $idCuentaMadre) {
-                // Esta cuenta es hija directa
                 $hijaData = $cuentaData;
-                
-                // Buscar hijas de esta hija (recursivo)
                 $subHijas = $this->getHijasCuenta($id, $cuentasMap);
+                
                 if (!empty($subHijas)) {
                     $hijaData['hijas'] = $subHijas;
                     $hijaData['es_madre'] = true;
-                    // Sumar subtotal de hijas
                     $subtotalHijas = $hijaData['saldo'];
                     foreach ($subHijas as $sh) {
                         $subtotalHijas += $sh['saldo'];
@@ -304,14 +336,11 @@ class ReporteController extends Controller
                     $hijaData['subtotal'] = $hijaData['saldo'];
                 }
                 
-                // Verificar si tiene hijas fiscales
                 $hijaData['es_fiscal'] = $this->tieneHijasFiscales($hijaData['hijas'] ?? []);
-                
                 $hijas[] = $hijaData;
             }
         }
         
-        // Ordenar hijas por código
         usort($hijas, function($a, $b) {
             return strcmp($a['codigo_cuenta'], $b['codigo_cuenta']);
         });
@@ -346,7 +375,15 @@ class ReporteController extends Controller
             $nombreCuenta = $mov->cuenta ? $mov->cuenta->nombre_cuenta : 'Sin cuenta';
             $codigoCuenta = $mov->cuenta ? $mov->cuenta->codigo_cuenta : '---';
             $persona = $mov->poliza->persona ? $mov->poliza->persona->nombre_completo : 'Sin persona';
-            $fondeo = $mov->cuentaFondeadora ? $mov->cuentaFondeadora->nombre_cuenta : 'Sin fondeo';
+            
+            // Obtener el nombre de la cuenta fondeadora (si existe)
+            $fondeo = 'Sin fondeo';
+            if ($mov->cuentaFondeadora) {
+                $fondeo = $mov->cuentaFondeadora->nombre_cuenta;
+            } else if ($mov->cuenta && $mov->cuenta->fondeo_c == 1) {
+                // Si la cuenta misma es fondeadora
+                $fondeo = $mov->cuenta->nombre_cuenta;
+            }
 
             $key = $idCuenta . '|' . $persona . '|' . $fondeo;
 
@@ -383,7 +420,15 @@ class ReporteController extends Controller
 
         foreach ($movimientos as $mov) {
             $persona = $mov->poliza->persona ? $mov->poliza->persona->nombre_completo : 'Sin persona';
-            $fondeo = $mov->cuentaFondeadora ? $mov->cuentaFondeadora->nombre_cuenta : 'Sin fondeo';
+            
+            // Obtener el nombre de la cuenta fondeadora (si existe)
+            $fondeo = 'Sin fondeo';
+            if ($mov->cuentaFondeadora) {
+                $fondeo = $mov->cuentaFondeadora->nombre_cuenta;
+            } else if ($mov->cuenta && $mov->cuenta->fondeo_c == 1) {
+                // Si la cuenta misma es fondeadora
+                $fondeo = $mov->cuenta->nombre_cuenta;
+            }
 
             $key = $persona . '|' . $fondeo;
 
@@ -457,10 +502,13 @@ class ReporteController extends Controller
                 $data = $this->agruparPorPersona($movimientos);
             }
 
-            // Obtener cuentas de resultados con jerarquía
+            // ✅ Obtener cuentas fondeadoras con saldo REAL
+            $fondeadoras = $this->getCuentasFondeadorasConSaldo($empresaId, $fechaDesde, $fechaHasta);
+
+            // Obtener cuentas de resultados
             $cuentasResultados = $this->getCuentasResultadosJerarquicas($empresaId);
 
-            // Calcular totales generales
+            // Calcular totales
             $totalIngresos = array_sum(array_column($data, 'ingreso'));
             $totalEgresos = array_sum(array_column($data, 'egreso'));
             $diferencia = $totalIngresos - $totalEgresos;
@@ -477,7 +525,6 @@ class ReporteController extends Controller
             // ============================================
             $sheet->setTitle('Movimientos');
 
-            // Título
             $sheet->mergeCells('A1:' . ($vista === 'por_cuenta' ? 'F' : 'D') . '1');
             $sheet->setCellValue('A1', 'REPORTE DE MOVIMIENTOS - ' . ($vista === 'por_cuenta' ? 'POR CUENTA' : 'POR PERSONA'));
             $sheet->getStyle('A1')->applyFromArray([
@@ -486,7 +533,6 @@ class ReporteController extends Controller
             ]);
             $sheet->getRowDimension(1)->setRowHeight(35);
 
-            // Subtítulo con fechas y empresa
             $sheet->mergeCells('A2:' . ($vista === 'por_cuenta' ? 'F' : 'D') . '2');
             $fechaTexto = 'Empresa: ' . $nombreEmpresa . ' | ';
             if ($fechaDesde && $fechaHasta) {
@@ -504,7 +550,6 @@ class ReporteController extends Controller
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ]);
 
-            // Headers
             $row = 4;
             if ($vista === 'por_cuenta') {
                 $headers = ['Cuenta', 'Codigo', 'Persona', 'Fondero', 'Ingresos', 'Egresos'];
@@ -529,7 +574,6 @@ class ReporteController extends Controller
             $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->applyFromArray($headerStyle);
             $sheet->getRowDimension($row)->setRowHeight(25);
 
-            // Datos
             $row++;
             foreach ($data as $item) {
                 $col = 'A';
@@ -557,7 +601,6 @@ class ReporteController extends Controller
                 $row++;
             }
 
-            // Totales
             $totalRow = $row;
             $col = 'A';
             if ($vista === 'por_cuenta') {
@@ -579,7 +622,6 @@ class ReporteController extends Controller
             ];
             $sheet->getStyle('A' . $totalRow . ':' . $lastCol . $totalRow)->applyFromArray($totalStyle);
 
-            // Diferencia y resultado
             $diffRow = $totalRow + 2;
             if ($vista === 'por_cuenta') {
                 $sheet->mergeCells('A' . $diffRow . ':D' . $diffRow);
@@ -600,7 +642,6 @@ class ReporteController extends Controller
             ];
             $sheet->getStyle('A' . $diffRow . ':' . $lastCol . $diffRow)->applyFromArray($diffStyle);
 
-            // Formato de moneda
             $moneyColumns = $vista === 'por_cuenta' ? ['E', 'F'] : ['C', 'D'];
             $lastDataRow = $totalRow - 1;
             foreach ($moneyColumns as $col) {
@@ -610,13 +651,12 @@ class ReporteController extends Controller
             }
 
             // ============================================
-            // HOJA 2: CUENTAS DE RESULTADOS (CON JERARQUIA)
+            // HOJA 2: CUENTAS DE RESULTADOS
             // ============================================
             if (!empty($cuentasResultados)) {
                 $sheet2 = $spreadsheet->createSheet();
                 $sheet2->setTitle('Cuentas de Resultados');
 
-                // Título
                 $sheet2->mergeCells('A1:C1');
                 $sheet2->setCellValue('A1', 'CUENTAS DE RESULTADOS');
                 $sheet2->getStyle('A1')->applyFromArray([
@@ -625,7 +665,6 @@ class ReporteController extends Controller
                 ]);
                 $sheet2->getRowDimension(1)->setRowHeight(35);
 
-                // Subtítulo
                 $sheet2->mergeCells('A2:C2');
                 $sheet2->setCellValue('A2', 'Empresa: ' . $nombreEmpresa . ' | ' . $fechaTexto);
                 $sheet2->getStyle('A2')->applyFromArray([
@@ -633,7 +672,6 @@ class ReporteController extends Controller
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
 
-                // Headers
                 $row = 4;
                 $headers2 = ['Cuenta', 'Saldo', 'Nivel'];
                 $col = 'A';
@@ -646,11 +684,9 @@ class ReporteController extends Controller
                 $sheet2->getStyle('A' . $row . ':C' . $row)->applyFromArray($headerStyle);
                 $sheet2->getRowDimension($row)->setRowHeight(25);
 
-                // Datos con jerarquía
                 $row++;
                 $this->renderCuentasJerarquicasExcel($sheet2, $cuentasResultados, $row, 0);
 
-                // Total general
                 $totalRow2 = $row + 1;
                 $saldoTotal = 0;
                 foreach ($cuentasResultados as $cuenta) {
@@ -665,7 +701,6 @@ class ReporteController extends Controller
                     ->getNumberFormat()
                     ->setFormatCode('$#,##0.00');
 
-                // Resultado
                 $resultRow = $totalRow2 + 2;
                 $sheet2->mergeCells('A' . $resultRow . ':B' . $resultRow);
                 $sheet2->setCellValue('A' . $resultRow, 'RESULTADO DEL PERIODO');
@@ -684,13 +719,7 @@ class ReporteController extends Controller
             // ============================================
             // HOJA 3: CUENTAS FONDEADORAS
             // ============================================
-            $fondeadoras = Cuenta::where('id_empresa', $empresaId)
-                ->where('en_uso', true)
-                ->where('fondeo_c', 1)
-                ->orderBy('codigo_cuenta')
-                ->get();
-
-            if ($fondeadoras->isNotEmpty()) {
+            if (!empty($fondeadoras)) {
                 $sheet3 = $spreadsheet->createSheet();
                 $sheet3->setTitle('Cuentas Fondeadoras');
 
@@ -724,10 +753,10 @@ class ReporteController extends Controller
                 $row++;
                 $totalFondeadoras = 0;
                 foreach ($fondeadoras as $cuenta) {
-                    $saldo = $cuenta->saldo_inicial ?? 0;
+                    $saldo = $cuenta['saldo'] ?? 0;
                     $totalFondeadoras += $saldo;
-                    $sheet3->setCellValue('A' . $row, $cuenta->codigo_cuenta);
-                    $sheet3->setCellValue('B' . $row, $cuenta->nombre_cuenta);
+                    $sheet3->setCellValue('A' . $row, $cuenta['codigo_cuenta']);
+                    $sheet3->setCellValue('B' . $row, $cuenta['nombre_cuenta']);
                     $sheet3->setCellValue('C' . $row, $saldo);
                     $sheet3->getStyle('C' . $row)
                         ->getNumberFormat()
@@ -778,7 +807,6 @@ class ReporteController extends Controller
             $sheet->setCellValue('B' . $row, $cuenta['subtotal']);
             $sheet->setCellValue('C' . $row, $cuenta['nivel']);
             
-            // Estilo para cuentas madre
             if ($cuenta['es_madre']) {
                 $sheet->getStyle('A' . $row . ':C' . $row)->applyFromArray([
                     'font' => ['bold' => true, 'size' => 11],
@@ -792,7 +820,6 @@ class ReporteController extends Controller
             
             $row++;
             
-            // Renderizar hijas recursivamente
             if (!empty($cuenta['hijas'])) {
                 $this->renderCuentasJerarquicasExcel($sheet, $cuenta['hijas'], $row, $nivel + 1);
             }

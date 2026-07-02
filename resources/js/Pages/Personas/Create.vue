@@ -49,11 +49,7 @@
                                         <div class="radio-card-mini" 
                                              :class="{ 'selected': form.tipo_persona === 'FISICA' }"
                                              @click="form.tipo_persona = 'FISICA'; clearError('tipo_persona'); onTipoChange()">
-                                            <span class="radio-emoji">👤</span>
-                                            <div>
-                                                <div class="radio-title-mini">Persona Física</div>
-                                                <div class="radio-desc-mini">Individual</div>
-                                            </div>
+                                            <span class="radio-label">Persona Fisica</span>
                                             <div class="radio-check-mini" v-if="form.tipo_persona === 'FISICA'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -65,11 +61,7 @@
                                         <div class="radio-card-mini" 
                                              :class="{ 'selected': form.tipo_persona === 'MORAL' }"
                                              @click="form.tipo_persona = 'MORAL'; clearError('tipo_persona'); onTipoChange()">
-                                            <span class="radio-emoji">🏢</span>
-                                            <div>
-                                                <div class="radio-title-mini">Persona Moral</div>
-                                                <div class="radio-desc-mini">Empresa o sociedad</div>
-                                            </div>
+                                            <span class="radio-label">Persona Moral</span>
                                             <div class="radio-check-mini" v-if="form.tipo_persona === 'MORAL'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -100,46 +92,11 @@
                                 </div>
                                 <div class="section-title-group">
                                     <h3 class="section-title">Datos Personales</h3>
-                                    <p class="section-subtitle">Información principal de la persona</p>
+                                    <p class="section-subtitle">Informacion principal de la persona</p>
                                 </div>
                             </div>
 
                             <div class="form-grid">
-                                <!-- Fecha de Nacimiento -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
-                                        Fecha de Nacimiento <span class="required-star">*</span>
-                                        <span class="helper-label">(Debe ser mayor de edad)</span>
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="date" v-model="form.Fecha_nacimiento"
-                                               @change="clearError('Fecha_nacimiento'); validateEdad(); autoGenerarRFC()"
-                                               class="form-input date-input"
-                                               :class="{ 'error': form.errors.Fecha_nacimiento || edadError }"
-                                               :max="fechaMaxima">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="form.errors.Fecha_nacimiento" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.Fecha_nacimiento }}
-                                    </div>
-                                    <div v-if="edadError" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ edadError }}
-                                    </div>
-                                </div>
-
                                 <!-- Nombre -->
                                 <div class="form-group full-width">
                                     <label class="form-label">
@@ -188,7 +145,7 @@
                                                @input="clearError('Paterno'); autoGenerarRFC(); validateText('Paterno')"
                                                class="form-input"
                                                :class="{ 'error': form.errors.Paterno || textErrors.Paterno }"
-                                               placeholder="Ej: Pérez"
+                                               placeholder="Ej: Perez"
                                                maxlength="50">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,7 +180,7 @@
                                                @input="autoGenerarRFC(); validateText('Materno')"
                                                class="form-input"
                                                :class="{ 'error': textErrors.Materno }"
-                                               placeholder="Ej: García"
+                                               placeholder="Ej: Garcia"
                                                maxlength="50">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,6 +196,75 @@
                                     </div>
                                 </div>
 
+                                <!-- Fila: Empleado + Fecha Nacimiento -->
+                                <div class="form-group full-width">
+                                    <div class="two-columns">
+                                        <!-- Empleado -->
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                </svg>
+                                                Es empleado
+                                            </label>
+                                            <div class="select-wrapper">
+                                                <select v-model="form.empleado"
+                                                        @change="clearError('empleado')"
+                                                        class="form-select"
+                                                        :class="{ 'error': form.errors.empleado }">
+                                                    <option value="0">No es empleado</option>
+                                                    <option value="1">Si es empleado</option>
+                                                </select>
+                                                <div class="select-icon">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div v-if="form.errors.empleado" class="error-message">
+                                                <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {{ form.errors.empleado }}
+                                            </div>
+                                        </div>
+
+                                        <!-- Fecha Nacimiento -->
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                                Fecha de Nacimiento <span class="required-star">*</span>
+                                            </label>
+                                            <div class="input-wrapper">
+                                                <input type="date" v-model="form.Fecha_nacimiento"
+                                                       @change="clearError('Fecha_nacimiento'); validateEdad(); autoGenerarRFC()"
+                                                       class="form-input date-input"
+                                                       :class="{ 'error': form.errors.Fecha_nacimiento || edadError }"
+                                                       :max="fechaMaxima">
+                                                <div class="input-icon">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div v-if="form.errors.Fecha_nacimiento" class="error-message">
+                                                <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {{ form.errors.Fecha_nacimiento }}
+                                            </div>
+                                            <div v-if="edadError" class="error-message">
+                                                <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                {{ edadError }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Sexo -->
                                 <div class="form-group full-width">
                                     <label class="form-label">
@@ -251,10 +277,7 @@
                                         <div class="radio-card-mini" 
                                              :class="{ 'selected': form.sexo === 'MASCULINO' }"
                                              @click="form.sexo = 'MASCULINO'; clearError('sexo')">
-                                            <span class="radio-emoji">♂️</span>
-                                            <div>
-                                                <div class="radio-title-mini">Masculino</div>
-                                            </div>
+                                            <span class="radio-label">Masculino</span>
                                             <div class="radio-check-mini" v-if="form.sexo === 'MASCULINO'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -266,10 +289,7 @@
                                         <div class="radio-card-mini" 
                                              :class="{ 'selected': form.sexo === 'FEMENINO' }"
                                              @click="form.sexo = 'FEMENINO'; clearError('sexo')">
-                                            <span class="radio-emoji">♀️</span>
-                                            <div>
-                                                <div class="radio-title-mini">Femenino</div>
-                                            </div>
+                                            <span class="radio-label">Femenino</span>
                                             <div class="radio-check-mini" v-if="form.sexo === 'FEMENINO'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -321,14 +341,6 @@
                                         </svg>
                                         {{ rfcError }}
                                     </div>
-                                    <div class="input-helper">
-                                        <span class="helper-text">
-                                            <svg class="helper-icon" fill="none" stroke="#6b7280" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            {{ form.tipo_persona === 'FISICA' ? 'RFC de persona física (13 caracteres)' : 'RFC de persona moral (12 caracteres)' }}
-                                        </span>
-                                    </div>
                                 </div>
 
                                 <!-- CURP -->
@@ -365,20 +377,12 @@
                                         </svg>
                                         {{ curpError }}
                                     </div>
-                                    <div class="input-helper">
-                                        <span class="helper-text">
-                                            <svg class="helper-icon" fill="none" stroke="#6b7280" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            Formato: 4 letras, 6 números, 6 letras, 2 dígitos
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- SECCIÓN 3: CONTACTO Y TELÉFONOS -->
+                        <!-- SECCIÓN 3: CONTACTO -->
                         <!-- ============================================ -->
                         <div class="form-section">
                             <div class="section-header">
@@ -388,20 +392,20 @@
                                     </svg>
                                 </div>
                                 <div class="section-title-group">
-                                    <h3 class="section-title">Información de Contacto</h3>
-                                    <p class="section-subtitle">Teléfonos y correo electrónico</p>
+                                    <h3 class="section-title">Informacion de Contacto</h3>
+                                    <p class="section-subtitle">Telefonos y correo electronico</p>
                                 </div>
                                 <span class="badge-optional">Opcional</span>
                             </div>
 
                             <div class="form-grid">
-                                <!-- Correo Electrónico -->
+                                <!-- Correo -->
                                 <div class="form-group full-width">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                         </svg>
-                                        Correo Electrónico
+                                        Correo Electronico
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="email" v-model="form.email"
@@ -430,13 +434,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Teléfono Particular -->
+                                <!-- Telefono Particular -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                         </svg>
-                                        Teléfono Particular
+                                        Telefono Particular
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.telefono_particular"
@@ -461,13 +465,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Teléfono de Trabajo -->
+                                <!-- Telefono Trabajo -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                         </svg>
-                                        Teléfono de Trabajo
+                                        Telefono de Trabajo
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.telefono_trabajo"
@@ -492,13 +496,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Extensión -->
+                                <!-- Extension -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                                         </svg>
-                                        Extensión
+                                        Extension
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.extension_trabajo"
@@ -526,7 +530,7 @@
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- SECCIÓN 4: DIRECCIÓN COMPLETA -->
+                        <!-- SECCIÓN 4: DIRECCION -->
                         <!-- ============================================ -->
                         <div class="form-section">
                             <div class="section-header">
@@ -537,8 +541,8 @@
                                     </svg>
                                 </div>
                                 <div class="section-title-group">
-                                    <h3 class="section-title">Dirección</h3>
-                                    <p class="section-subtitle">Información completa de ubicación</p>
+                                    <h3 class="section-title">Direccion</h3>
+                                    <p class="section-subtitle">Informacion completa de ubicacion</p>
                                 </div>
                                 <span class="badge-optional">Opcional</span>
                             </div>
@@ -573,13 +577,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Número Exterior -->
+                                <!-- Numero Exterior -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                                         </svg>
-                                        Número Exterior
+                                        Numero Exterior
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.numero_exterior"
@@ -602,13 +606,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Número Interior -->
+                                <!-- Numero Interior -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                                         </svg>
-                                        Número Interior
+                                        Numero Interior
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.numero_interior"
@@ -644,7 +648,7 @@
                                                @input="validateText('colonia')"
                                                class="form-input"
                                                :class="{ 'error': textErrors.colonia }"
-                                               placeholder="Ej: Juárez"
+                                               placeholder="Ej: Juarez"
                                                maxlength="100">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -660,7 +664,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Ciudad -->
+                                <!-- Ciudad + Municipio -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -673,7 +677,7 @@
                                                @input="validateText('ciudad')"
                                                class="form-input"
                                                :class="{ 'error': textErrors.ciudad }"
-                                               placeholder="Ej: Ciudad de México"
+                                               placeholder="Ej: Ciudad de Mexico"
                                                maxlength="100">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -689,7 +693,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Municipio -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -702,7 +705,7 @@
                                                @input="validateText('municipio')"
                                                class="form-input"
                                                :class="{ 'error': textErrors.municipio }"
-                                               placeholder="Ej: Cuauhtémoc"
+                                               placeholder="Ej: Cuauhtemoc"
                                                maxlength="100">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -718,7 +721,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Estado -->
+                                <!-- Estado + CP -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -747,13 +750,12 @@
                                     </div>
                                 </div>
 
-                                <!-- Código Postal -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 18h14M7 6h10"/>
                                         </svg>
-                                        Código Postal
+                                        Codigo Postal
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.codigo_postal"
@@ -792,13 +794,13 @@
                                 </div>
                                 <div class="section-title-group">
                                     <h3 class="section-title">Representante Legal</h3>
-                                    <p class="section-subtitle">Información del representante legal de la persona</p>
+                                    <p class="section-subtitle">Informacion del representante legal</p>
                                 </div>
                                 <span class="badge-optional">Opcional</span>
                             </div>
 
                             <div class="form-grid">
-                                <!-- Nombre del Representante -->
+                                <!-- Nombre Representante -->
                                 <div class="form-group full-width">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -811,7 +813,7 @@
                                                @input="clearError('representante_nombre'); validateText('representante_nombre')"
                                                class="form-input"
                                                :class="{ 'error': form.errors.representante_nombre || textErrors.representante_nombre }"
-                                               placeholder="Ej: María"
+                                               placeholder="Ej: Maria"
                                                maxlength="100">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -846,7 +848,7 @@
                                                @input="clearError('representante_paterno'); validateText('representante_paterno')"
                                                class="form-input"
                                                :class="{ 'error': form.errors.representante_paterno || textErrors.representante_paterno }"
-                                               placeholder="Ej: López"
+                                               placeholder="Ej: Lopez"
                                                maxlength="50">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -881,7 +883,7 @@
                                                @input="validateText('representante_materno')"
                                                class="form-input"
                                                :class="{ 'error': textErrors.representante_materno }"
-                                               placeholder="Ej: Martínez"
+                                               placeholder="Ej: Martinez"
                                                maxlength="50">
                                         <div class="input-icon">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -897,7 +899,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Fecha de Nacimiento Representante -->
+                                <!-- Fecha Nacimiento Representante -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -937,10 +939,7 @@
                                         <div class="radio-card-mini" 
                                              :class="{ 'selected': form.representante_sexo === 'MASCULINO' }"
                                              @click="form.representante_sexo = 'MASCULINO'">
-                                            <span class="radio-emoji">♂️</span>
-                                            <div>
-                                                <div class="radio-title-mini">Masculino</div>
-                                            </div>
+                                            <span class="radio-label">Masculino</span>
                                             <div class="radio-check-mini" v-if="form.representante_sexo === 'MASCULINO'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -952,10 +951,7 @@
                                         <div class="radio-card-mini" 
                                              :class="{ 'selected': form.representante_sexo === 'FEMENINO' }"
                                              @click="form.representante_sexo = 'FEMENINO'">
-                                            <span class="radio-emoji">♀️</span>
-                                            <div>
-                                                <div class="radio-title-mini">Femenino</div>
-                                            </div>
+                                            <span class="radio-label">Femenino</span>
                                             <div class="radio-check-mini" v-if="form.representante_sexo === 'FEMENINO'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -995,13 +991,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Teléfono Particular Representante -->
+                                <!-- Telefono Particular Representante -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                         </svg>
-                                        Teléfono Particular
+                                        Telefono Particular
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.representante_telefono_particular"
@@ -1026,13 +1022,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Teléfono Trabajo Representante -->
+                                <!-- Telefono Trabajo Representante -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                         </svg>
-                                        Teléfono de Trabajo
+                                        Telefono de Trabajo
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.representante_telefono_trabajo"
@@ -1057,13 +1053,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Extensión Representante -->
+                                <!-- Extension Representante -->
                                 <div class="form-group">
                                     <label class="form-label">
                                         <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                                         </svg>
-                                        Extensión
+                                        Extension
                                     </label>
                                     <div class="input-wrapper">
                                         <input type="text" v-model="form.representante_extension_trabajo"
@@ -1102,7 +1098,7 @@
                                 </div>
                                 <div class="section-title-group">
                                     <h3 class="section-title">Notas Adicionales</h3>
-                                    <p class="section-subtitle">Información complementaria sobre la persona</p>
+                                    <p class="section-subtitle">Informacion complementaria sobre la persona</p>
                                 </div>
                                 <span class="badge-optional">Opcional</span>
                             </div>
@@ -1119,7 +1115,7 @@
                                         <textarea v-model="form.notas"
                                                   class="form-textarea"
                                                   rows="4"
-                                                  placeholder="Información adicional sobre la persona..."
+                                                  placeholder="Informacion adicional sobre la persona..."
                                                   maxlength="500"></textarea>
                                     </div>
                                 </div>
@@ -1127,7 +1123,7 @@
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- INFO ADICIONAL Y BOTONES -->
+                        <!-- BOTONES -->
                         <!-- ============================================ -->
                         <div class="info-box-mini">
                             <svg class="info-icon" fill="none" stroke="#667eea" viewBox="0 0 24 24">
@@ -1174,7 +1170,7 @@ import axios from 'axios';
 const alertRef = ref(null);
 
 // ============================================
-// ESTADOS DE VALIDACIÓN ADICIONALES
+// ESTADOS DE VALIDACION
 // ============================================
 const emailError = ref('');
 const rfcError = ref('');
@@ -1216,7 +1212,7 @@ const phoneErrors = ref({
 });
 
 // ============================================
-// FECHA MÁXIMA (18 años atrás)
+// FECHA MAXIMA (18 años)
 // ============================================
 const fechaMaxima = computed(() => {
     const fecha = new Date();
@@ -1230,6 +1226,7 @@ const fechaMaxima = computed(() => {
 const form = useForm({
     tipo_persona: 'FISICA',
     activo: true,
+    empleado: 0,
     Nombre: '',
     Paterno: '',
     Materno: '',
@@ -1263,7 +1260,7 @@ const form = useForm({
 });
 
 // ============================================
-// VALIDACIÓN DE TEXTO (SOLO LETRAS Y ESPACIOS)
+// VALIDACIONES
 // ============================================
 const validateText = (field) => {
     const value = form[field];
@@ -1271,7 +1268,6 @@ const validateText = (field) => {
         textErrors.value[field] = '';
         return;
     }
-    // Solo letras, espacios, ñ y acentos
     const textRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
     if (!textRegex.test(value)) {
         textErrors.value[field] = 'Solo se permiten letras y espacios';
@@ -1280,9 +1276,6 @@ const validateText = (field) => {
     }
 };
 
-// ============================================
-// VALIDACIÓN DE NÚMEROS
-// ============================================
 const validateNumeric = (field) => {
     const value = form[field];
     if (!value || value.trim() === '') {
@@ -1290,15 +1283,12 @@ const validateNumeric = (field) => {
         return;
     }
     if (!/^\d+$/.test(value)) {
-        numericErrors.value[field] = 'Solo se permiten números';
+        numericErrors.value[field] = 'Solo se permiten numeros';
     } else {
         numericErrors.value[field] = '';
     }
 };
 
-// ============================================
-// VALIDACIÓN ALFANUMÉRICA
-// ============================================
 const validateAlphanumeric = (field) => {
     const value = form[field];
     if (!value || value.trim() === '') {
@@ -1306,15 +1296,12 @@ const validateAlphanumeric = (field) => {
         return;
     }
     if (!/^[a-zA-Z0-9]+$/.test(value)) {
-        alphanumericErrors.value[field] = 'Solo se permiten letras y números (sin espacios)';
+        alphanumericErrors.value[field] = 'Solo se permiten letras y numeros (sin espacios)';
     } else {
         alphanumericErrors.value[field] = '';
     }
 };
 
-// ============================================
-// VALIDACIÓN DE CÓDIGO POSTAL
-// ============================================
 const validateCodigoPostal = () => {
     const value = form.codigo_postal;
     if (!value || value.trim() === '') {
@@ -1322,17 +1309,14 @@ const validateCodigoPostal = () => {
         return;
     }
     if (!/^\d+$/.test(value)) {
-        codigoPostalError.value = 'Solo se permiten números';
+        codigoPostalError.value = 'Solo se permiten numeros';
     } else if (value.length !== 5) {
-        codigoPostalError.value = 'El código postal debe tener 5 dígitos';
+        codigoPostalError.value = 'El codigo postal debe tener 5 digitos';
     } else {
         codigoPostalError.value = '';
     }
 };
 
-// ============================================
-// VALIDACIÓN DE CURP
-// ============================================
 const validateCURP = () => {
     const curp = form.curp;
     if (!curp || curp.trim() === '') {
@@ -1350,15 +1334,12 @@ const validateCURP = () => {
         return;
     }
     if (!curpRegex.test(curpLimpio)) {
-        curpError.value = 'Formato de CURP inválido. Debe ser: 4 letras, 6 números, 6 letras, 2 dígitos. Ejemplo: GOPM900415MDFRRA00';
+        curpError.value = 'Formato de CURP invalido';
         return;
     }
     curpError.value = '';
 };
 
-// ============================================
-// VALIDACIÓN DE RFC
-// ============================================
 const validateRFC = () => {
     const rfc = form.rfc;
     if (!rfc) {
@@ -1368,16 +1349,13 @@ const validateRFC = () => {
     let rfcRegex;
     if (form.tipo_persona === 'FISICA') {
         rfcRegex = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
-        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona física inválido (4 letras, 6 números, 3 caracteres)';
+        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona fisica invalido';
     } else {
         rfcRegex = /^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/;
-        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona moral inválido (3 letras, 6 números, 3 caracteres)';
+        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona moral invalido';
     }
 };
 
-// ============================================
-// VALIDACIÓN DE EDAD
-// ============================================
 const validateEdad = () => {
     const fecha = form.Fecha_nacimiento;
     if (!fecha) {
@@ -1389,62 +1367,49 @@ const validateEdad = () => {
     let edad = hoy.getFullYear() - fechaNac.getFullYear();
     const mes = hoy.getMonth() - fechaNac.getMonth();
     if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) edad--;
-    edadError.value = edad < 18 ? `La persona debe ser mayor de edad (tiene ${edad} años)` : '';
+    edadError.value = edad < 18 ? `Debe ser mayor de edad (tiene ${edad} años)` : '';
 };
 
-// ============================================
-// VALIDACIÓN DE EMAIL
-// ============================================
 const validateEmail = () => {
     const email = form.email;
     if (!email) { emailError.value = ''; return; }
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    emailError.value = emailRegex.test(email) ? '' : 'Ingrese un correo electrónico válido (ejemplo@dominio.com)';
+    emailError.value = emailRegex.test(email) ? '' : 'Correo electronico invalido';
 };
 
-// ============================================
-// VALIDACIÓN DE EMAIL REPRESENTANTE
-// ============================================
 const validateRepresentanteEmail = () => {
     const email = form.representante_email;
     if (!email) { representanteEmailError.value = ''; return; }
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    representanteEmailError.value = emailRegex.test(email) ? '' : 'Ingrese un correo electrónico válido (ejemplo@dominio.com)';
+    representanteEmailError.value = emailRegex.test(email) ? '' : 'Correo electronico invalido';
 };
 
-// ============================================
-// VALIDACIÓN DE TELÉFONO
-// ============================================
 const validatePhone = (field) => {
     const phone = form[field];
     if (!phone || phone.trim() === '') {
         phoneErrors.value[field] = '';
         return;
     }
-    // Limpiar caracteres no numéricos
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned !== phone) {
         form[field] = cleaned;
         return;
     }
     if (phone.length < 10) {
-        phoneErrors.value[field] = 'El teléfono debe tener 10 dígitos';
+        phoneErrors.value[field] = 'El telefono debe tener 10 digitos';
     } else if (phone.length > 10) {
-        phoneErrors.value[field] = 'El teléfono no puede tener más de 10 dígitos';
+        phoneErrors.value[field] = 'El telefono no puede tener mas de 10 digitos';
     } else {
         phoneErrors.value[field] = '';
     }
 };
 
-// ============================================
-// LIMPIAR ERRORES
-// ============================================
 const clearError = (field) => {
     if (form.errors[field]) delete form.errors[field];
 };
 
 // ============================================
-// GENERACIÓN DE RFC
+// GENERACION DE RFC
 // ============================================
 const puedeGenerarRFC = computed(() => {
     return form.Nombre && form.Paterno && form.Fecha_nacimiento && !edadError.value;
@@ -1461,7 +1426,7 @@ const generarRFC = async () => {
         alertRef.value?.show({
             type: 'warning',
             title: 'Datos incompletos',
-            message: 'Complete el nombre, apellido paterno y fecha de nacimiento para generar el RFC automáticamente.',
+            message: 'Complete el nombre, apellido paterno y fecha de nacimiento para generar el RFC.',
             buttonText: 'Entendido'
         });
         return;
@@ -1496,11 +1461,7 @@ const generarRFC = async () => {
     }
 };
 
-// ============================================
-// EVENTOS
-// ============================================
 const onTipoChange = () => {
-    // Limpiar campos específicos del representante
     form.representante_nombre = '';
     form.representante_paterno = '';
     form.representante_materno = '';
@@ -1520,10 +1481,9 @@ const onTipoChange = () => {
 };
 
 // ============================================
-// COMPUTED PARA VALIDAR EL FORMULARIO COMPLETO
+// COMPUTED
 // ============================================
 const isFormValid = computed(() => {
-    // Campos requeridos
     const requiredFields = ['tipo_persona', 'Nombre', 'Paterno', 'Fecha_nacimiento', 'sexo', 'rfc'];
     const hasRequiredErrors = requiredFields.some(field => {
         const val = form[field];
@@ -1531,12 +1491,10 @@ const isFormValid = computed(() => {
     });
     if (hasRequiredErrors) return false;
     
-    // Validaciones de texto (solo letras)
     const textFields = ['Nombre', 'Paterno', 'Materno'];
     const hasTextErrors = textFields.some(field => textErrors.value[field]);
     if (hasTextErrors) return false;
     
-    // Errores de validación
     if (emailError.value) return false;
     if (rfcError.value) return false;
     if (curpError.value) return false;
@@ -1544,26 +1502,20 @@ const isFormValid = computed(() => {
     if (codigoPostalError.value) return false;
     if (representanteEmailError.value) return false;
     
-    // Errores de teléfono
     if (phoneErrors.value.telefono_particular) return false;
     if (phoneErrors.value.telefono_trabajo) return false;
     if (phoneErrors.value.representante_telefono_particular) return false;
     if (phoneErrors.value.representante_telefono_trabajo) return false;
     
-    // Errores numéricos
     if (numericErrors.value.extension_trabajo) return false;
     if (numericErrors.value.representante_extension_trabajo) return false;
     
-    // Errores alfanuméricos
     if (alphanumericErrors.value.numero_exterior) return false;
     if (alphanumericErrors.value.numero_interior) return false;
     
     return true;
 });
 
-// ============================================
-// COMPUTED PARA EL PROGRESS Y ESTADO
-// ============================================
 const hasErrors = computed(() => {
     let errorCount = Object.keys(form.errors).length;
     if (emailError.value) errorCount++;
@@ -1622,7 +1574,7 @@ const statusClass = computed(() => {
 });
 
 // ============================================
-// WATCHERS PARA VALIDACIÓN EN TIEMPO REAL
+// WATCHERS
 // ============================================
 watch(() => form.email, () => {
     if (form.email) validateEmail();
@@ -1656,7 +1608,6 @@ watch(() => form.representante_email, () => {
 // SUBMIT
 // ============================================
 const submit = () => {
-    // Validar todos los campos
     if (form.email) validateEmail();
     if (form.rfc) validateRFC();
     if (form.curp) validateCURP();
@@ -1666,13 +1617,12 @@ const submit = () => {
     if (form.codigo_postal) validateCodigoPostal();
     if (form.representante_email) validateRepresentanteEmail();
     
-    // Validar campos de texto
     ['Nombre', 'Paterno', 'Materno'].forEach(field => validateText(field));
     
     if (!isFormValid.value) {
         alertRef.value?.show({
             type: 'error',
-            title: 'Error de validación',
+            title: 'Error de validacion',
             message: 'Por favor, corrija los errores en el formulario antes de continuar.',
             buttonText: 'Entendido'
         });
@@ -1696,14 +1646,14 @@ const submit = () => {
                 alertRef.value?.show({
                     type: 'error',
                     title: 'RFC duplicado',
-                    message: 'El RFC que ingresaste ya está registrado en otra persona. Por favor, verifica el RFC.',
+                    message: 'El RFC que ingresaste ya esta registrado en otra persona.',
                     buttonText: 'Entendido'
                 });
             } else {
                 alertRef.value?.show({
                     type: 'error',
                     title: 'Error al crear',
-                    message: 'Ocurrió un error al registrar la persona. Verifique los datos e intente nuevamente.',
+                    message: 'Ocurrio un error al registrar la persona.',
                     buttonText: 'Intentar de nuevo'
                 });
             }
@@ -1712,9 +1662,7 @@ const submit = () => {
 };
 </script>
 
-
 <style scoped>
-/* ===== TODOS LOS ESTILOS DE CREATE ===== */
 .header-wrapper {
     display: flex;
     align-items: center;
@@ -1888,16 +1836,6 @@ const submit = () => {
     margin: 0;
 }
 
-.badge-required {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
 .badge-optional {
     background: #f3f4f6;
     color: #6b7280;
@@ -1922,6 +1860,13 @@ const submit = () => {
 
 .form-group.full-width {
     grid-column: 1 / -1;
+}
+
+.two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
 }
 
 .form-label {
@@ -1962,6 +1907,7 @@ const submit = () => {
 .radio-card-mini {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
     background: white;
@@ -1984,24 +1930,13 @@ const submit = () => {
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
 }
 
-.radio-emoji {
-    font-size: 1.8rem;
-    flex-shrink: 0;
-}
-
-.radio-title-mini {
+.radio-label {
     font-weight: 600;
     color: #111827;
     font-size: 0.9rem;
 }
 
-.radio-desc-mini {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
 .radio-check-mini {
-    margin-left: auto;
     animation: popIn 0.3s ease;
 }
 
@@ -2063,7 +1998,6 @@ const submit = () => {
 
 .form-input.date-input {
     padding-right: 40px;
-    text-transform: none;
 }
 
 .form-textarea {
@@ -2090,14 +2024,6 @@ const submit = () => {
     border-color: #9ca3af;
 }
 
-.form-textarea.error {
-    border-color: #ef4444;
-}
-
-.form-textarea.error:focus {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-}
-
 .input-icon {
     position: absolute;
     right: 12px;
@@ -2117,6 +2043,57 @@ const submit = () => {
     height: 18px;
 }
 
+.select-wrapper {
+    position: relative;
+}
+
+.form-select {
+    width: 100%;
+    padding: 10px 40px 10px 14px;
+    font-size: 0.9rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: white;
+    color: #1f2937;
+    transition: all 0.3s ease;
+    outline: none;
+    height: 44px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.form-select:hover:not(:focus) {
+    border-color: #9ca3af;
+}
+
+.form-select.error {
+    border-color: #ef4444;
+}
+
+.form-select.error:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.select-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+    transition: color 0.3s ease;
+}
+
+.select-wrapper:focus-within .select-icon {
+    color: #667eea;
+}
+
 .error-message {
     font-size: 0.75rem;
     color: #ef4444;
@@ -2129,24 +2106,6 @@ const submit = () => {
 .error-icon {
     width: 16px;
     height: 16px;
-    flex-shrink: 0;
-}
-
-.input-helper {
-    margin-top: 4px;
-}
-
-.helper-text {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.helper-icon {
-    width: 14px;
-    height: 14px;
     flex-shrink: 0;
 }
 
@@ -2308,6 +2267,10 @@ const submit = () => {
     .form-group.full-width {
         grid-column: 1;
     }
+    .two-columns {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
     .radio-group-horizontal {
         grid-template-columns: 1fr;
     }
@@ -2382,11 +2345,8 @@ const submit = () => {
         width: 16px;
         height: 16px;
     }
-    .radio-emoji {
-        font-size: 1.5rem;
-    }
-    .radio-title-mini {
-        font-size: 0.8rem;
+    .radio-label {
+        font-size: 0.85rem;
     }
     .form-input {
         padding-right: 90px;

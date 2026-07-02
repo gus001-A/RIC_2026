@@ -26,6 +26,12 @@
                         <span class="status-badge" :class="getEstatusClass(movimiento.estatus)">
                             {{ movimiento.estatus_texto || movimiento.estatus || '—' }}
                         </span>
+                        <span class="capturista-info" v-if="movimiento.usuario_nombre">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            Capturó: {{ movimiento.usuario_nombre }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -55,13 +61,11 @@
                             </span>
                         </div>
 
-                        <!-- 🔹 TRASPASO: Mostrar monto traspaso -->
                         <div class="summary-item" v-if="movimiento.es_traspaso">
                             <span class="summary-label">Monto Traspaso</span>
                             <span class="summary-value" style="color: #8b5cf6;">${{ formatNumber(movimiento.monto_traspaso) }}</span>
                         </div>
 
-                        <!-- 🔹 POR PAGAR: Mostrar saldo pendiente -->
                         <div class="summary-item" v-if="movimiento.es_por_pagar">
                             <span class="summary-label">Saldo Pendiente</span>
                             <span class="summary-value" :class="getSaldoPendienteClass(movimiento.saldo_pendiente)">
@@ -73,7 +77,6 @@
                             <span class="summary-value abonado-value">${{ formatNumber(movimiento.total_abonado) }}</span>
                         </div>
 
-                        <!-- 🔹 Referencia -->
                         <div class="summary-item" v-if="movimiento.referencia">
                             <span class="summary-label">Referencia</span>
                             <span class="summary-value">{{ movimiento.referencia }}</span>
@@ -83,7 +86,7 @@
 
                 <div class="detail-card">
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 1: INFORMACIÓN GENERAL (SIEMPRE VISIBLE) -->
+                    <!-- SECCIÓN 1: INFORMACIÓN GENERAL -->
                     <!-- ============================================================ -->
                     <div class="detail-section">
                         <div class="section-header">
@@ -142,7 +145,6 @@
                                 <span class="info-value">{{ movimiento.es_por_pagar ? 'Sí' : 'No' }}</span>
                             </div>
 
-                            <!-- 🔹 TRASPASO: Cuenta Origen y Destino -->
                             <div class="info-item" v-if="movimiento.es_traspaso">
                                 <span class="info-label">Cuenta Origen</span>
                                 <span class="info-value">{{ movimiento.cuenta_origen || '—' }}</span>
@@ -152,7 +154,6 @@
                                 <span class="info-value">{{ movimiento.cuenta_destino || '—' }}</span>
                             </div>
 
-                            <!-- 🔹 INGRESO/EGRESO: Persona y Cuentas -->
                             <div class="info-item" v-if="movimiento.es_ingreso_egreso">
                                 <span class="info-label">Persona</span>
                                 <span class="info-value">{{ movimiento.persona || '—' }}</span>
@@ -190,7 +191,6 @@
                             <span v-if="movimiento.tiene_doble_iva" class="doble-iva-tag">📋 Doble IVA</span>
                         </div>
 
-                        <!-- 🔹 MONTO TOTAL -->
                         <div class="montos-grid">
                             <div class="monto-card total-card">
                                 <span class="monto-label">Monto Total</span>
@@ -199,7 +199,6 @@
                                 </span>
                             </div>
 
-                            <!-- 🔹 INGRESO/EGRESO: Base e IVA -->
                             <div class="monto-card" v-if="movimiento.es_ingreso_egreso">
                                 <span class="monto-label">Base Gravable</span>
                                 <span class="monto-value">${{ formatNumber(movimiento.monto_base) }}</span>
@@ -209,14 +208,12 @@
                                 <span class="monto-value">${{ formatNumber(movimiento.monto_iva) }}</span>
                             </div>
 
-                            <!-- 🔹 TRASPASO: Monto Traspaso -->
                             <div class="monto-card" v-if="movimiento.es_traspaso">
                                 <span class="monto-label">Monto Traspaso</span>
                                 <span class="monto-value" style="color: #8b5cf6;">${{ formatNumber(movimiento.monto_traspaso) }}</span>
                             </div>
                         </div>
 
-                        <!-- 🔹 DOBLE IVA (si existe) -->
                         <div v-if="movimiento.tiene_doble_iva" class="doble-iva-box">
                             <div class="doble-iva-header">
                                 <span class="doble-iva-title">📋 Desglose de Doble IVA</span>
@@ -255,7 +252,6 @@
                             </div>
                         </div>
 
-                        <!-- 🔹 IVA SIMPLE (si no tiene doble IVA) -->
                         <div v-else-if="movimiento.es_ingreso_egreso && movimiento.monto_iva != 0" class="iva-simple-box">
                             <div class="iva-simple-grid">
                                 <div class="iva-simple-item">
@@ -273,7 +269,6 @@
                             </div>
                         </div>
 
-                        <!-- 🔹 IVA CERO (si no tiene IVA) -->
                         <div v-else-if="movimiento.es_ingreso_egreso && movimiento.monto_iva == 0 && movimiento.monto_base != 0" class="iva-simple-box iva-cero-box">
                             <div class="iva-simple-grid">
                                 <div class="iva-simple-item">
@@ -490,7 +485,7 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- BOTONES DE ACCIÓN -->
+                    <!-- BOTONES DE ACCIÓN (CORREGIDOS) -->
                     <!-- ============================================================ -->
                     <div class="action-footer no-print">
                         <div class="action-left">
@@ -500,8 +495,23 @@
                                     | Actualizado: {{ formatFechaHora(movimiento.fecha_actualizacion) }}
                                 </span>
                             </span>
+                            <span v-if="movimiento.usuario_revisor" class="footer-info revisor-info">
+                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Revisó: {{ movimiento.usuario_revisor }}
+                                <span v-if="movimiento.fecha_revision">({{ formatFechaHora(movimiento.fecha_revision) }})</span>
+                            </span>
+                            <span v-if="movimiento.usuario_autorizador" class="footer-info autorizador-info">
+                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Autorizó: {{ movimiento.usuario_autorizador }}
+                                <span v-if="movimiento.fecha_autorizacion">({{ formatFechaHora(movimiento.fecha_autorizacion) }})</span>
+                            </span>
                         </div>
                         <div class="action-right">
+                            <!-- 📄 PDF - TODOS LOS USUARIOS PUEDEN IMPRIMIR -->
                             <button 
                                 class="btn-action btn-pdf"
                                 @click="accionImprimir"
@@ -512,6 +522,7 @@
                                 PDF
                             </button>
 
+                            <!-- ✅ REVISAR - SOLO ADMINISTRADOR Y SUPER USUARIO -->
                             <button 
                                 v-if="permisos?.puede_revisar && movimiento.estatus === 'CAPTURADO'"
                                 class="btn-action btn-revisar"
@@ -524,6 +535,7 @@
                                 Revisar
                             </button>
 
+                            <!-- ✅ AUTORIZAR - SOLO AUDITOR Y SUPER USUARIO -->
                             <button 
                                 v-if="permisos?.puede_autorizar && movimiento.estatus === 'REVISADO'"
                                 class="btn-action btn-autorizar"
@@ -535,8 +547,9 @@
                                 Autorizar
                             </button>
 
+                            <!-- ❌ CERRAR - TODOS LOS USUARIOS EXCEPTO AUDITOR -->
                             <button 
-                                v-if="permisos?.puede_editar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'"
+                                v-if="permisos?.puede_cerrar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'"
                                 class="btn-action btn-cerrar"
                                 @click="accionCerrar"
                             >
@@ -546,8 +559,9 @@
                                 Cerrar
                             </button>
 
+                            <!-- 🔄 REABRIR - SOLO ADMINISTRADOR Y SUPER USUARIO -->
                             <button 
-                                v-if="permisos?.puede_editar && movimiento.estatus === 'CERRADO'"
+                                v-if="permisos?.puede_reabrir && movimiento.estatus === 'CERRADO'"
                                 class="btn-action btn-reabrir"
                                 @click="accionReabrir"
                             >
@@ -557,8 +571,9 @@
                                 Reabrir
                             </button>
 
+                            <!-- ✏️ EDITAR - CONDICIONES ESPECIALES -->
                             <Link 
-                                v-if="permisos?.puede_editar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'" 
+                                v-if="permisos?.puede_editar && puedeEditar()" 
                                 :href="route('movimientos.edit', movimiento.id)" 
                                 class="btn-action btn-editar"
                             >
@@ -568,8 +583,9 @@
                                 Editar
                             </Link>
 
+                            <!-- 🗑️ ELIMINAR - SOLO SUPER USUARIO -->
                             <button 
-                                v-if="permisos?.puede_eliminar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'" 
+                                v-if="permisos?.puede_eliminar" 
                                 class="btn-action btn-eliminar"
                                 @click="accionEliminar"
                             >
@@ -579,6 +595,7 @@
                                 Eliminar
                             </button>
 
+                            <!-- 🔙 REGRESAR - TODOS LOS USUARIOS -->
                             <Link 
                                 :href="route('movimientos.index')" 
                                 class="btn-action btn-regresar"
@@ -612,6 +629,9 @@ import axios from 'axios';
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
 
+// ============================================
+// PROPS
+// ============================================
 const props = defineProps({
     movimiento: {
         type: Object,
@@ -635,12 +655,26 @@ const calcularTotalDobleIva = computed(() => {
     return cero + dieciseisBase + dieciseisIva;
 });
 
-const obtenerTipoIva = computed(() => {
-    if (props.movimiento.tiene_doble_iva) {
-        return 'Doble IVA (0% y 16%)';
+// ============================================
+// ✅ FUNCIÓN PARA DETERMINAR SI PUEDE EDITAR
+// ============================================
+const puedeEditar = () => {
+    const estatus = props.movimiento.estatus;
+    
+    // 🔹 SUPER USUARIO: puede editar siempre
+    if (permisos.value?.es_super_usuario) {
+        return true;
     }
-    return 'IVA Simple';
-});
+    
+    // 🔹 AUDITOR: nunca puede editar
+    if (permisos.value?.es_auditor) {
+        return false;
+    }
+    
+    // 🔹 CAPTURISTA Y ADMINISTRADOR: solo si NO está revisada, autorizada, liquidada o cerrada
+    const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO'];
+    return !estatusNoEditables.includes(estatus);
+};
 
 // ============================================
 // FORMATOS
@@ -760,7 +794,7 @@ const getPorcentajeIva = (id) => {
 };
 
 // ============================================
-// ACCIONES
+// MODAL / ALERTAS
 // ============================================
 const mostrarModal = (type, title, message) => {
     if (alertRef.value && alertRef.value.show) {
@@ -777,6 +811,9 @@ const mostrarModal = (type, title, message) => {
     }
 };
 
+// ============================================
+// ACCIONES
+// ============================================
 const verPdf = () => {
     if (props.movimiento.tiene_pdf_fiscal && props.movimiento.pdf_url) {
         window.open(props.movimiento.pdf_url, '_blank');
@@ -1115,6 +1152,7 @@ const accionEliminar = () => {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .status-badge {
@@ -1137,6 +1175,22 @@ const accionEliminar = () => {
 .status-badge.liquidado { background: #e0e7ff; color: #3730a3; }
 .status-badge.pendiente { background: #fef3c7; color: #92400e; }
 .status-badge.cerrado { background: #e5e7eb; color: #4b5563; }
+
+.capturista-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+}
+
+.w-4 { width: 16px; height: 16px; }
+.h-4 { width: 16px; height: 16px; }
 
 /* ========== PAGE CONTENT ========== */
 .page-content { padding: 1.5rem 0; }
@@ -1737,8 +1791,32 @@ const accionEliminar = () => {
     .action-footer { flex-direction: row; }
 }
 
-.action-left { display: flex; align-items: center; }
-.footer-info { font-size: 0.8rem; color: #94a3b8; }
+.action-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.footer-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.footer-info .inline { display: inline; }
+
+.revisor-info {
+    color: #3b82f6 !important;
+    font-weight: 600 !important;
+}
+
+.autorizador-info {
+    color: #10b981 !important;
+    font-weight: 600 !important;
+}
 
 .action-right {
     display: flex;
@@ -1801,7 +1879,7 @@ const accionEliminar = () => {
     .badge-categoria, .badge-abonos { margin-left: 0; width: 100%; text-align: center; }
     .docs-actions { margin-left: 0; width: 100%; justify-content: flex-start; }
     .action-footer { flex-direction: column; align-items: stretch; }
-    .action-left { justify-content: center; }
+    .action-left { justify-content: center; flex-wrap: wrap; }
     .action-right { justify-content: center; flex-wrap: wrap; }
     .btn-action { flex: 1; justify-content: center; min-width: 120px; }
     .section-header { flex-wrap: wrap; }

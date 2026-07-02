@@ -49,6 +49,16 @@ class PersonaController extends Controller
                 }
             }
 
+            // ✅ NUEVO: Filtro por empleado
+            if ($request->filled('empleado')) {
+                $empleado = $request->empleado;
+                if ($empleado === 'si') {
+                    $query->where('empleado', true);
+                } elseif ($empleado === 'no') {
+                    $query->where('empleado', false);
+                }
+            }
+
             // Filtro por ciudad
             if ($request->filled('ciudad')) {
                 $query->where('ciudad', $request->ciudad);
@@ -67,7 +77,7 @@ class PersonaController extends Controller
             $sortBy = $request->get('sort_by', 'id_persona');
             $sortOrder = $request->get('sort_order', 'desc');
             
-            $allowedSorts = ['id_persona', 'Nombre', 'Paterno', 'rfc', 'email', 'created_at'];
+            $allowedSorts = ['id_persona', 'Nombre', 'Paterno', 'rfc', 'email', 'created_at', 'empleado'];
             if (in_array($sortBy, $allowedSorts)) {
                 $query->orderBy($sortBy, $sortOrder);
             } else {
@@ -84,6 +94,8 @@ class PersonaController extends Controller
                 'morales' => Persona::where('tipo_persona', 'MORAL')->count(),
                 'activas' => Persona::where('activo', true)->count(),
                 'inactivas' => Persona::where('activo', false)->count(),
+                'empleados' => Persona::where('empleado', true)->count(), // ✅ NUEVO
+                'no_empleados' => Persona::where('empleado', false)->count(), // ✅ NUEVO
             ];
 
             // ✅ RECOPILAR FLASH MESSAGES
@@ -98,14 +110,14 @@ class PersonaController extends Controller
             return Inertia::render('Personas/Index', [
                 'personas' => $personas,
                 'stats' => $stats,
-                'filtros' => $request->only(['search', 'tipo_persona', 'estado', 'ciudad', 'representante']),
-                'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+                'filtros' => $request->only(['search', 'tipo_persona', 'estado', 'ciudad', 'representante', 'empleado']),
+                'flash' => $flash,
             ]);
 
         } catch (\Exception $e) {
             return Inertia::render('Personas/Index', [
                 'personas' => (object) ['data' => [], 'links' => [], 'total' => 0, 'from' => 0, 'to' => 0],
-                'stats' => ['total' => 0, 'fisicas' => 0, 'morales' => 0, 'activas' => 0, 'inactivas' => 0],
+                'stats' => ['total' => 0, 'fisicas' => 0, 'morales' => 0, 'activas' => 0, 'inactivas' => 0, 'empleados' => 0, 'no_empleados' => 0],
                 'filtros' => [],
                 'flash' => session()->get('flash') ?? [],
                 'error' => 'Error al cargar las personas: ' . $e->getMessage()
@@ -134,7 +146,7 @@ class PersonaController extends Controller
         }
 
         return Inertia::render('Personas/Create', [
-            'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+            'flash' => $flash,
         ]);
     }
 
@@ -196,7 +208,7 @@ class PersonaController extends Controller
 
             return Inertia::render('Personas/Show', [
                 'persona' => $persona,
-                'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+                'flash' => $flash,
             ]);
 
         } catch (ModelNotFoundException $e) {
@@ -233,7 +245,7 @@ class PersonaController extends Controller
 
             return Inertia::render('Personas/Edit', [
                 'persona' => $persona,
-                'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+                'flash' => $flash,
             ]);
 
         } catch (ModelNotFoundException $e) {
@@ -381,6 +393,37 @@ class PersonaController extends Controller
             $persona->update(['activo' => $nuevoEstado]);
             
             $estadoTexto = $nuevoEstado ? 'activada' : 'desactivada';
+            
+            return redirect()->back()
+                ->with('success', "Persona {$estadoTexto} exitosamente");
+                
+        } catch (ModelNotFoundException $e) {
+            return redirect()->back()
+                ->with('error', 'Persona no encontrada');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Toggle employee status of the specified resource.
+     */
+    public function toggleEmpleado(Request $request, string $id)
+    {
+        // ✅ Verificar permiso para editar personas
+        if (!Gate::allows('crear-personas')) {
+            return redirect()->back()
+                ->with('error', 'No tienes permiso para cambiar el estado de empleado');
+        }
+
+        try {
+            $persona = Persona::findOrFail($id);
+            $nuevoEstado = !$persona->empleado;
+            $persona->update(['empleado' => $nuevoEstado]);
+            
+            $estadoTexto = $nuevoEstado ? 'marcado como empleado' : 'desmarcado como empleado';
             
             return redirect()->back()
                 ->with('success', "Persona {$estadoTexto} exitosamente");
@@ -656,6 +699,7 @@ class PersonaController extends Controller
             // Tipo de persona (solo para saber si es física o moral)
             'tipo_persona' => ['required', 'in:FISICA,MORAL'],
             'activo' => 'boolean',
+            'empleado' => 'boolean', // ✅ NUEVO: validación para empleado
             
             // MISMOS CAMPOS PARA AMBOS TIPOS
             'Nombre' => 'required|string|max:200',
@@ -728,6 +772,7 @@ class PersonaController extends Controller
         $data = [
             'tipo_persona' => $validated['tipo_persona'],
             'activo' => $validated['activo'] ?? true,
+            'empleado' => $validated['empleado'] ?? false, // ✅ NUEVO: campo empleado
             
             // MISMOS CAMPOS PARA AMBOS TIPOS
             'Nombre' => $validated['Nombre'] ?? null,

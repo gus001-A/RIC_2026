@@ -257,7 +257,7 @@
                                 </div>
                             </div>
 
-                            <!-- SECCIÓN 2: DESGLOSE DE IVA CON TARJETAS -->
+                            <!-- SECCIÓN 2: DESGLOSE DE IVA - AHORA SIN SUMAR AL TOTAL -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium green">
@@ -267,7 +267,7 @@
                                     </div>
                                     <div>
                                         <h3 class="section-title-text">Desglose de IVA</h3>
-                                        <p class="section-title-sub">Selecciona hasta 2 tipos de IVA para esta póliza</p>
+                                        <p class="section-title-sub">Selecciona hasta 2 tipos de IVA - El IVA NO se suma al total</p>
                                     </div>
                                 </div>
 
@@ -298,7 +298,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Tarjetas de IVA -->
+                                <!-- Tarjetas de IVA - AHORA SIN SUMAR AL TOTAL -->
                                 <div class="iva-cards-row" v-if="ivasSeleccionados.length > 0">
                                     <div 
                                         v-for="ivaId in ivasSeleccionados" 
@@ -327,7 +327,7 @@
                                                     type="number" 
                                                     step="0.01" 
                                                     v-model.number="form.ivas[ivaId].monto"
-                                                    @input="calcularTotales"
+                                                    @input="validarMontoIva(ivaId)"
                                                     class="form-input-premium card-input"
                                                     :class="{ 'error': form.errors[`iva_${ivaId}_monto`] }"
                                                     placeholder="0.00"
@@ -343,25 +343,27 @@
                                         </div>
                                     </div>
 
-                                    <!-- Tarjeta TOTAL -->
+                                    <!-- Tarjeta TOTAL - AHORA SOLO MUESTRA LA SUMA DE BASES SIN IVA -->
                                     <div class="iva-card card-total">
                                         <div class="card-header">
                                             <span class="card-badge badge-total">TOTAL</span>
                                             <span class="card-title">TOTAL FACTURA</span>
                                         </div>
                                         <div class="card-body total-body">
-                                            <span class="total-amount">${{ formatNumber(totalFacturaCalculado) }}</span>
+                                            <span class="total-amount">${{ formatNumber(totalBaseCalculado) }}</span>
+                                            <span class="total-sub">(Base sin IVA)</span>
                                         </div>
                                         <div class="card-footer total-footer">
                                             <span class="card-result">
                                                 IVA Total: ${{ formatNumber(totalIvaCalculado) }}
                                             </span>
+                                            <span class="total-con-iva-text">Total con IVA: ${{ formatNumber(totalBaseCalculado + totalIvaCalculado) }}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Desglose Automático -->
-                                <div v-if="totalFacturaCalculado > 0 && ivasSeleccionados.length > 0" class="desglose-box-premium">
+                                <!-- Desglose Automático - AHORA SIN SUMAR AL TOTAL -->
+                                <div v-if="totalBaseCalculado > 0 && ivasSeleccionados.length > 0" class="desglose-box-premium">
                                     <div class="desglose-header-premium">
                                         <span class="desglose-title-premium">Desglose Automático</span>
                                         <span class="desglose-subtitle-premium">Cálculo del sistema</span>
@@ -382,17 +384,25 @@
                                         <div class="desglose-item-premium">
                                             <span class="desglose-label-premium font-bold">Total Factura</span>
                                             <span class="desglose-value-premium font-bold" style="color: #10b981;">
-                                                ${{ formatNumber(totalFacturaCalculado) }}
+                                                ${{ formatNumber(totalBaseCalculado) }}
+                                            </span>
+                                        </div>
+                                        <div class="desglose-item-premium">
+                                            <span class="desglose-label-premium font-bold">Total con IVA</span>
+                                            <span class="desglose-value-premium font-bold" style="color: #7c3aed;">
+                                                ${{ formatNumber(totalBaseCalculado + totalIvaCalculado) }}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Saldo de fondeadora - SOLO PARA EGRESO -->
+                                <!-- Saldo de fondeadora - SOLO PARA EGRESO - AHORA USA TOTAL BASE SIN IVA -->
                                 <div v-if="mostrarSaldoFondeadora" class="saldo-box-premium" :class="saldoSuficiente ? 'saldo-ok-premium' : 'saldo-error-premium'">
                                     <span class="saldo-icon-premium">{{ saldoSuficiente ? '✓' : '✗' }}</span>
                                     <span class="saldo-label-premium">Saldo disponible:</span>
                                     <span class="saldo-value-premium">${{ formatNumber(cuentaFondeadoraSeleccionada?.saldo || 0) }}</span>
+                                    <span class="saldo-label-premium">Total base:</span>
+                                    <span class="saldo-value-premium">${{ formatNumber(totalBaseCalculado) }}</span>
                                     <span v-if="!saldoSuficiente" class="saldo-warning-premium">Fondos insuficientes</span>
                                 </div>
                             </div>
@@ -750,7 +760,7 @@
                                     </div>
                                 </div>
 
-                                <!-- MONTO Y DESGLOSE DE IVA PARA TRASPASO -->
+                                <!-- MONTO Y DESGLOSE DE IVA PARA TRASPASO - AHORA CON LÍMITE -->
                                 <div class="monto-transferir-premium">
                                     <div class="form-grid-premium">
                                         <div class="form-group-premium">
@@ -758,7 +768,7 @@
                                             <div class="input-wrapper-premium">
                                                 <span class="input-prefix-premium">$</span>
                                                 <input type="number" step="0.01" v-model.number="formTraspaso.monto"
-                                                       @input="clearErrorTraspaso('monto')"
+                                                       @input="validarMontosTraspaso"
                                                        class="form-input-premium"
                                                        :class="{ 'error': formTraspaso.errors.monto }"
                                                        placeholder="0.00"
@@ -768,6 +778,10 @@
                                             <div v-if="formTraspaso.monto > 0 && formTraspaso.id_cuenta_origen && saldoCuentaOrigen < formTraspaso.monto" class="saldo-insuficiente-premium">
                                                 <span class="saldo-insuficiente-icon">⚠️</span>
                                                 <span class="saldo-insuficiente-text">Saldo insuficiente en la cuenta origen. Disponible: ${{ formatNumber(saldoCuentaOrigen) }}</span>
+                                            </div>
+                                            <!-- ALERTA DE MONTO DE IVA > MONTO A TRANSFERIR -->
+                                            <div v-if="totalBaseTraspasoCalculado > 0 && formTraspaso.monto > 0 && totalBaseTraspasoCalculado > formTraspaso.monto" class="error-message-premium" style="background: #fef2f2; padding: 8px 12px; border-radius: 8px; margin-top: 6px;">
+                                                ⚠️ La suma de los montos de IVA ({{ formatNumber(totalBaseTraspasoCalculado) }}) supera el monto a transferir ({{ formatNumber(formTraspaso.monto) }})
                                             </div>
                                         </div>
                                     </div>
@@ -799,7 +813,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Tarjetas de IVA para Traspaso -->
+                                    <!-- Tarjetas de IVA para Traspaso - AHORA CON VALIDACIÓN DE LÍMITE -->
                                     <div class="iva-cards-row" v-if="ivasSeleccionadosTraspaso.length > 0" style="margin-top: 16px;">
                                         <div 
                                             v-for="ivaId in ivasSeleccionadosTraspaso" 
@@ -828,7 +842,7 @@
                                                         type="number" 
                                                         step="0.01" 
                                                         v-model.number="formTraspaso.ivas[ivaId].monto"
-                                                        @input="calcularTotalesTraspaso"
+                                                        @input="validarMontosTraspaso"
                                                         class="form-input-premium card-input"
                                                         :class="{ 'error': formTraspaso.errors[`iva_${ivaId}_monto`] }"
                                                         placeholder="0.00"
@@ -844,25 +858,27 @@
                                             </div>
                                         </div>
 
-                                        <!-- Tarjeta TOTAL para Traspaso -->
+                                        <!-- Tarjeta TOTAL para Traspaso - SOLO MUESTRA LA SUMA DE BASES SIN IVA -->
                                         <div class="iva-card card-total">
                                             <div class="card-header">
                                                 <span class="card-badge badge-total">TOTAL</span>
                                                 <span class="card-title">TOTAL TRASPASO</span>
                                             </div>
                                             <div class="card-body total-body">
-                                                <span class="total-amount">${{ formatNumber(totalFacturaTraspasoCalculado) }}</span>
+                                                <span class="total-amount">${{ formatNumber(totalBaseTraspasoCalculado) }}</span>
+                                                <span class="total-sub">(Base sin IVA)</span>
                                             </div>
                                             <div class="card-footer total-footer">
                                                 <span class="card-result">
                                                     IVA Total: ${{ formatNumber(totalIvaTraspasoCalculado) }}
                                                 </span>
+                                                <span class="total-con-iva-text">Total con IVA: ${{ formatNumber(totalBaseTraspasoCalculado + totalIvaTraspasoCalculado) }}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Desglose Automático para Traspaso -->
-                                    <div v-if="totalFacturaTraspasoCalculado > 0 && ivasSeleccionadosTraspaso.length > 0" class="desglose-box-premium">
+                                    <div v-if="totalBaseTraspasoCalculado > 0 && ivasSeleccionadosTraspaso.length > 0" class="desglose-box-premium">
                                         <div class="desglose-header-premium">
                                             <span class="desglose-title-premium">Desglose Automático</span>
                                             <span class="desglose-subtitle-premium">Cálculo del sistema</span>
@@ -883,7 +899,13 @@
                                             <div class="desglose-item-premium">
                                                 <span class="desglose-label-premium font-bold">Total Traspaso</span>
                                                 <span class="desglose-value-premium font-bold" style="color: #10b981;">
-                                                    ${{ formatNumber(totalFacturaTraspasoCalculado) }}
+                                                    ${{ formatNumber(totalBaseTraspasoCalculado) }}
+                                                </span>
+                                            </div>
+                                            <div class="desglose-item-premium">
+                                                <span class="desglose-label-premium font-bold">Total con IVA</span>
+                                                <span class="desglose-value-premium font-bold" style="color: #7c3aed;">
+                                                    ${{ formatNumber(totalBaseTraspasoCalculado + totalIvaTraspasoCalculado) }}
                                                 </span>
                                             </div>
                                         </div>
@@ -1048,14 +1070,18 @@
                             <svg class="info-icon-premium" fill="none" stroke="#667eea" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <span>Los campos con <strong class="text-danger-premium">*</strong> son obligatorios</span>
+                            <span>Los campos con <strong class="text-danger-premium">*</strong> son obligatorios. El IVA <strong>NO</strong> se suma al total de la factura.</span>
                         </div>
 
                         <div class="form-actions-premium">
                             <div class="actions-left-premium">
                                 <div class="total-card-premium">
-                                    <span class="total-label-premium">Total</span>
-                                    <span class="total-value-premium">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalFacturaCalculado : totalFacturaTraspasoCalculado) }}</span>
+                                    <span class="total-label-premium">Total Base</span>
+                                    <span class="total-value-premium">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalBaseCalculado : totalBaseTraspasoCalculado) }}</span>
+                                </div>
+                                <div class="total-card-premium" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #c4b5fd;">
+                                    <span class="total-label-premium">Total con IVA</span>
+                                    <span class="total-value-premium" style="color: #7c3aed;">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? (totalBaseCalculado + totalIvaCalculado) : (totalBaseTraspasoCalculado + totalIvaTraspasoCalculado)) }}</span>
                                 </div>
                             </div>
                             <div class="actions-right-premium">
@@ -1224,12 +1250,12 @@ const mostrarSaldoFondeadora = computed(() => {
     return esEgreso.value && 
            form.id_cuenta_fondeadora && 
            cuentaFondeadoraSeleccionada.value && 
-           totalFacturaCalculado.value > 0;
+           totalBaseCalculado.value > 0;
 });
 
 const saldoSuficiente = computed(() => {
     if (!mostrarSaldoFondeadora.value) return true;
-    return (cuentaFondeadoraSeleccionada.value?.saldo || 0) >= totalFacturaCalculado.value;
+    return (cuentaFondeadoraSeleccionada.value?.saldo || 0) >= totalBaseCalculado.value;
 });
 
 const hasErrors = computed(() => Object.keys(form.errors).length > 0 || Object.keys(formTraspaso.errors).length > 0);
@@ -1260,7 +1286,18 @@ const statusClass = computed(() => {
     return 'status-progress';
 });
 
-// Cálculo de IVAs para INGRESO/EGRESO
+// ============================================
+// CÁLCULO DE IVA - AHORA SIN SUMAR AL TOTAL BASE
+// ============================================
+// INGRESO/EGRESO
+const totalBaseCalculado = computed(() => {
+    let base = 0;
+    ivasSeleccionados.value.forEach(ivaId => {
+        base += form.ivas[ivaId]?.monto || 0;
+    });
+    return Math.round(base * 100) / 100;
+});
+
 const totalIvaCalculado = computed(() => {
     let total = 0;
     ivasSeleccionados.value.forEach(ivaId => {
@@ -1273,15 +1310,15 @@ const totalIvaCalculado = computed(() => {
     return Math.round(total * 100) / 100;
 });
 
-const totalFacturaCalculado = computed(() => {
+// TRASPASO
+const totalBaseTraspasoCalculado = computed(() => {
     let base = 0;
-    ivasSeleccionados.value.forEach(ivaId => {
-        base += form.ivas[ivaId]?.monto || 0;
+    ivasSeleccionadosTraspaso.value.forEach(ivaId => {
+        base += formTraspaso.ivas[ivaId]?.monto || 0;
     });
-    return Math.round((base + totalIvaCalculado.value) * 100) / 100;
+    return Math.round(base * 100) / 100;
 });
 
-// Cálculo de IVAs para TRASPASO
 const totalIvaTraspasoCalculado = computed(() => {
     let total = 0;
     ivasSeleccionadosTraspaso.value.forEach(ivaId => {
@@ -1294,17 +1331,7 @@ const totalIvaTraspasoCalculado = computed(() => {
     return Math.round(total * 100) / 100;
 });
 
-const totalFacturaTraspasoCalculado = computed(() => {
-    let base = 0;
-    ivasSeleccionadosTraspaso.value.forEach(ivaId => {
-        base += formTraspaso.ivas[ivaId]?.monto || 0;
-    });
-    return Math.round((base + totalIvaTraspasoCalculado.value) * 100) / 100;
-});
-
-const calcularSumaTotal = totalFacturaCalculado;
-const calcularSumaTotalTraspaso = totalFacturaTraspasoCalculado;
-
+// VALIDACIONES DE TRASPASO
 const saldoOrigenColor = computed(() => {
     if (formTraspaso.monto <= 0 || !formTraspaso.id_cuenta_origen) return '';
     return saldoCuentaOrigen.value >= formTraspaso.monto ? 'text-success' : 'text-danger';
@@ -1323,16 +1350,24 @@ const porcentajeSaldoOrigen = computed(() => {
     return (formTraspaso.monto / saldoCuentaOrigen.value) * 100;
 });
 
+// VALIDACIÓN DE MONTO DE TRASPASO - LA SUMA DE IVAs NO DEBE SUPERAR EL MONTO
+const isTraspasoIvaValid = computed(() => {
+    if (formTraspaso.monto <= 0) return true;
+    if (ivasSeleccionadosTraspaso.value.length === 0) return true;
+    const sumaMontos = totalBaseTraspasoCalculado.value;
+    return sumaMontos <= formTraspaso.monto;
+});
+
 const isFormValidGeneral = computed(() => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
         if (!form.tipo_poliza) return false;
         if (!form.id_cuenta_fondeadora) return false;
-        if (totalFacturaCalculado.value <= 0) return false;
+        if (totalBaseCalculado.value <= 0) return false;
         if (ivasSeleccionados.value.length === 0) return false;
         if (form.es_por_pagar && !form.fecha_vencimiento) return false;
         
         if (esEgreso.value && cuentaFondeadoraSeleccionada.value) {
-            if ((cuentaFondeadoraSeleccionada.value.saldo || 0) < totalFacturaCalculado.value) {
+            if ((cuentaFondeadoraSeleccionada.value.saldo || 0) < totalBaseCalculado.value) {
                 return false;
             }
         }
@@ -1346,6 +1381,7 @@ const isFormValidGeneral = computed(() => {
         if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) return false;
         if (ivasSeleccionadosTraspaso.value.length === 0) return false;
         if (saldoCuentaOrigen.value < formTraspaso.monto) return false;
+        if (!isTraspasoIvaValid.value) return false;
         if (Object.keys(formTraspaso.errors).length > 0) return false;
         return true;
     }
@@ -1359,8 +1395,8 @@ const tituloPagina = computed(() => {
 
 const subtituloPagina = computed(() => {
     return tipoPolizaSeleccionado.value === 'INGRESO_EGRESO'
-        ? 'Registra una póliza de ingreso o egreso con selección de IVA'
-        : 'Registra un traspaso entre cuentas con selección de IVA';
+        ? 'Registra una póliza de ingreso o egreso con selección de IVA (IVA no se suma al total)'
+        : 'Registra un traspaso entre cuentas con selección de IVA (IVA no se suma al total)';
 });
 
 // ============================================
@@ -1463,12 +1499,25 @@ const calcularIvaMontoTraspaso = (ivaId) => {
     return Math.round(monto * (iva.porcentaje / 100) * 100) / 100;
 };
 
-const calcularTotales = () => {
-    // Solo recalcula los totales, los montos ya están en form.ivas
+const validarMontoIva = (ivaId) => {
+    // Solo valida que no sea negativo
+    if (form.ivas[ivaId]?.monto < 0) {
+        form.ivas[ivaId].monto = 0;
+    }
 };
 
-const calcularTotalesTraspaso = () => {
-    // Solo recalcula los totales, los montos ya están en formTraspaso.ivas
+const validarMontosTraspaso = () => {
+    // Validar que los montos de IVA no sean negativos
+    ivasSeleccionadosTraspaso.value.forEach(ivaId => {
+        if (formTraspaso.ivas[ivaId]?.monto < 0) {
+            formTraspaso.ivas[ivaId].monto = 0;
+        }
+    });
+    
+    // Validar que el monto a transferir no sea negativo
+    if (formTraspaso.monto < 0) {
+        formTraspaso.monto = 0;
+    }
 };
 
 // ============================================
@@ -1769,11 +1818,11 @@ const submit = () => {
         }
 
         if (esEgreso.value && cuentaFondeadoraSeleccionada.value) {
-            if ((cuentaFondeadoraSeleccionada.value.saldo || 0) < totalFacturaCalculado.value) {
+            if ((cuentaFondeadoraSeleccionada.value.saldo || 0) < totalBaseCalculado.value) {
                 alertRef.value?.show({ 
                     type: 'error', 
                     title: 'Saldo insuficiente', 
-                    message: `El saldo de la cuenta fondeadora ($${formatNumber(cuentaFondeadoraSeleccionada.value.saldo)}) es insuficiente para cubrir el monto de la póliza ($${formatNumber(totalFacturaCalculado.value)})`,
+                    message: `El saldo de la cuenta fondeadora ($${formatNumber(cuentaFondeadoraSeleccionada.value.saldo)}) es insuficiente para cubrir el monto de la póliza ($${formatNumber(totalBaseCalculado.value)})`,
                     buttonText: 'Entendido' 
                 });
                 processing.value = false;
@@ -1791,13 +1840,13 @@ const submit = () => {
             processing.value = false;
             return;
         }
-        if (totalFacturaCalculado.value <= 0) {
+        if (totalBaseCalculado.value <= 0) {
             alertRef.value?.show({ type: 'error', title: 'Error', message: 'El total debe ser mayor a 0', buttonText: 'Entendido' });
             processing.value = false;
             return;
         }
 
-        // ✅ Construir el array de IVAs para enviar
+        // Construir el array de IVAs para enviar
         const ivasArray = ivasSeleccionados.value.map(ivaId => {
             return {
                 id: ivaId,
@@ -1829,8 +1878,10 @@ const submit = () => {
         if (archivos.value.pdf) formData.append('pdf_file', archivos.value.pdf);
         if (archivos.value.xml) formData.append('xml_file', archivos.value.xml);
 
-        // Total calculado
-        formData.append('total_factura', totalFacturaCalculado.value);
+        // Total base SIN IVA
+        formData.append('total_factura', totalBaseCalculado.value);
+        formData.append('total_iva', totalIvaCalculado.value);
+        formData.append('total_con_iva', totalBaseCalculado.value + totalIvaCalculado.value);
 
         axios.post(route('movimientos.store'), formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -1895,6 +1946,18 @@ const submit = () => {
             return;
         }
 
+        // Validar que la suma de IVAs no supere el monto a transferir
+        if (totalBaseTraspasoCalculado.value > formTraspaso.monto) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Error', 
+                message: `La suma de los montos de IVA ($${formatNumber(totalBaseTraspasoCalculado.value)}) supera el monto a transferir ($${formatNumber(formTraspaso.monto)})`,
+                buttonText: 'Entendido' 
+            });
+            processing.value = false;
+            return;
+        }
+
         if (!formTraspaso.id_cuenta_origen) {
             alertRef.value?.show({ type: 'error', title: 'Error', message: 'Selecciona una cuenta origen', buttonText: 'Entendido' });
             processing.value = false;
@@ -1926,7 +1989,7 @@ const submit = () => {
             return;
         }
 
-        // ✅ Construir el array de IVAs para traspaso
+        // Construir el array de IVAs para traspaso
         const ivasArray = ivasSeleccionadosTraspaso.value.map(ivaId => {
             return {
                 id: ivaId,
@@ -1958,7 +2021,10 @@ const submit = () => {
         if (archivosTraspaso.value.xml) traspasoFormData.append('xml_file', archivosTraspaso.value.xml);
 
         // Totales calculados
-        traspasoFormData.append('total_factura', totalFacturaTraspasoCalculado.value);
+        traspasoFormData.append('total_factura', totalBaseTraspasoCalculado.value);
+        traspasoFormData.append('total_iva', totalIvaTraspasoCalculado.value);
+        traspasoFormData.append('total_con_iva', totalBaseTraspasoCalculado.value + totalIvaTraspasoCalculado.value);
+        traspasoFormData.append('monto_transferir', formTraspaso.monto);
 
         axios.post(route('movimientos.traspaso.store'), traspasoFormData, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -2853,6 +2919,8 @@ onMounted(() => {
 .total-body {
     justify-content: center;
     padding: 16px 20px;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .total-amount {
@@ -2860,6 +2928,12 @@ onMounted(() => {
     font-weight: 800;
     color: #059669;
     letter-spacing: -0.5px;
+}
+
+.total-sub {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-weight: 500;
 }
 
 .card-footer {
@@ -2883,6 +2957,14 @@ onMounted(() => {
 .total-footer .card-result {
     color: #065f46;
     font-weight: 700;
+}
+
+.total-con-iva-text {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #7c3aed;
+    margin-top: 2px;
 }
 
 /* ========== DESGLOSE ========== */
@@ -2923,7 +3005,7 @@ onMounted(() => {
 
 .desglose-grid-premium {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
 }
 
@@ -3690,7 +3772,7 @@ onMounted(() => {
     }
 
     .desglose-grid-premium {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .desglose-item-premium:not(:last-child) {
