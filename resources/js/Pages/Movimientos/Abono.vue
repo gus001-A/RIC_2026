@@ -15,9 +15,9 @@
                 </div>
                 <div class="header-right">
                     <div class="status-badge" :class="statusClass">
-                        <span v-if="hasErrors">⚠ {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✓ Completado</span>
-                        <span v-else>📝 {{ Math.round(progressPercentage) }}%</span>
+                        <span v-if="hasErrors">Error - {{ errorCount }} campo(s) pendiente(s)</span>
+                        <span v-else-if="isComplete">Completado</span>
+                        <span v-else>{{ Math.round(progressPercentage) }}%</span>
                     </div>
                 </div>
             </div>
@@ -37,14 +37,14 @@
                         </div>
                         <div class="info-leyenda-content">
                             <span class="info-leyenda-texto">
-                                Este es el <strong>#{{ numeroAbono }}</strong> abono de la factura <strong>{{ movimiento.referencia || 'S/N' }}</strong>. 
-                                Ingrese únicamente el abono que va a realizar.
+                                Abono <strong>#{{ numeroAbono }}</strong> para la factura <strong>{{ movimiento.referencia || 'S/N' }}</strong>. 
+                                Ingrese el monto del abono a registrar.
                             </span>
                         </div>
                     </div>
 
                     <!-- ============================================ -->
-                    <!-- DATOS DE LA PÓLIZA (SOLO LECTURA) -->
+                    <!-- DATOS DE LA PÓLIZA -->
                     <!-- ============================================ -->
                     <div class="section-block-premium">
                         <div class="section-header-premium">
@@ -54,14 +54,14 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="section-title-text">Información de la Póliza</h3>
-                                <p class="section-title-sub">Datos generales de la póliza (no modificables)</p>
+                                <h3 class="section-title-text">Informacion de la Poliza</h3>
+                                <p class="section-title-sub">Datos generales de la poliza (no modificables)</p>
                             </div>
                         </div>
 
                         <div class="form-grid-premium readonly-grid">
                             <div class="form-group-premium">
-                                <label class="form-label-premium">Tipo de Póliza</label>
+                                <label class="form-label-premium">Tipo de Poliza</label>
                                 <div class="readonly-value">
                                     <span class="readonly-icon">
                                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@
 
                             <div class="form-group-premium">
                                 <label class="form-label-premium">Fecha Vencimiento</label>
-                                <div class="readonly-value">
+                                <div class="readonly-value" :class="diasRestantesClass">
                                     <span class="readonly-icon">
                                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -121,14 +121,14 @@
                             </div>
 
                             <div class="form-group-premium">
-                                <label class="form-label-premium">Días Restantes</label>
+                                <label class="form-label-premium">Dias Restantes</label>
                                 <div class="readonly-value" :class="diasRestantesClass">
                                     <span class="readonly-icon">
                                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </span>
-                                    <span>{{ diasRestantes > 0 ? diasRestantes + ' días' : diasRestantes === 0 ? 'Hoy vence' : 'Vencido' }}</span>
+                                    <span>{{ diasRestantes > 0 ? diasRestantes + ' dias' : diasRestantes === 0 ? 'Hoy vence' : 'Vencido' }}</span>
                                 </div>
                             </div>
 
@@ -158,7 +158,7 @@
                             </div>
                             <div>
                                 <h3 class="section-title-text">Resumen Financiero</h3>
-                                <p class="section-title-sub">Estado actual de la póliza</p>
+                                <p class="section-title-sub">Estado actual de la poliza</p>
                             </div>
                         </div>
 
@@ -175,6 +175,10 @@
                                 <span class="resumen-label-premium">Saldo Pendiente</span>
                                 <span class="resumen-value-premium pendiente">${{ formatNumber(movimiento.saldo_pendiente) }}</span>
                             </div>
+                            <div class="resumen-item-premium">
+                                <span class="resumen-label-premium">Numero de Abonos</span>
+                                <span class="resumen-value-premium total">{{ movimiento.abonos?.length || 0 }}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -190,12 +194,11 @@
                             </div>
                             <div>
                                 <h3 class="section-title-text">Nuevo Abono</h3>
-                                <p class="section-title-sub">Registra el abono a esta póliza</p>
+                                <p class="section-title-sub">Registre el abono a esta poliza</p>
                             </div>
                         </div>
 
                         <form @submit.prevent="submitAbono" id="abonoForm" novalidate>
-                            <!-- Monto del Abono -->
                             <div class="form-grid-premium">
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">Monto del Abono <span class="required-star">*</span></label>
@@ -216,11 +219,11 @@
                                         </button>
                                     </div>
                                     <div v-if="abonoForm.errors.monto_abonado" class="error-message-premium">{{ abonoForm.errors.monto_abonado }}</div>
-                                    <div class="field-hint-premium">El monto máximo es ${{ formatNumber(movimiento.saldo_pendiente) }}</div>
+                                    <div class="field-hint-premium">Monto maximo: ${{ formatNumber(movimiento.saldo_pendiente) }}</div>
                                 </div>
 
                                 <div class="form-group-premium">
-                                    <label class="form-label-premium">Número de Abono</label>
+                                    <label class="form-label-premium">Numero de Abono</label>
                                     <div class="readonly-value">
                                         <span class="readonly-icon">#</span>
                                         <span>{{ numeroAbono }}</span>
@@ -235,9 +238,9 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                 </span>
-                                <span class="nuevo-saldo-label">Nuevo saldo pendiente después del abono:</span>
+                                <span class="nuevo-saldo-label">Nuevo saldo pendiente:</span>
                                 <span class="nuevo-saldo-value">${{ formatNumber(nuevoSaldoPendiente) }}</span>
-                                <span v-if="nuevoSaldoPendiente === 0" class="nuevo-saldo-liquidado">✓ Se liquidará la póliza</span>
+                                <span v-if="nuevoSaldoPendiente === 0" class="nuevo-saldo-liquidado">Poliza liquidada</span>
                             </div>
 
                             <!-- ============================================ -->
@@ -272,17 +275,16 @@
                                             <button type="button" 
                                                     @click="generarReferenciaAutomatica"
                                                     class="btn-generate-premium"
-                                                    title="Generar referencia automática">
+                                                    title="Generar referencia automatica">
                                                 <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                                 </svg>
                                             </button>
                                         </div>
                                         <div v-if="abonoForm.errors.referencia" class="error-message-premium">{{ abonoForm.errors.referencia }}</div>
-                                        <div class="field-hint-premium">La referencia se genera automáticamente al cargar</div>
+                                        <div class="field-hint-premium">Referencia unica para identificar este abono</div>
                                     </div>
 
-                                    <!-- ✅ CAMPO CUENTA DE FONDO - OCULTO (toma el valor de la póliza original) -->
                                     <div class="form-group-premium">
                                         <label class="form-label-premium">Cuenta de Fondo</label>
                                         <div class="readonly-value">
@@ -293,7 +295,6 @@
                                             </span>
                                             <span>{{ movimiento.cuenta_fondeadora || 'N/A' }}</span>
                                         </div>
-                                        <!-- ✅ CAMPO OCULTO QUE ENVÍA EL ID -->
                                         <input type="hidden" :value="movimiento.cuenta_fondeadora_id" />
                                         <input type="hidden" v-model="abonoForm.id_cuenta_fondeadora" />
                                     </div>
@@ -322,12 +323,12 @@
                             </div>
 
                             <!-- ============================================ -->
-                            <!-- DESGLOSE FISCAL DEL ABONO -->
+                            <!-- DESGLOSE FISCAL -->
                             <!-- ============================================ -->
                             <div v-if="movimiento.monto_base && movimiento.monto_iva" class="desglose-fiscal-box-premium">
                                 <div class="desglose-fiscal-header-premium">
                                     <span class="desglose-fiscal-title-premium">Desglose Fiscal del Abono</span>
-                                    <span class="desglose-fiscal-subtitle-premium">Este desglose se usará para efectos fiscales y contables</span>
+                                    <span class="desglose-fiscal-subtitle-premium">Este desglose se usara para efectos fiscales y contables</span>
                                 </div>
                                 <div class="desglose-fiscal-grid-premium">
                                     <div class="desglose-fiscal-item-premium">
@@ -344,7 +345,7 @@
                                     </div>
                                 </div>
                                 <div class="desglose-fiscal-footer-premium">
-                                    <span class="desglose-fiscal-leyenda-premium">El total del abono incluye IVA y es un número cerrado</span>
+                                    <span class="desglose-fiscal-leyenda-premium">El total del abono incluye IVA</span>
                                 </div>
                             </div>
 
@@ -383,16 +384,7 @@
                                         <svg v-else class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                         </svg>
-                                        Guardar Abono
-                                    </button>
-                                    <button type="button"
-                                            @click="liquidarPoliza"
-                                            :disabled="processing || !isFormValidLiquidar"
-                                            class="btn-premium btn-liquidar-premium">
-                                        <svg class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                        </svg>
-                                        Liquidar
+                                        Registrar Abono
                                     </button>
                                 </div>
                             </div>
@@ -439,7 +431,7 @@ const abonoForm = useForm({
     referencia: '',
     metodo_pago: 'TRANSFERENCIA',
     nota: '',
-    id_cuenta_fondeadora: props.movimiento.cuenta_fondeadora_id || '' // ✅ TOMA EL ID DE LA PÓLIZA ORIGINAL
+    id_cuenta_fondeadora: props.movimiento.cuenta_fondeadora_id || ''
 });
 
 // ============================================
@@ -519,7 +511,6 @@ const diasRestantesClass = computed(() => {
     return '';
 });
 
-// Validaciones
 const hasErrors = computed(() => Object.keys(abonoForm.errors).length > 0);
 const errorCount = computed(() => Object.keys(abonoForm.errors).length);
 
@@ -529,11 +520,6 @@ const isFormValid = computed(() => {
     if (!abonoForm.referencia || abonoForm.referencia.trim() === '') return false;
     if (hasErrors.value) return false;
     return true;
-});
-
-const isFormValidLiquidar = computed(() => {
-    if (!isFormValid.value) return false;
-    return Math.abs(abonoForm.monto_abonado - props.movimiento.saldo_pendiente) < 0.01;
 });
 
 const progressPercentage = computed(() => {
@@ -553,15 +539,15 @@ const statusClass = computed(() => {
 });
 
 const tituloPagina = computed(() => {
-    return `Pólizas Diferidas - ${numeroAbono.value}° Abono`;
+    return `Polizas Diferidas - ${numeroAbono.value}° Abono`;
 });
 
 const subtituloPagina = computed(() => {
-    return `Registro del abono #${numeroAbono.value} para la póliza ${props.movimiento.referencia || 'S/N'}`;
+    return `Registro del abono #${numeroAbono.value} para la poliza ${props.movimiento.referencia || 'S/N'}`;
 });
 
 // ============================================
-// MÉTODOS
+// METODOS
 // ============================================
 const clearError = (field) => {
     if (abonoForm.errors[field]) delete abonoForm.errors[field];
@@ -653,12 +639,11 @@ const submitAbono = () => {
         return;
     }
 
-    // ✅ VERIFICAR QUE TENGA CUENTA FONDEADORA
     if (!abonoForm.id_cuenta_fondeadora) {
         alertRef.value?.show({ 
             type: 'error', 
             title: 'Error', 
-            message: 'No se encontró una cuenta de fondo asociada a esta póliza', 
+            message: 'No se encontro una cuenta de fondo asociada a esta poliza', 
             buttonText: 'Entendido' 
         });
         processing.value = false;
@@ -692,27 +677,6 @@ const submitAbono = () => {
 };
 
 // ============================================
-// LIQUIDAR PÓLIZA
-// ============================================
-const liquidarPoliza = () => {
-    abonoForm.monto_abonado = Math.round(props.movimiento.saldo_pendiente * 100) / 100;
-    
-    if (!abonoForm.referencia || abonoForm.referencia.trim() === '') {
-        generarReferenciaAutomatica();
-    }
-    
-    alertRef.value?.show({
-        type: 'warning',
-        title: 'Liquidar póliza',
-        message: `Se abonará el saldo pendiente de $${formatNumber(abonoForm.monto_abonado)} para liquidar la póliza. Continuar?`,
-        buttonText: 'Si, liquidar',
-        onConfirm: () => {
-            submitAbono();
-        }
-    });
-};
-
-// ============================================
 // WATCH
 // ============================================
 watch(
@@ -734,7 +698,6 @@ onMounted(() => {
     
     generarReferenciaInicial();
     
-    // ✅ LOG PARA VERIFICAR QUE EL ID DE CUENTA FONDEADORA SE ESTÁ TOMANDO
     console.log('ID Cuenta Fondeadora:', abonoForm.id_cuenta_fondeadora);
     console.log('Movimiento:', props.movimiento);
 });
@@ -1083,7 +1046,7 @@ onMounted(() => {
     padding-left: 28px;
 }
 
-/* ========== BOTÓN MAX ========== */
+/* ========== BOTON MAX ========== */
 .btn-max-premium {
     position: absolute;
     right: 12px;
@@ -1106,7 +1069,7 @@ onMounted(() => {
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
-/* ========== BOTÓN GENERAR ========== */
+/* ========== BOTON GENERAR ========== */
 .btn-generate-premium {
     position: absolute;
     right: 12px;
@@ -1156,7 +1119,7 @@ onMounted(() => {
 /* ========== RESUMEN GRID ========== */
 .resumen-grid-premium {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
 }
 
@@ -1428,23 +1391,6 @@ onMounted(() => {
     transform: none;
 }
 
-.btn-liquidar-premium {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-}
-
-.btn-liquidar-premium:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
-}
-
-.btn-liquidar-premium:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
 /* ===== FORM ACTIONS ===== */
 .form-actions-premium {
     display: flex;
@@ -1607,7 +1553,7 @@ onMounted(() => {
     }
 
     .resumen-grid-premium {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .desglose-fiscal-grid-premium {
@@ -1681,6 +1627,10 @@ onMounted(() => {
         font-size: 0.75rem;
         width: 100%;
         text-align: center;
+    }
+
+    .resumen-grid-premium {
+        grid-template-columns: 1fr;
     }
 }
 </style>

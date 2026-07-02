@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Gate;
 class MovimientoController extends Controller
 {
 
-   // ============================================
+    // ============================================
     // 📄 INDEX - LISTADO DE MOVIMIENTOS (CON TRASPASOS)
     // ============================================
     public function index(Request $request)
@@ -245,6 +245,16 @@ class MovimientoController extends Controller
                 ]);
             }
 
+            $cuentaDestino = null;
+            if ($esTraspaso) {
+                $movDestino = MovimientoPoliza::where('id_poliza', $movimiento->id_poliza)
+                    ->where('id_cuenta', '!=', $movimiento->id_cuenta)
+                    ->first();
+                if ($movDestino && $movDestino->cuenta) {
+                    $cuentaDestino = $movDestino->cuenta->nombre_cuenta;
+                }
+            }
+
             return [
                 'id_movimiento' => $movimiento->id,
                 'id_poliza' => $movimiento->id_poliza,
@@ -296,7 +306,7 @@ class MovimientoController extends Controller
                 'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
                 'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
                 'es_traspaso' => $esTraspaso,
-                'cuenta_destino' => $movimiento->cuentaDestino ? $movimiento->cuentaDestino->nombre_cuenta : null,
+                'cuenta_destino' => $cuentaDestino,
             ];
         });
 
@@ -417,7 +427,7 @@ class MovimientoController extends Controller
     }
 
     // ============================================
-    // 📄 STORE - CREAR PÓLIZA CON MÚLTIPLES IVAs (CORREGIDO)
+    // 📄 STORE - CREAR PÓLIZA CON MÚLTIPLES IVAs
     // ============================================
     public function store(Request $request)
     {
@@ -428,6 +438,7 @@ class MovimientoController extends Controller
 
         $rules = [
             'tipo_poliza' => 'required|in:INGRESO,EGRESO',
+            'fecha_poliza' => 'required|date', // NUEVO: fecha de póliza obligatoria
             'id_persona' => 'nullable|exists:personas,id_persona',
             'id_cuenta' => 'nullable|exists:cuentas,id_cuenta',
             'es_por_pagar' => 'nullable|in:true,false,1,0,on,off',
@@ -445,12 +456,20 @@ class MovimientoController extends Controller
             'uuid_factura' => 'nullable|string|max:50',
             'serie_factura' => 'nullable|string|max:20',
             'folio_factura' => 'nullable|string|max:20',
+            'modo_iva' => 'nullable|in:CON_IVA,SIN_IVA',
+            'monto_directo' => 'nullable|numeric|min:0',
             'ivas' => 'nullable|array|min:1|max:2',
             'ivas.*.id' => 'nullable|exists:tipos_iva,id',
             'ivas.*.monto' => 'numeric|min:0',
         ];
 
-        $validator = Validator::make($request->all(), $rules);
+        // Mensajes personalizados para fecha_poliza
+        $messages = [
+            'fecha_poliza.required' => 'La fecha de póliza es obligatoria',
+            'fecha_poliza.date' => 'La fecha de póliza debe ser una fecha válida',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             \Log::error('Validación store fallida:', $validator->errors()->toArray());
@@ -477,10 +496,12 @@ class MovimientoController extends Controller
             $esPorPagar = filter_var($request->es_por_pagar, FILTER_VALIDATE_BOOLEAN);
             $esFiscal = filter_var($request->es_fiscal, FILTER_VALIDATE_BOOLEAN);
             $categoria = $esFiscal ? 'FISCAL' : 'NO_FISCAL';
+            $modoIva = $request->modo_iva ?? 'CON_IVA';
 
             $rutaPdf = null;
             $nombrePdf = null;
             $nombreXml = null;
+            $rutaXml = null;
 
             if ($request->hasFile('pdf_file')) {
                 $pdfFile = $request->file('pdf_file');
@@ -495,14 +516,20 @@ class MovimientoController extends Controller
                 $xmlFile = $request->file('xml_file');
                 if ($xmlFile->isValid()) {
                     $nombreXml = $xmlFile->getClientOriginalName();
-                    \Log::info('XML procesado - solo nombre guardado:', ['nombre' => $nombreXml]);
+                    $rutaXml = $xmlFile->store('documentos_fiscales/xmls', 'public');
+                    \Log::info('XML guardado:', ['ruta' => $rutaXml]);
                 }
             }
+
+            // ============================================================
+            // NUEVO: Usar fecha_poliza del request, o now() como fallback
+            // ============================================================
+            $fechaPoliza = $request->fecha_poliza ? Carbon::parse($request->fecha_poliza) : now();
 
             $poliza = Poliza::create([
                 'id_empresa' => $empresaId,
                 'tipo_poliza' => $request->tipo_poliza,
-                'fecha_poliza' => now(),
+                'fecha_poliza' => $fechaPoliza, // AHORA usa la fecha del formulario
                 'fecha_vencimiento' => $esPorPagar ? $request->fecha_vencimiento : null,
                 'categoria' => $categoria,
                 'estatus' => $esPorPagar ? 'PENDIENTE' : 'CAPTURADO',
@@ -530,7 +557,6 @@ class MovimientoController extends Controller
             $signo = $request->tipo_poliza === 'EGRESO' ? -1 : 1;
             $ivas = $request->input('ivas', []);
             
-            // ✅ CALCULAR TOTAL BASE (SIN IVA)
             $totalBase = 0;
             $totalIva = 0;
             $ivaIds = [];
@@ -538,53 +564,68 @@ class MovimientoController extends Controller
             $montoDieciseis = 0;
             $ivaDieciseisCalc = 0;
 
-            foreach ($ivas as $ivaId => $ivaData) {
-                $id = isset($ivaData['id']) ? $ivaData['id'] : $ivaId;
-                $monto = isset($ivaData['monto']) ? (float) $ivaData['monto'] : 0;
+            // ============================================================
+            // Si es modo SIN_IVA, usar monto_directo
+            // ============================================================
+            if ($modoIva === 'SIN_IVA') {
+                $montoDirecto = (float) $request->monto_directo;
+                $totalBase = $montoDirecto;
+                $totalIva = 0;
+                $montoTotal = $montoDirecto;
                 
-                if ($id && $monto > 0) {
-                    $tipoIva = TipoIva::find($id);
-                    if ($tipoIva) {
-                        $montoBase = round($monto, 2);
-                        $montoIva = round($montoBase * ($tipoIva->porcentaje / 100), 2);
-                        
-                        $totalBase += $montoBase;
-                        $totalIva += $montoIva;
-                        $ivaIds[] = $id;
+                \Log::info('Modo SIN IVA:', [
+                    'montoDirecto' => $montoDirecto,
+                    'totalBase' => $totalBase,
+                    'montoTotal' => $montoTotal
+                ]);
+            } else {
+                // Modo CON IVA - procesar array de ivas
+                foreach ($ivas as $ivaId => $ivaData) {
+                    $id = isset($ivaData['id']) ? $ivaData['id'] : $ivaId;
+                    $monto = isset($ivaData['monto']) ? (float) $ivaData['monto'] : 0;
+                    
+                    if ($id && $monto > 0) {
+                        $tipoIva = TipoIva::find($id);
+                        if ($tipoIva) {
+                            $montoBase = round($monto, 2);
+                            $montoIva = round($montoBase * ($tipoIva->porcentaje / 100), 2);
+                            
+                            $totalBase += $montoBase;
+                            $totalIva += $montoIva;
+                            $ivaIds[] = $id;
 
-                        if ($tipoIva->porcentaje == 0) {
-                            $montoCero += $montoBase;
-                        } elseif ($tipoIva->porcentaje == 16) {
-                            $montoDieciseis += $montoBase;
-                            $ivaDieciseisCalc += $montoIva;
+                            if ($tipoIva->porcentaje == 0) {
+                                $montoCero += $montoBase;
+                            } elseif ($tipoIva->porcentaje == 16) {
+                                $montoDieciseis += $montoBase;
+                                $ivaDieciseisCalc += $montoIva;
+                            }
                         }
                     }
                 }
+                
+                $montoTotal = $totalBase;
+                
+                \Log::info('Modo CON IVA:', [
+                    'totalBase' => $totalBase,
+                    'totalIva' => $totalIva,
+                    'montoTotal' => $montoTotal,
+                    'montoCero' => $montoCero,
+                    'montoDieciseis' => $montoDieciseis,
+                    'ivaDieciseisCalc' => $ivaDieciseisCalc
+                ]);
             }
-
-            // ✅ EL MONTO TOTAL ES LA SUMA DE BASES (SIN IVA)
-            $montoTotal = $totalBase;
-            
-            \Log::info('Totales calculados (SIN SUMAR IVA):', [
-                'totalBase' => $totalBase,
-                'totalIva' => $totalIva,
-                'montoTotal' => $montoTotal,
-                'montoCero' => $montoCero,
-                'montoDieciseis' => $montoDieciseis,
-                'ivaDieciseisCalc' => $ivaDieciseisCalc
-            ]);
 
             $primerIvaId = !empty($ivaIds) ? $ivaIds[0] : null;
 
-            // ✅ CREAR MOVIMIENTO CON EL MONTO BASE (SIN IVA)
             $movimiento = MovimientoPoliza::create([
                 'id_poliza' => $poliza->id,
                 'id_cuenta' => $request->id_cuenta,
                 'id_caja_fondo' => $request->id_cuenta_fondeadora,
                 'id_tipo_iva' => $primerIvaId,
-                'monto' => round($montoTotal * $signo, 2), // ✅ SOLO EL BASE, SIN IVA
+                'monto' => round($montoTotal * $signo, 2),
                 'monto_base' => round($totalBase * $signo, 2),
-                'monto_iva' => round($totalIva * $signo, 2), // ✅ EL IVA SE GUARDA POR SEPARADO
+                'monto_iva' => round($totalIva * $signo, 2),
                 'monto_traspaso' => null,
                 'monto_iva_cero' => round($montoCero * $signo, 2),
                 'monto_iva_dieciseis' => round($montoDieciseis * $signo, 2),
@@ -595,9 +636,10 @@ class MovimientoController extends Controller
                 'monto' => $movimiento->monto,
                 'monto_base' => $movimiento->monto_base,
                 'monto_iva' => $movimiento->monto_iva,
+                'modo_iva' => $modoIva,
+                'fecha_poliza' => $fechaPoliza->toDateString()
             ]);
 
-            // ⚠️ SOLO ACTUALIZAR SALDO SI NO ES PÓLIZA DIFERIDA
             if (!$esPorPagar) {
                 if ($request->id_cuenta_fondeadora) {
                     $this->actualizarSaldoCuenta($request->id_cuenta_fondeadora);
@@ -610,8 +652,12 @@ class MovimientoController extends Controller
 
             DB::commit();
 
-            $mensaje = 'Póliza creada exitosamente. Folio: ' . $poliza->folio . ' | Estado: ' . $this->getEstatusTexto($poliza->estatus);
+            $mensaje = 'Póliza creada exitosamente. Folio: ' . $poliza->folio . ' | Fecha: ' . $fechaPoliza->format('d/m/Y') . ' | Estado: ' . $this->getEstatusTexto($poliza->estatus);
             $mensaje .= ' | Total: $' . number_format($totalBase, 2) . ' | IVA: $' . number_format($totalIva, 2);
+            
+            if ($modoIva === 'SIN_IVA') {
+                $mensaje .= ' (Sin IVA)';
+            }
             
             if ($esPorPagar) {
                 $mensaje .= ' (Póliza diferida - no afecta saldos hasta que se liquide)';
@@ -638,8 +684,9 @@ class MovimientoController extends Controller
     }
 
     // ============================================
-    // 🔧 FUNCIÓN AUXILIAR PARA OBTENER MONTO IVA POR PORCENTAJE
+    // 🔧 FUNCIONES AUXILIARES
     // ============================================
+    
     private function getMontoIvaPorPorcentaje($ivas, $porcentaje)
     {
         foreach ($ivas as $ivaData) {
@@ -653,9 +700,6 @@ class MovimientoController extends Controller
         return 0;
     }
 
-    // ============================================
-    // 🔧 FUNCIÓN AUXILIAR PARA OBTENER IVA CALCULADO POR PORCENTAJE
-    // ============================================
     private function getIvaCalculadoPorPorcentaje($ivas, $porcentaje)
     {
         foreach ($ivas as $ivaData) {
@@ -670,8 +714,133 @@ class MovimientoController extends Controller
         return 0;
     }
 
+    private function getEstatusTexto($estatus)
+    {
+        $map = [
+            'CAPTURADO' => 'Capturado',
+            'REVISADO' => 'Revisado',
+            'AUTORIZADO' => 'Autorizado',
+            'ABONADO' => 'Abonado',
+            'LIQUIDADO' => 'Liquidado',
+            'PENDIENTE' => 'Pendiente',
+            'CERRADO' => 'Cerrado',
+        ];
+        return $map[$estatus] ?? $estatus;
+    }
+
+    private function actualizarEstatusPoliza($poliza)
+    {
+        $totalMovimientos = $poliza->movimientos()->sum('monto');
+        $totalAbonado = $poliza->abonos()->sum('monto_abonado');
+
+        if (in_array($poliza->estatus, ['CAPTURADO', 'REVISADO', 'AUTORIZADO', 'PENDIENTE'])) {
+            if ($totalAbonado > 0) {
+                $poliza->estatus = 'ABONADO';
+                $poliza->fecha_abono = now();
+            }
+            if ($totalAbonado >= abs($totalMovimientos) && $totalMovimientos != 0) {
+                $poliza->estatus = 'LIQUIDADO';
+                $poliza->fecha_liquidacion = now();
+            }
+        } elseif ($poliza->estatus === 'ABONADO') {
+            if ($totalAbonado >= abs($totalMovimientos) && $totalMovimientos != 0) {
+                $poliza->estatus = 'LIQUIDADO';
+                $poliza->fecha_liquidacion = now();
+            }
+        }
+
+        $poliza->save();
+        return $poliza;
+    }
+
+    private function actualizarSaldoCuenta($idCuenta)
+    {
+        if (!$idCuenta) return 0;
+        
+        try {
+            $totalMonto = MovimientoPoliza::where(function($query) use ($idCuenta) {
+                $query->where('id_cuenta', $idCuenta)
+                      ->orWhere('id_caja_fondo', $idCuenta);
+            })->sum('monto');
+            
+            $traspasosOrigen = MovimientoPoliza::where('id_caja_fondo', $idCuenta)
+                ->whereNotNull('monto_traspaso')
+                ->where('monto_traspaso', '>', 0)
+                ->sum('monto_traspaso');
+            
+            $traspasosDestino = MovimientoPoliza::where('id_cuenta', $idCuenta)
+                ->whereNotNull('monto_traspaso')
+                ->where('monto_traspaso', '>', 0)
+                ->sum('monto_traspaso');
+            
+            $saldoTotal = $totalMonto - $traspasosOrigen + $traspasosDestino;
+            
+            $cuenta = Cuenta::find($idCuenta);
+            if ($cuenta) {
+                $cuenta->saldo_inicial = $saldoTotal;
+                $cuenta->save();
+            }
+            
+            return $saldoTotal;
+        } catch (\Exception $e) {
+            \Log::error('Error al actualizar saldo de cuenta:', [
+                'cuenta_id' => $idCuenta,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    private function calcularDesgloseExacto($totalFactura, $porcentajeIva)
+    {
+        if ($porcentajeIva == 0) {
+            return [
+                'monto_base' => $totalFactura,
+                'monto_iva' => 0,
+                'total' => $totalFactura
+            ];
+        }
+
+        $totalCentavos = round($totalFactura * 100);
+        $factor = 100 + $porcentajeIva;
+        
+        $baseCentavos = round($totalCentavos * 100 / $factor);
+        $ivaCentavos = $totalCentavos - $baseCentavos;
+        
+        $montoBase = $baseCentavos / 100;
+        $montoIva = $ivaCentavos / 100;
+        
+        $suma = $montoBase + $montoIva;
+        if (abs($suma - $totalFactura) > 0.001) {
+            $diferencia = $totalFactura - $suma;
+            $montoIva = round(($montoIva + $diferencia) * 100) / 100;
+        }
+        
+        return [
+            'monto_base' => round($montoBase, 2),
+            'monto_iva' => round($montoIva, 2),
+            'total' => round($montoBase + $montoIva, 2)
+        ];
+    }
+
+    private function formatFechaExcel($fecha)
+    {
+        if (!$fecha) return '—';
+        if ($fecha instanceof \DateTime) {
+            return $fecha->format('d/m/Y');
+        }
+        return date('d/m/Y', strtotime($fecha));
+    }
+
+    private function formatMonto($monto)
+    {
+        if ($monto === null || $monto === '') return '$0.00';
+        $signo = $monto < 0 ? '-' : '';
+        return $signo . '$' . number_format(abs($monto), 2);
+    }
+
     // ============================================
-    // 🔄 STORE TRASPASO - CON MÚLTIPLES IVAs
+    // 🔄 STORE TRASPASO
     // ============================================
     public function storeTraspaso(Request $request)
     {
@@ -695,7 +864,7 @@ class MovimientoController extends Controller
             'fecha_factura' => 'nullable|date',
             'numero_factura' => 'nullable|string|max:50',
             'pdf_file' => 'nullable|file|mimes:pdf|max:10240',
-            'xml_file' => 'nullable|file|max:5120',
+            'xml_file' => 'nullable|file|mimes:xml,text/xml,application/xml|max:5120',
             'uuid_factura' => 'nullable|string|max:50',
             'serie_factura' => 'nullable|string|max:20',
             'folio_factura' => 'nullable|string|max:20',
@@ -742,6 +911,7 @@ class MovimientoController extends Controller
             $rutaPdf = null;
             $nombrePdf = null;
             $nombreXml = null;
+            $rutaXml = null;
 
             if ($esFiscal) {
                 if ($request->hasFile('pdf_file')) {
@@ -756,6 +926,7 @@ class MovimientoController extends Controller
                     $xmlFile = $request->file('xml_file');
                     if ($xmlFile->isValid()) {
                         $nombreXml = $xmlFile->getClientOriginalName();
+                        $rutaXml = $xmlFile->store('documentos_fiscales/xmls', 'public');
                     }
                 }
             }
@@ -814,15 +985,31 @@ class MovimientoController extends Controller
 
             $primerIvaId = !empty($ivaIds) ? $ivaIds[0] : null;
 
+            // Movimiento de salida (origen)
+            MovimientoPoliza::create([
+                'id_poliza' => $poliza->id,
+                'id_cuenta' => $request->id_cuenta_origen,
+                'id_caja_fondo' => null,
+                'id_tipo_iva' => $primerIvaId,
+                'monto' => -$monto,
+                'monto_base' => -$montoBaseTotal,
+                'monto_iva' => -$montoIvaTotal,
+                'monto_traspaso' => null,
+                'monto_iva_cero' => -$this->getMontoIvaPorPorcentaje($ivas, 0),
+                'monto_iva_dieciseis' => -$this->getMontoIvaPorPorcentaje($ivas, 16),
+                'iva_dieciseis' => -$this->getIvaCalculadoPorPorcentaje($ivas, 16),
+            ]);
+
+            // Movimiento de entrada (destino)
             MovimientoPoliza::create([
                 'id_poliza' => $poliza->id,
                 'id_cuenta' => $request->id_cuenta_destino,
-                'id_caja_fondo' => $request->id_cuenta_origen,
+                'id_caja_fondo' => null,
                 'id_tipo_iva' => $primerIvaId,
-                'monto_traspaso' => $monto,
-                'monto' => 0,
-                'monto_base' => 0,
-                'monto_iva' => 0,
+                'monto' => $monto,
+                'monto_base' => $montoBaseTotal,
+                'monto_iva' => $montoIvaTotal,
+                'monto_traspaso' => null,
                 'monto_iva_cero' => $this->getMontoIvaPorPorcentaje($ivas, 0),
                 'monto_iva_dieciseis' => $this->getMontoIvaPorPorcentaje($ivas, 16),
                 'iva_dieciseis' => $this->getIvaCalculadoPorPorcentaje($ivas, 16),
@@ -853,332 +1040,178 @@ class MovimientoController extends Controller
         }
     }
 
-// ============================================
-// 📄 SHOW - MOSTRAR MOVIMIENTO (CON PERMISOS)
-// ============================================
-public function show(string $id)
-{
-    if (!Gate::allows('ver-movimientos')) {
-        return redirect()->route('movimientos.index')
-            ->with('error', 'No tienes permiso para ver movimientos');
-    }
-
-    $movimiento = MovimientoPoliza::with([
-        'poliza.persona',
-        'poliza.usuarioCreador',
-        'poliza.usuarioRevisor',
-        'poliza.usuarioAutorizador',
-        'poliza.marcador',
-        'cuenta' => function($q) {
-            $q->where('en_uso', true);
-        },
-        'cuentaFondeadora' => function($q) {
-            $q->where('en_uso', true);
-        },
-        'poliza.abonos'
-    ])->find($id);
-
-    if (!$movimiento) {
-        return redirect()->route('movimientos.index')
-            ->with('error', 'Movimiento no encontrado');
-    }
-
-    $abonos = $movimiento->poliza->abonos ?? collect();
-    $totalAbonado = $abonos->sum('monto_abonado');
-    
-    $tipoPoliza = $movimiento->poliza->tipo_poliza;
-    $esTraspaso = $tipoPoliza === 'TRASPASO';
-    $esIngresoEgreso = in_array($tipoPoliza, ['INGRESO', 'EGRESO']);
-    $esFiscal = $movimiento->poliza->categoria === 'FISCAL';
-    $esPorPagar = $movimiento->poliza->es_por_pagar ?? false;
-
-    if ($esTraspaso) {
-        $montoMostrar = $movimiento->monto_traspaso ?? abs($movimiento->monto);
-        $saldoPendiente = $montoMostrar - $totalAbonado;
-    } else {
-        $montoMostrar = $movimiento->monto;
-        $saldoPendiente = abs($montoMostrar) - $totalAbonado;
-    }
-
-    $pdfUrl = null;
-    if ($esFiscal && !empty($movimiento->poliza->ruta_pdf)) {
-        $pdfUrl = route('movimientos.documento.fiscal', [
-            'id' => $movimiento->id_poliza,
-            'tipo' => 'pdf'
-        ]);
-    }
-
-    $xmlUrl = null;
-    if ($esFiscal && !empty($movimiento->poliza->ruta_xml)) {
-        $xmlUrl = route('movimientos.documento.fiscal', [
-            'id' => $movimiento->id_poliza,
-            'tipo' => 'xml'
-        ]);
-    }
-
-    $montoIvaCero = $movimiento->monto_iva_cero ?? 0;
-    $montoIvaDieciseis = $movimiento->monto_iva_dieciseis ?? 0;
-    $ivaDieciseis = $movimiento->iva_dieciseis ?? 0;
-    $tieneDobleIva = ($montoIvaCero != 0 || $montoIvaDieciseis != 0 || $ivaDieciseis != 0);
-
-    $cuentaOrigen = null;
-    $cuentaDestino = null;
-    $montoTraspaso = null;
-    $cuentaOrigenId = null;
-    $cuentaDestinoId = null;
-    
-    if ($esTraspaso) {
-        $movimientosTraspaso = MovimientoPoliza::where('id_poliza', $movimiento->id_poliza)->get();
-        
-        $movOrigen = $movimientosTraspaso->firstWhere(function($m) {
-            return $m->monto < 0 || $m->monto_traspaso > 0;
-        });
-        
-        $movDestino = $movimientosTraspaso->firstWhere(function($m) {
-            return $m->monto > 0;
-        });
-        
-        if ($movOrigen) {
-            $cuentaOrigenId = $movOrigen->id_caja_fondo ?? $movOrigen->id_cuenta;
-            if ($movOrigen->cuentaFondeadora) {
-                $cuentaOrigen = $movOrigen->cuentaFondeadora->nombre_cuenta;
-            } elseif ($movOrigen->cuenta) {
-                $cuentaOrigen = $movOrigen->cuenta->nombre_cuenta;
-            }
+    // ============================================
+    // 📄 SHOW - MOSTRAR MOVIMIENTO
+    // ============================================
+    public function show(string $id)
+    {
+        if (!Gate::allows('ver-movimientos')) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No tienes permiso para ver movimientos');
         }
-        
-        if ($movDestino) {
-            $cuentaDestinoId = $movDestino->id_cuenta;
-            if ($movDestino->cuenta) {
-                $cuentaDestino = $movDestino->cuenta->nombre_cuenta;
-            }
+
+        $movimiento = MovimientoPoliza::with([
+            'poliza.persona',
+            'poliza.usuarioCreador',
+            'poliza.usuarioRevisor',
+            'poliza.usuarioAutorizador',
+            'poliza.marcador',
+            'cuenta' => function($q) {
+                $q->where('en_uso', true);
+            },
+            'cuentaFondeadora' => function($q) {
+                $q->where('en_uso', true);
+            },
+            'poliza.abonos'
+        ])->find($id);
+
+        if (!$movimiento) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'Movimiento no encontrado');
         }
+
+        $abonos = $movimiento->poliza->abonos ?? collect();
+        $totalAbonado = $abonos->sum('monto_abonado');
         
-        $montoTraspaso = $movimiento->monto_traspaso ?? abs($movimiento->monto);
-    }
+        $tipoPoliza = $movimiento->poliza->tipo_poliza;
+        $esTraspaso = $tipoPoliza === 'TRASPASO';
+        $esIngresoEgreso = in_array($tipoPoliza, ['INGRESO', 'EGRESO']);
+        $esFiscal = $movimiento->poliza->categoria === 'FISCAL';
+        $esPorPagar = $movimiento->poliza->es_por_pagar ?? false;
 
-    // ✅ ============================================
-    // ✅ PERMISOS DEL USUARIO ACTUAL
-    // ✅ ============================================
-    $user = auth()->user();
-    
-    // Determinar el rol del usuario usando los métodos del modelo
-    $esSuperUsuario = $user->esSuperUsuario();
-    $esAdministrador = $user->esAdministrador();
-    $esAuditor = $user->esAuditor();
-    $esCapturista = $user->esCapturista();
-    $esLector = $user->esLector();
-    
-    // Obtener el estatus actual de la póliza
-    $estatus = $movimiento->poliza->estatus;
-    
-    // Construir array de permisos según la tabla
-    $permisos = [
-        // PDF - Todos pueden ver PDF (incluyendo Lector)
-        'puede_ver_pdf' => true,
+        if ($esTraspaso) {
+            $montoMostrar = $movimiento->monto_traspaso ?? abs($movimiento->monto);
+            $saldoPendiente = $montoMostrar - $totalAbonado;
+        } else {
+            $montoMostrar = $movimiento->monto;
+            $saldoPendiente = abs($montoMostrar) - $totalAbonado;
+        }
+
+        $pdfUrl = null;
+        if ($esFiscal && !empty($movimiento->poliza->ruta_pdf)) {
+            $pdfUrl = route('movimientos.documento.fiscal', [
+                'id' => $movimiento->id_poliza,
+                'tipo' => 'pdf'
+            ]);
+        }
+
+        $xmlUrl = null;
+        if ($esFiscal && !empty($movimiento->poliza->ruta_xml)) {
+            $xmlUrl = route('movimientos.documento.fiscal', [
+                'id' => $movimiento->id_poliza,
+                'tipo' => 'xml'
+            ]);
+        }
+
+        $montoIvaCero = $movimiento->monto_iva_cero ?? 0;
+        $montoIvaDieciseis = $movimiento->monto_iva_dieciseis ?? 0;
+        $ivaDieciseis = $movimiento->iva_dieciseis ?? 0;
+        $tieneDobleIva = ($montoIvaCero != 0 || $montoIvaDieciseis != 0 || $ivaDieciseis != 0);
+
+        $cuentaOrigen = null;
+        $cuentaDestino = null;
+        $montoTraspaso = null;
+        $cuentaOrigenId = null;
+        $cuentaDestinoId = null;
         
-        // Revisar - solo Administrador y Super Usuario (solo CAPTURADO)
-        'puede_revisar' => ($esAdministrador || $esSuperUsuario) && $estatus === 'CAPTURADO',
+        if ($esTraspaso) {
+            $movimientosTraspaso = MovimientoPoliza::where('id_poliza', $movimiento->id_poliza)->get();
+            
+            $movOrigen = $movimientosTraspaso->firstWhere(function($m) {
+                return $m->monto < 0;
+            });
+            
+            $movDestino = $movimientosTraspaso->firstWhere(function($m) {
+                return $m->monto > 0;
+            });
+            
+            if ($movOrigen) {
+                $cuentaOrigenId = $movOrigen->id_cuenta;
+                if ($movOrigen->cuenta) {
+                    $cuentaOrigen = $movOrigen->cuenta->nombre_cuenta;
+                }
+            }
+            
+            if ($movDestino) {
+                $cuentaDestinoId = $movDestino->id_cuenta;
+                if ($movDestino->cuenta) {
+                    $cuentaDestino = $movDestino->cuenta->nombre_cuenta;
+                }
+            }
+            
+            $montoTraspaso = $movimiento->monto_traspaso ?? abs($movimiento->monto);
+        }
+
+        $user = auth()->user();
         
-        // Autorizar - solo Auditor y Super Usuario (solo REVISADO)
-        'puede_autorizar' => ($esAuditor || $esSuperUsuario) && $estatus === 'REVISADO',
+        $esSuperUsuario = $user->esSuperUsuario();
+        $esAdministrador = $user->esAdministrador();
+        $esAuditor = $user->esAuditor();
+        $esCapturista = $user->esCapturista();
+        $esLector = $user->esLector();
         
-        // Cerrar - Capturista, Administrador y Super Usuario (NO Auditor, NO Lector)
-        'puede_cerrar' => ($esCapturista || $esAdministrador || $esSuperUsuario) && 
-                         !$esAuditor && 
-                         !$esLector &&
-                         !in_array($estatus, ['LIQUIDADO', 'AUTORIZADO', 'CERRADO']),
+        $estatus = $movimiento->poliza->estatus;
         
-        // Reabrir - Administrador y Super Usuario (solo CERRADO)
-        'puede_reabrir' => ($esAdministrador || $esSuperUsuario) && $estatus === 'CERRADO',
-        
-        // Editar - Capturista y Administrador (solo CAPTURADO), Super Usuario (siempre)
-        // Auditor y Lector NUNCA pueden editar
-        'puede_editar' => !$esAuditor && 
-                         !$esLector && 
-                         ($esSuperUsuario || ($esAdministrador && $estatus === 'CAPTURADO') || ($esCapturista && $estatus === 'CAPTURADO')),
-        
-        // Eliminar - solo Super Usuario
-        'puede_eliminar' => $esSuperUsuario,
-        
-        // Regresar - todos pueden
-        'puede_regresar' => true,
-        
-        // Información del rol para mostrar
-        'rol' => $user->tipo_usuario_texto ?? 'Sin rol',
-        'es_super_usuario' => $esSuperUsuario,
-        'es_administrador' => $esAdministrador,
-        'es_auditor' => $esAuditor,
-        'es_capturista' => $esCapturista,
-        'es_lector' => $esLector,
-    ];
+        $permisos = [
+            'puede_ver_pdf' => true,
+            'puede_revisar' => ($esAdministrador || $esSuperUsuario) && $estatus === 'CAPTURADO',
+            'puede_autorizar' => ($esAuditor || $esSuperUsuario) && $estatus === 'REVISADO',
+            'puede_cerrar' => ($esCapturista || $esAdministrador || $esSuperUsuario) && 
+                             !$esAuditor && 
+                             !$esLector &&
+                             !in_array($estatus, ['LIQUIDADO', 'AUTORIZADO', 'CERRADO']),
+            'puede_reabrir' => ($esAdministrador || $esSuperUsuario) && $estatus === 'CERRADO',
+            'puede_editar' => !$esAuditor && 
+                             !$esLector && 
+                             ($esSuperUsuario || ($esAdministrador && $estatus === 'CAPTURADO') || ($esCapturista && $estatus === 'CAPTURADO')),
+            'puede_eliminar' => $esSuperUsuario,
+            'puede_regresar' => true,
+            'rol' => $user->tipo_usuario_texto ?? 'Sin rol',
+            'es_super_usuario' => $esSuperUsuario,
+            'es_administrador' => $esAdministrador,
+            'es_auditor' => $esAuditor,
+            'es_capturista' => $esCapturista,
+            'es_lector' => $esLector,
+        ];
 
-    \Log::info('Permisos en show:', $permisos);
-
-    $movimientoData = [
-        'id' => $movimiento->id,
-        'id_movimiento' => $movimiento->id,
-        'id_poliza' => $movimiento->id_poliza,
-        'folio' => $movimiento->poliza->folio,
-        'tipo_poliza' => $tipoPoliza,
-        'fecha_poliza' => $movimiento->poliza->fecha_poliza,
-        'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento,
-        'categoria' => $movimiento->poliza->categoria,
-        'estatus' => $estatus,
-        'estatus_texto' => $this->getEstatusTexto($estatus),
-        'es_por_pagar' => $esPorPagar,
-        'referencia' => $movimiento->poliza->referencia,
-        'nota' => $movimiento->poliza->nota,
-        'es_ingreso_egreso' => $esIngresoEgreso,
-        'es_traspaso' => $esTraspaso,
-        'es_fiscal' => $esFiscal,
-        'tiene_doble_iva' => $tieneDobleIva,
-        'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
-        'persona_id' => $movimiento->poliza->id_persona,
-        'cuenta' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->cuenta->nombre_cuenta : null,
-        'cuenta_id' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->id_cuenta : null,
-        'cuenta_fondeadora' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
-        'cuenta_fondeadora_id' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->id_caja_fondo : null,
-        'cuenta_origen' => $cuentaOrigen,
-        'cuenta_origen_id' => $cuentaOrigenId,
-        'cuenta_destino' => $cuentaDestino,
-        'cuenta_destino_id' => $cuentaDestinoId,
-        'monto_traspaso' => $montoTraspaso,
-        'monto' => $montoMostrar,
-        'monto_abs' => abs($montoMostrar),
-        'monto_base' => $movimiento->monto_base,
-        'monto_iva' => $movimiento->monto_iva,
-        'monto_iva_cero' => $montoIvaCero,
-        'monto_iva_dieciseis' => $montoIvaDieciseis,
-        'iva_dieciseis' => $ivaDieciseis,
-        'nombre_pdf' => $movimiento->poliza->nombre_pdf,
-        'nombre_xml' => $movimiento->poliza->nombre_xml,
-        'abonos' => $abonos->map(function($abono) {
-            return [
-                'id' => $abono->id,
-                'monto_abonado' => $abono->monto_abonado,
-                'fecha_abono' => $abono->fecha_abono,
-                'referencia' => $abono->referencia,
-                'metodo_pago' => $abono->metodo_pago,
-                'nota' => $abono->nota,
-                'usuario' => $abono->usuario?->nombre_usuario ?? 'Sistema'
-            ];
-        }),
-        'total_abonado' => $totalAbonado,
-        'saldo_pendiente' => $saldoPendiente,
-        'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
-        'marcador_id' => $movimiento->poliza->id_marcador,
-        'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
-        'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
-        'usuario_id' => $movimiento->poliza->id_usuario_creador,
-        'usuario_revisor' => $movimiento->poliza->usuarioRevisor ? $movimiento->poliza->usuarioRevisor->nombre_usuario : null,
-        'usuario_revisor_id' => $movimiento->poliza->id_usuario_revisor,
-        'usuario_autorizador' => $movimiento->poliza->usuarioAutorizador ? $movimiento->poliza->usuarioAutorizador->nombre_usuario : null,
-        'usuario_autorizador_id' => $movimiento->poliza->id_usuario_autorizador,
-        'fecha_revision' => $movimiento->poliza->fecha_revision,
-        'fecha_autorizacion' => $movimiento->poliza->fecha_autorizacion,
-        'fecha_factura' => $movimiento->poliza->fecha_factura,
-        'numero_factura' => $movimiento->poliza->numero_factura,
-        'fecha_creacion' => $movimiento->created_at,
-        'fecha_actualizacion' => $movimiento->updated_at,
-        'pdf_url' => $pdfUrl,
-        'xml_url' => $xmlUrl,
-        'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
-        'tiene_xml_fiscal' => !empty($movimiento->poliza->ruta_xml),
-        'uuid_factura' => $movimiento->poliza->uuid_factura,
-        'serie_factura' => $movimiento->poliza->serie_factura,
-        'folio_factura' => $movimiento->poliza->folio_factura,
-        'comentario_revision' => $movimiento->poliza->comentario_revision,
-        'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
-        'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
-    ];
-
-    return Inertia::render('Movimientos/Show', [
-        'movimiento' => $movimientoData,
-        'permisos' => $permisos,
-    ]);
-}
-
- // ============================================
-// 📄 SHOW ABONO - CORREGIDO CON CUENTA FONDEADORA ID
-// ============================================
-public function showAbono(string $id)
-{
-    if (!Gate::allows('ver-movimientos')) {
-        return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
-            ->with('error', 'No tienes permiso para ver movimientos');
-    }
-
-    $movimiento = MovimientoPoliza::with([
-        'poliza.persona',
-        'poliza.usuarioCreador',
-        'poliza.usuarioRevisor',
-        'poliza.usuarioAutorizador',
-        'poliza.marcador',
-        'cuenta' => function($q) {
-            $q->where('en_uso', true);
-        },
-        'cuentaFondeadora' => function($q) {
-            $q->where('en_uso', true);
-        },
-        'poliza.abonos'
-    ])->find($id);
-
-    if (!$movimiento) {
-        return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
-            ->with('error', 'Movimiento no encontrado');
-    }
-
-    if (!$movimiento->poliza->es_por_pagar) {
-        return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
-            ->with('error', 'Esta póliza no es de tipo "Por pagar"');
-    }
-
-    $abonos = $movimiento->poliza->abonos ?? collect();
-    $totalAbonado = $abonos->sum('monto_abonado');
-    $saldoPendiente = abs($movimiento->monto) - $totalAbonado;
-
-    if ($saldoPendiente <= 0.01) {
-        return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
-            ->with('info', 'Esta póliza ya está liquidada');
-    }
-
-    // ✅ OBTENER EL ID DE LA CUENTA FONDEADORA DESDE EL MOVIMIENTO ORIGINAL
-    $cuentaFondeadoraId = $movimiento->id_caja_fondo; // Este es el campo correcto
-
-    // ✅ OBTENER EL NOMBRE DE LA CUENTA FONDEADORA
-    $cuentaFondeadoraNombre = $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso 
-        ? $movimiento->cuentaFondeadora->nombre_cuenta 
-        : null;
-
-    \Log::info('showAbono - Cuenta fondeadora:', [
-        'id_caja_fondo' => $movimiento->id_caja_fondo,
-        'cuentaFondeadoraId' => $cuentaFondeadoraId,
-        'cuentaFondeadoraNombre' => $cuentaFondeadoraNombre,
-        'movimiento_id' => $movimiento->id
-    ]);
-
-    return Inertia::render('Movimientos/Abono', [
-        'movimiento' => [
+        $movimientoData = [
+            'id' => $movimiento->id,
             'id_movimiento' => $movimiento->id,
             'id_poliza' => $movimiento->id_poliza,
-            'referencia' => $movimiento->poliza->folio ?? 'S/N',
-            'tipo_poliza' => $movimiento->poliza->tipo_poliza,
-            'fecha_poliza' => $movimiento->poliza->fecha_poliza?->format('Y-m-d'),
-            'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento?->format('Y-m-d'),
-            'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : 'N/A',
-            'cuenta' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->cuenta->nombre_cuenta : 'N/A',
-            'cuenta_fondeadora' => $cuentaFondeadoraNombre,
-            'cuenta_fondeadora_id' => $cuentaFondeadoraId, // ✅ AGREGADO: ID de la cuenta fondeadora
-            'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : 'Sin marcador',
-            'nota' => $movimiento->poliza->nota ?? 'Sin nota',
-            'estatus' => $movimiento->poliza->estatus,
-            'estatus_texto' => $this->getEstatusTexto($movimiento->poliza->estatus),
-            'monto_abs' => abs($movimiento->monto),
-            'monto_base' => abs($movimiento->monto_base ?? 0),
-            'monto_iva' => abs($movimiento->monto_iva ?? 0),
-            'total_abonado' => $totalAbonado,
-            'saldo_pendiente' => $saldoPendiente,
+            'folio' => $movimiento->poliza->folio,
+            'tipo_poliza' => $tipoPoliza,
+            'fecha_poliza' => $movimiento->poliza->fecha_poliza,
+            'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento,
+            'categoria' => $movimiento->poliza->categoria,
+            'estatus' => $estatus,
+            'estatus_texto' => $this->getEstatusTexto($estatus),
+            'es_por_pagar' => $esPorPagar,
+            'referencia' => $movimiento->poliza->referencia,
+            'nota' => $movimiento->poliza->nota,
+            'es_ingreso_egreso' => $esIngresoEgreso,
+            'es_traspaso' => $esTraspaso,
+            'es_fiscal' => $esFiscal,
+            'tiene_doble_iva' => $tieneDobleIva,
+            'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
+            'persona_id' => $movimiento->poliza->id_persona,
+            'cuenta' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->cuenta->nombre_cuenta : null,
+            'cuenta_id' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->id_cuenta : null,
+            'cuenta_fondeadora' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
+            'cuenta_fondeadora_id' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->id_caja_fondo : null,
+            'cuenta_origen' => $cuentaOrigen,
+            'cuenta_origen_id' => $cuentaOrigenId,
+            'cuenta_destino' => $cuentaDestino,
+            'cuenta_destino_id' => $cuentaDestinoId,
+            'monto_traspaso' => $montoTraspaso,
+            'monto' => $montoMostrar,
+            'monto_abs' => abs($montoMostrar),
+            'monto_base' => $movimiento->monto_base,
+            'monto_iva' => $movimiento->monto_iva,
+            'monto_iva_cero' => $montoIvaCero,
+            'monto_iva_dieciseis' => $montoIvaDieciseis,
+            'iva_dieciseis' => $ivaDieciseis,
+            'nombre_pdf' => $movimiento->poliza->nombre_pdf,
+            'nombre_xml' => $movimiento->poliza->nombre_xml,
             'abonos' => $abonos->map(function($abono) {
                 return [
                     'id' => $abono->id,
@@ -1186,14 +1219,131 @@ public function showAbono(string $id)
                     'fecha_abono' => $abono->fecha_abono,
                     'referencia' => $abono->referencia,
                     'metodo_pago' => $abono->metodo_pago,
-                    'nota' => $abono->nota
+                    'nota' => $abono->nota,
+                    'usuario' => $abono->usuario?->nombre_usuario ?? 'Sistema'
                 ];
             }),
-            'numero_abonos' => $abonos->count(),
-            'es_por_pagar' => $movimiento->poliza->es_por_pagar
-        ]
-    ]);
-}
+            'total_abonado' => $totalAbonado,
+            'saldo_pendiente' => $saldoPendiente,
+            'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
+            'marcador_id' => $movimiento->poliza->id_marcador,
+            'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
+            'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
+            'usuario_id' => $movimiento->poliza->id_usuario_creador,
+            'usuario_revisor' => $movimiento->poliza->usuarioRevisor ? $movimiento->poliza->usuarioRevisor->nombre_usuario : null,
+            'usuario_revisor_id' => $movimiento->poliza->id_usuario_revisor,
+            'usuario_autorizador' => $movimiento->poliza->usuarioAutorizador ? $movimiento->poliza->usuarioAutorizador->nombre_usuario : null,
+            'usuario_autorizador_id' => $movimiento->poliza->id_usuario_autorizador,
+            'fecha_revision' => $movimiento->poliza->fecha_revision,
+            'fecha_autorizacion' => $movimiento->poliza->fecha_autorizacion,
+            'fecha_factura' => $movimiento->poliza->fecha_factura,
+            'numero_factura' => $movimiento->poliza->numero_factura,
+            'fecha_creacion' => $movimiento->created_at,
+            'fecha_actualizacion' => $movimiento->updated_at,
+            'pdf_url' => $pdfUrl,
+            'xml_url' => $xmlUrl,
+            'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
+            'tiene_xml_fiscal' => !empty($movimiento->poliza->ruta_xml),
+            'uuid_factura' => $movimiento->poliza->uuid_factura,
+            'serie_factura' => $movimiento->poliza->serie_factura,
+            'folio_factura' => $movimiento->poliza->folio_factura,
+            'comentario_revision' => $movimiento->poliza->comentario_revision,
+            'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
+            'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
+        ];
+
+        return Inertia::render('Movimientos/Show', [
+            'movimiento' => $movimientoData,
+            'permisos' => $permisos,
+        ]);
+    }
+
+    // ============================================
+    // 📄 SHOW ABONO
+    // ============================================
+    public function showAbono(string $id)
+    {
+        if (!Gate::allows('ver-movimientos')) {
+            return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
+                ->with('error', 'No tienes permiso para ver movimientos');
+        }
+
+        $movimiento = MovimientoPoliza::with([
+            'poliza.persona',
+            'poliza.usuarioCreador',
+            'poliza.usuarioRevisor',
+            'poliza.usuarioAutorizador',
+            'poliza.marcador',
+            'cuenta' => function($q) {
+                $q->where('en_uso', true);
+            },
+            'cuentaFondeadora' => function($q) {
+                $q->where('en_uso', true);
+            },
+            'poliza.abonos'
+        ])->find($id);
+
+        if (!$movimiento) {
+            return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
+                ->with('error', 'Movimiento no encontrado');
+        }
+
+        if (!$movimiento->poliza->es_por_pagar) {
+            return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
+                ->with('error', 'Esta póliza no es de tipo "Por pagar"');
+        }
+
+        $abonos = $movimiento->poliza->abonos ?? collect();
+        $totalAbonado = $abonos->sum('monto_abonado');
+        $saldoPendiente = abs($movimiento->monto) - $totalAbonado;
+
+        if ($saldoPendiente <= 0.01) {
+            return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
+                ->with('info', 'Esta póliza ya está liquidada');
+        }
+
+        $cuentaFondeadoraId = $movimiento->id_caja_fondo;
+        $cuentaFondeadoraNombre = $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso 
+            ? $movimiento->cuentaFondeadora->nombre_cuenta 
+            : null;
+
+        return Inertia::render('Movimientos/Abono', [
+            'movimiento' => [
+                'id_movimiento' => $movimiento->id,
+                'id_poliza' => $movimiento->id_poliza,
+                'referencia' => $movimiento->poliza->folio ?? 'S/N',
+                'tipo_poliza' => $movimiento->poliza->tipo_poliza,
+                'fecha_poliza' => $movimiento->poliza->fecha_poliza?->format('Y-m-d'),
+                'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento?->format('Y-m-d'),
+                'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : 'N/A',
+                'cuenta' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->cuenta->nombre_cuenta : 'N/A',
+                'cuenta_fondeadora' => $cuentaFondeadoraNombre,
+                'cuenta_fondeadora_id' => $cuentaFondeadoraId,
+                'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : 'Sin marcador',
+                'nota' => $movimiento->poliza->nota ?? 'Sin nota',
+                'estatus' => $movimiento->poliza->estatus,
+                'estatus_texto' => $this->getEstatusTexto($movimiento->poliza->estatus),
+                'monto_abs' => abs($movimiento->monto),
+                'monto_base' => abs($movimiento->monto_base ?? 0),
+                'monto_iva' => abs($movimiento->monto_iva ?? 0),
+                'total_abonado' => $totalAbonado,
+                'saldo_pendiente' => $saldoPendiente,
+                'abonos' => $abonos->map(function($abono) {
+                    return [
+                        'id' => $abono->id,
+                        'monto_abonado' => $abono->monto_abonado,
+                        'fecha_abono' => $abono->fecha_abono,
+                        'referencia' => $abono->referencia,
+                        'metodo_pago' => $abono->metodo_pago,
+                        'nota' => $abono->nota
+                    ];
+                }),
+                'numero_abonos' => $abonos->count(),
+                'es_por_pagar' => $movimiento->poliza->es_por_pagar
+            ]
+        ]);
+    }
+
     // ============================================
     // 📄 EDIT - EDITAR MOVIMIENTO
     // ============================================
@@ -1502,7 +1652,6 @@ public function showAbono(string $id)
             $movimiento->update($movimientoData);
             $this->actualizarEstatusPoliza($poliza);
 
-            // SOLO ACTUALIZAR SALDOS SI NO ES DIFERIDA
             if (!$poliza->es_por_pagar) {
                 if ($cajaFondoAnterior) {
                     $this->actualizarSaldoCuenta($cajaFondoAnterior);
@@ -1591,7 +1740,6 @@ public function showAbono(string $id)
 
             $poliza->delete();
 
-            // SOLO ACTUALIZAR SALDOS SI NO ERA DIFERIDA
             if (!$poliza->es_por_pagar) {
                 foreach (array_unique($cuentasAActualizar) as $idCuenta) {
                     if ($idCuenta) {
@@ -1624,240 +1772,230 @@ public function showAbono(string $id)
         }
     }
 
-   // ============================================
-// 📄 STORE ABONO - CON MENSAJE DE ÉXITO
-// ============================================
-public function storeAbono(Request $request)
-{
-    \Log::info('=== INICIO storeAbono ===');
-    \Log::info('Datos recibidos:', $request->all());
+    // ============================================
+    // 📄 STORE ABONO
+    // ============================================
+    public function storeAbono(Request $request)
+    {
+        \Log::info('=== INICIO storeAbono ===');
+        \Log::info('Datos recibidos:', $request->all());
 
-    if (!Gate::allows('editar-movimientos')) {
-        \Log::warning('Permiso denegado para editar movimientos');
-        return back()->with('error', 'No tienes permiso para registrar abonos');
+        if (!Gate::allows('editar-movimientos')) {
+            \Log::warning('Permiso denegado para editar movimientos');
+            return back()->with('error', 'No tienes permiso para registrar abonos');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id_poliza' => 'required|exists:polizas,id',
+            'monto_abonado' => 'required|numeric|min:0.01',
+            'fecha_abono' => 'required|date',
+            'referencia' => 'nullable|string|max:100',
+            'metodo_pago' => 'nullable|string|max:50',
+            'nota' => 'nullable|string',
+            'id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Validación fallida:', $validator->errors()->toArray());
+            return back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            DB::beginTransaction();
+            \Log::info('Transacción iniciada');
+
+            $polizaOriginal = Poliza::find($request->id_poliza);
+            \Log::info('Póliza original encontrada:', [
+                'id' => $polizaOriginal->id ?? 'null',
+                'folio' => $polizaOriginal->folio ?? 'null',
+                'estatus' => $polizaOriginal->estatus ?? 'null',
+                'es_por_pagar' => $polizaOriginal->es_por_pagar ?? 'null',
+            ]);
+
+            if (!$polizaOriginal) {
+                \Log::error('Póliza original no encontrada');
+                return back()->with('error', 'Póliza original no encontrada');
+            }
+
+            if (in_array($polizaOriginal->estatus, ['LIQUIDADO'])) {
+                \Log::warning('Póliza ya liquidada:', ['estatus' => $polizaOriginal->estatus]);
+                return back()->with('error', 'No se pueden agregar abonos a una póliza liquidada');
+            }
+
+            $movimientoOriginal = MovimientoPoliza::where('id_poliza', $polizaOriginal->id)->first();
+            \Log::info('Movimiento original encontrado:', [
+                'id' => $movimientoOriginal->id ?? 'null',
+                'monto' => $movimientoOriginal->monto ?? 'null',
+                'id_cuenta' => $movimientoOriginal->id_cuenta ?? 'null',
+                'id_caja_fondo' => $movimientoOriginal->id_caja_fondo ?? 'null',
+            ]);
+
+            if (!$movimientoOriginal) {
+                \Log::error('Movimiento original no encontrado');
+                return back()->with('error', 'Movimiento original no encontrado');
+            }
+
+            $totalAbonado = AbonoPoliza::where('id_poliza', $polizaOriginal->id)->sum('monto_abonado');
+            $montoTotal = abs($movimientoOriginal->monto);
+            $saldoPendiente = round($montoTotal - $totalAbonado, 2);
+            $montoAbonado = round($request->monto_abonado, 2);
+
+            \Log::info('Saldos calculados:', [
+                'totalAbonado_anterior' => $totalAbonado,
+                'montoTotal' => $montoTotal,
+                'saldoPendiente' => $saldoPendiente,
+                'montoAbonado' => $montoAbonado,
+            ]);
+
+            if ($montoAbonado > $saldoPendiente) {
+                \Log::warning('Monto abonado excede saldo pendiente');
+                return back()->with('error', 'El monto abonado no puede ser mayor al saldo pendiente ($' . number_format($saldoPendiente, 2) . ')');
+            }
+
+            $empresaId = $polizaOriginal->id_empresa;
+            \Log::info('Creando póliza de egreso:', ['empresa_id' => $empresaId]);
+            
+            $nuevaPoliza = Poliza::create([
+                'id_empresa' => $empresaId,
+                'tipo_poliza' => 'EGRESO',
+                'fecha_poliza' => $request->fecha_abono,
+                'fecha_vencimiento' => null,
+                'categoria' => 'NO_FISCAL',
+                'estatus' => 'CAPTURADO',
+                'es_por_pagar' => false,
+                'referencia' => 'ABONO-' . $polizaOriginal->folio . '-' . date('YmdHis'),
+                'nota' => 'Abono a póliza ' . $polizaOriginal->folio . ' - ' . ($request->nota ?? 'Abono registrado'),
+                'id_persona' => $polizaOriginal->id_persona,
+                'id_usuario_creador' => auth()->id(),
+                'id_usuario_autorizador' => null,
+                'fecha_creacion' => now(),
+                'fecha_autorizacion' => null,
+                'id_marcador' => $polizaOriginal->id_marcador,
+                'fecha_factura' => null,
+                'numero_factura' => null,
+                'ruta_pdf' => null,
+                'nombre_pdf' => null,
+                'nombre_xml' => null,
+                'uuid_factura' => null,
+                'serie_factura' => null,
+                'folio_factura' => null,
+            ]);
+
+            \Log::info('Póliza de egreso creada:', [
+                'id' => $nuevaPoliza->id,
+                'folio' => $nuevaPoliza->folio,
+                'referencia' => $nuevaPoliza->referencia,
+            ]);
+
+            $nuevaPoliza->refresh();
+
+            \Log::info('Creando movimiento de egreso...');
+            
+            $movimientoEgreso = MovimientoPoliza::create([
+                'id_poliza' => $nuevaPoliza->id,
+                'id_cuenta' => $movimientoOriginal->id_cuenta,
+                'id_caja_fondo' => $request->id_cuenta_fondeadora,
+                'id_tipo_iva' => null,
+                'monto' => -$montoAbonado,
+                'monto_base' => -$montoAbonado,
+                'monto_iva' => 0,
+                'monto_traspaso' => null,
+                'monto_iva_cero' => 0,
+                'monto_iva_dieciseis' => 0,
+                'iva_dieciseis' => 0,
+            ]);
+
+            \Log::info('Movimiento de egreso creado:', [
+                'id' => $movimientoEgreso->id,
+                'monto' => $movimientoEgreso->monto,
+                'id_cuenta' => $movimientoEgreso->id_cuenta,
+                'id_caja_fondo' => $movimientoEgreso->id_caja_fondo,
+            ]);
+
+            \Log::info('Actualizando saldo cuenta fondeadora:', ['id_cuenta' => $request->id_cuenta_fondeadora]);
+            $this->actualizarSaldoCuenta($request->id_cuenta_fondeadora);
+            
+            if ($movimientoOriginal->id_cuenta && $movimientoOriginal->id_cuenta != $request->id_cuenta_fondeadora) {
+                \Log::info('Actualizando saldo cuenta original:', ['id_cuenta' => $movimientoOriginal->id_cuenta]);
+                $this->actualizarSaldoCuenta($movimientoOriginal->id_cuenta);
+            }
+
+            \Log::info('Actualizando estatus de póliza original...');
+            
+            $totalAbonadoActual = AbonoPoliza::where('id_poliza', $polizaOriginal->id)->sum('monto_abonado');
+            \Log::info('Total abonado actual:', ['total' => $totalAbonadoActual]);
+
+            $totalEgresos = MovimientoPoliza::whereHas('poliza', function($q) use ($polizaOriginal) {
+                $q->where('referencia', 'LIKE', 'ABONO-' . $polizaOriginal->folio . '%')
+                ->where('tipo_poliza', 'EGRESO');
+            })->sum('monto');
+            
+            $totalEgresos = abs($totalEgresos);
+            \Log::info('Total egresos encontrados:', ['total' => $totalEgresos]);
+
+            $totalPagado = $totalAbonadoActual + $totalEgresos;
+            \Log::info('Total pagado calculado:', [
+                'totalAbonadoActual' => $totalAbonadoActual,
+                'totalEgresos' => $totalEgresos,
+                'totalPagado' => $totalPagado,
+                'montoTotal_requerido' => $montoTotal,
+            ]);
+
+            if ($totalPagado >= $montoTotal) {
+                $polizaOriginal->estatus = 'LIQUIDADO';
+                $polizaOriginal->fecha_liquidacion = now();
+                \Log::info('Póliza marcada como LIQUIDADO');
+            } elseif ($totalPagado > 0) {
+                $polizaOriginal->estatus = 'ABONADO';
+                $polizaOriginal->fecha_abono = now();
+                \Log::info('Póliza marcada como ABONADO');
+            }
+
+            $polizaOriginal->save();
+            \Log::info('Póliza original actualizada:', [
+                'id' => $polizaOriginal->id,
+                'nuevo_estatus' => $polizaOriginal->estatus,
+            ]);
+
+            $abono = AbonoPoliza::create([
+                'id_poliza' => $polizaOriginal->id,
+                'monto_abonado' => $montoAbonado,
+                'fecha_abono' => $request->fecha_abono,
+                'referencia' => $request->referencia ?? 'ABONO-' . $nuevaPoliza->folio,
+                'metodo_pago' => $request->metodo_pago ?? 'TRANSFERENCIA',
+                'nota' => $request->nota . ' | Póliza de egreso generada: ' . $nuevaPoliza->folio,
+                'id_usuario' => auth()->id(),
+                'id_poliza_egreso' => $nuevaPoliza->id,
+            ]);
+
+            DB::commit();
+            \Log::info('=== storeAbono COMPLETADO EXITOSAMENTE ===');
+
+            $mensaje = '✅ Abono registrado exitosamente. ' .
+                       'Se creó la póliza de egreso: ' . $nuevaPoliza->folio . 
+                       ' por $' . number_format($montoAbonado, 2) . 
+                       '. Nuevo saldo pendiente: $' . number_format($saldoPendiente - $montoAbonado, 2);
+
+            if ($totalPagado >= $montoTotal) {
+                $mensaje .= ' 🎉 ¡Póliza liquidada completamente!';
+            }
+
+            return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
+                ->with('success', $mensaje);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('=== ERROR EN storeAbono ===');
+            \Log::error('Mensaje de error:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Error al registrar el pago: ' . $e->getMessage())->withInput();
+        }
     }
 
-    $validator = Validator::make($request->all(), [
-        'id_poliza' => 'required|exists:polizas,id',
-        'monto_abonado' => 'required|numeric|min:0.01',
-        'fecha_abono' => 'required|date',
-        'referencia' => 'nullable|string|max:100',
-        'metodo_pago' => 'nullable|string|max:50',
-        'nota' => 'nullable|string',
-        'id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
-    ]);
-
-    if ($validator->fails()) {
-        \Log::error('Validación fallida:', $validator->errors()->toArray());
-        return back()->withErrors($validator)->withInput();
-    }
-
-    try {
-        DB::beginTransaction();
-        \Log::info('Transacción iniciada');
-
-        // ✅ BUSCAR PÓLIZA ORIGINAL
-        $polizaOriginal = Poliza::find($request->id_poliza);
-        \Log::info('Póliza original encontrada:', [
-            'id' => $polizaOriginal->id ?? 'null',
-            'folio' => $polizaOriginal->folio ?? 'null',
-            'estatus' => $polizaOriginal->estatus ?? 'null',
-            'es_por_pagar' => $polizaOriginal->es_por_pagar ?? 'null',
-        ]);
-
-        if (!$polizaOriginal) {
-            \Log::error('Póliza original no encontrada');
-            return back()->with('error', 'Póliza original no encontrada');
-        }
-
-        if (in_array($polizaOriginal->estatus, ['LIQUIDADO'])) {
-            \Log::warning('Póliza ya liquidada:', ['estatus' => $polizaOriginal->estatus]);
-            return back()->with('error', 'No se pueden agregar abonos a una póliza liquidada');
-        }
-
-        // ✅ BUSCAR MOVIMIENTO ORIGINAL
-        $movimientoOriginal = MovimientoPoliza::where('id_poliza', $polizaOriginal->id)->first();
-        \Log::info('Movimiento original encontrado:', [
-            'id' => $movimientoOriginal->id ?? 'null',
-            'monto' => $movimientoOriginal->monto ?? 'null',
-            'id_cuenta' => $movimientoOriginal->id_cuenta ?? 'null',
-            'id_caja_fondo' => $movimientoOriginal->id_caja_fondo ?? 'null',
-        ]);
-
-        if (!$movimientoOriginal) {
-            \Log::error('Movimiento original no encontrado');
-            return back()->with('error', 'Movimiento original no encontrado');
-        }
-
-        // ✅ CALCULAR SALDOS
-        $totalAbonado = AbonoPoliza::where('id_poliza', $polizaOriginal->id)->sum('monto_abonado');
-        $montoTotal = abs($movimientoOriginal->monto);
-        $saldoPendiente = round($montoTotal - $totalAbonado, 2);
-        $montoAbonado = round($request->monto_abonado, 2);
-
-        \Log::info('Saldos calculados:', [
-            'totalAbonado_anterior' => $totalAbonado,
-            'montoTotal' => $montoTotal,
-            'saldoPendiente' => $saldoPendiente,
-            'montoAbonado' => $montoAbonado,
-        ]);
-
-        if ($montoAbonado > $saldoPendiente) {
-            \Log::warning('Monto abonado excede saldo pendiente');
-            return back()->with('error', 'El monto abonado no puede ser mayor al saldo pendiente ($' . number_format($saldoPendiente, 2) . ')');
-        }
-
-        // ✅ CREAR PÓLIZA DE EGRESO REAL
-        $empresaId = $polizaOriginal->id_empresa;
-        \Log::info('Creando póliza de egreso:', ['empresa_id' => $empresaId]);
-        
-        $nuevaPoliza = Poliza::create([
-            'id_empresa' => $empresaId,
-            'tipo_poliza' => 'EGRESO',
-            'fecha_poliza' => $request->fecha_abono,
-            'fecha_vencimiento' => null,
-            'categoria' => 'NO_FISCAL',
-            'estatus' => 'CAPTURADO',
-            'es_por_pagar' => false,
-            'referencia' => 'ABONO-' . $polizaOriginal->folio . '-' . date('YmdHis'),
-            'nota' => 'Abono a póliza ' . $polizaOriginal->folio . ' - ' . ($request->nota ?? 'Abono registrado'),
-            'id_persona' => $polizaOriginal->id_persona,
-            'id_usuario_creador' => auth()->id(),
-            'id_usuario_autorizador' => null,
-            'fecha_creacion' => now(),
-            'fecha_autorizacion' => null,
-            'id_marcador' => $polizaOriginal->id_marcador,
-            'fecha_factura' => null,
-            'numero_factura' => null,
-            'ruta_pdf' => null,
-            'nombre_pdf' => null,
-            'nombre_xml' => null,
-            'uuid_factura' => null,
-            'serie_factura' => null,
-            'folio_factura' => null,
-        ]);
-
-        \Log::info('Póliza de egreso creada:', [
-            'id' => $nuevaPoliza->id,
-            'folio' => $nuevaPoliza->folio,
-            'referencia' => $nuevaPoliza->referencia,
-        ]);
-
-        $nuevaPoliza->refresh();
-
-        // ✅ CREAR MOVIMIENTO DE EGRESO
-        \Log::info('Creando movimiento de egreso...');
-        
-        $movimientoEgreso = MovimientoPoliza::create([
-            'id_poliza' => $nuevaPoliza->id,
-            'id_cuenta' => $movimientoOriginal->id_cuenta,
-            'id_caja_fondo' => $request->id_cuenta_fondeadora,
-            'id_tipo_iva' => null,
-            'monto' => -$montoAbonado,
-            'monto_base' => -$montoAbonado,
-            'monto_iva' => 0,
-            'monto_traspaso' => null,
-            'monto_iva_cero' => 0,
-            'monto_iva_dieciseis' => 0,
-            'iva_dieciseis' => 0,
-        ]);
-
-        \Log::info('Movimiento de egreso creado:', [
-            'id' => $movimientoEgreso->id,
-            'monto' => $movimientoEgreso->monto,
-            'id_cuenta' => $movimientoEgreso->id_cuenta,
-            'id_caja_fondo' => $movimientoEgreso->id_caja_fondo,
-        ]);
-
-        // ✅ ACTUALIZAR SALDO DE LA CUENTA FONDEADORA
-        \Log::info('Actualizando saldo cuenta fondeadora:', ['id_cuenta' => $request->id_cuenta_fondeadora]);
-        $this->actualizarSaldoCuenta($request->id_cuenta_fondeadora);
-        
-        if ($movimientoOriginal->id_cuenta && $movimientoOriginal->id_cuenta != $request->id_cuenta_fondeadora) {
-            \Log::info('Actualizando saldo cuenta original:', ['id_cuenta' => $movimientoOriginal->id_cuenta]);
-            $this->actualizarSaldoCuenta($movimientoOriginal->id_cuenta);
-        }
-
-        // ✅ ACTUALIZAR ESTATUS DE LA PÓLIZA ORIGINAL
-        \Log::info('Actualizando estatus de póliza original...');
-        
-        // Obtener total abonado de todas las pólizas de egreso asociadas
-        $totalAbonadoActual = AbonoPoliza::where('id_poliza', $polizaOriginal->id)->sum('monto_abonado');
-        \Log::info('Total abonado actual:', ['total' => $totalAbonadoActual]);
-
-        // También sumar los montos de las pólizas de egreso que tienen referencia a esta póliza
-        $totalEgresos = MovimientoPoliza::whereHas('poliza', function($q) use ($polizaOriginal) {
-            $q->where('referencia', 'LIKE', 'ABONO-' . $polizaOriginal->folio . '%')
-            ->where('tipo_poliza', 'EGRESO');
-        })->sum('monto');
-        
-        $totalEgresos = abs($totalEgresos);
-        \Log::info('Total egresos encontrados:', ['total' => $totalEgresos]);
-
-        $totalPagado = $totalAbonadoActual + $totalEgresos;
-        \Log::info('Total pagado calculado:', [
-            'totalAbonadoActual' => $totalAbonadoActual,
-            'totalEgresos' => $totalEgresos,
-            'totalPagado' => $totalPagado,
-            'montoTotal_requerido' => $montoTotal,
-        ]);
-
-        if ($totalPagado >= $montoTotal) {
-            $polizaOriginal->estatus = 'LIQUIDADO';
-            $polizaOriginal->fecha_liquidacion = now();
-            \Log::info('Póliza marcada como LIQUIDADO');
-        } elseif ($totalPagado > 0) {
-            $polizaOriginal->estatus = 'ABONADO';
-            $polizaOriginal->fecha_abono = now();
-            \Log::info('Póliza marcada como ABONADO');
-        }
-
-        $polizaOriginal->save();
-        \Log::info('Póliza original actualizada:', [
-            'id' => $polizaOriginal->id,
-            'nuevo_estatus' => $polizaOriginal->estatus,
-        ]);
-
-        // ✅ CREAR REGISTRO DE ABONO (INFORMATIVO)
-        $abono = AbonoPoliza::create([
-            'id_poliza' => $polizaOriginal->id,
-            'monto_abonado' => $montoAbonado,
-            'fecha_abono' => $request->fecha_abono,
-            'referencia' => $request->referencia ?? 'ABONO-' . $nuevaPoliza->folio,
-            'metodo_pago' => $request->metodo_pago ?? 'TRANSFERENCIA',
-            'nota' => $request->nota . ' | Póliza de egreso generada: ' . $nuevaPoliza->folio,
-            'id_usuario' => auth()->id(),
-            'id_poliza_egreso' => $nuevaPoliza->id,
-        ]);
-
-        DB::commit();
-        \Log::info('=== storeAbono COMPLETADO EXITOSAMENTE ===');
-
-        // ✅ MENSAJE DE ÉXITO CON DETALLES
-        $mensaje = '✅ Abono registrado exitosamente. ' .
-                   'Se creó la póliza de egreso: ' . $nuevaPoliza->folio . 
-                   ' por $' . number_format($montoAbonado, 2) . 
-                   '. Nuevo saldo pendiente: $' . number_format($saldoPendiente - $montoAbonado, 2);
-
-        if ($totalPagado >= $montoTotal) {
-            $mensaje .= ' 🎉 ¡Póliza liquidada completamente!';
-        }
-
-        return redirect()->route('movimientos.index', ['vista' => 'diferidas'])
-            ->with('success', $mensaje);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('=== ERROR EN storeAbono ===');
-        \Log::error('Mensaje de error:', [
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return back()->with('error', 'Error al registrar el pago: ' . $e->getMessage())->withInput();
-    }
-}
     // ============================================
     // 📄 DESTROY ABONO
     // ============================================
@@ -1897,11 +2035,9 @@ public function storeAbono(Request $request)
                 ], 422);
             }
 
-            // Eliminar la póliza de egreso asociada
             if ($abono->id_poliza_egreso) {
                 $polizaEgreso = Poliza::find($abono->id_poliza_egreso);
                 if ($polizaEgreso) {
-                    // Revertir saldo de la cuenta fondeadora
                     $movimientoEgreso = MovimientoPoliza::where('id_poliza', $polizaEgreso->id)->first();
                     if ($movimientoEgreso) {
                         $idCuentaFondeadora = $movimientoEgreso->id_caja_fondo;
@@ -2001,7 +2137,6 @@ public function storeAbono(Request $request)
                 ], 422);
             }
 
-            // Crear póliza de egreso para la liquidación
             $empresaId = $poliza->id_empresa;
             
             $nuevaPoliza = Poliza::create([
@@ -2176,7 +2311,7 @@ public function storeAbono(Request $request)
     }
 
     // ============================================
-    // 📄 CREATE NÓMINA - SOLO EMPLEADOS
+    // 📄 CREATE NÓMINA
     // ============================================
     public function createNomina()
     {
@@ -2197,9 +2332,8 @@ public function storeAbono(Request $request)
                 ->with('error', 'No tienes una empresa seleccionada.');
         }
 
-        // ✅ SOLO EMPLEADOS (empleado = 1)
         $empleados = Persona::where('activo', true)
-            ->where('empleado', 1) // Solo empleados
+            ->where('empleado', 1)
             ->orderBy('Nombre')
             ->orderBy('Paterno')
             ->orderBy('Materno')
@@ -2226,7 +2360,6 @@ public function storeAbono(Request $request)
                 ];
             });
 
-        // ✅ CUENTAS PARA NÓMINA - TODAS LAS CUENTAS ACTIVAS
         $cuentasNomina = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->orderBy('nombre_cuenta')
@@ -2259,10 +2392,11 @@ public function storeAbono(Request $request)
             'empresa_id' => (int) $empresaId,
             'empleados' => $empleados,
             'cuentas_fondeadoras' => $cuentasFondeadoras,
-            'cuentas_nomina' => $cuentasNomina, // ✅ AGREGADO: pasar cuentas para nómina
+            'cuentas_nomina' => $cuentasNomina,
             'marcadores' => $marcadores
         ]);
     }
+
     // ============================================
     // 📄 STORE NÓMINA
     // ============================================
@@ -2315,7 +2449,6 @@ public function storeAbono(Request $request)
             $totalEmpleados = 0;
 
             foreach ($request->empleados as $empleadoData) {
-                // Verificar que sea empleado
                 $persona = Persona::find($empleadoData['id_persona']);
                 if (!$persona || !$persona->empleado) {
                     throw new \Exception('La persona ' . ($persona ? $persona->nombre_completo : 'desconocida') . ' no es un empleado');
@@ -2345,6 +2478,9 @@ public function storeAbono(Request $request)
                     'fecha_revision' => null,
                     'id_marcador' => $idMarcador,
                     'fecha_creacion' => now(),
+                    'ruta_pdf' => null,
+                    'nombre_pdf' => null,
+                    'nombre_xml' => null,
                 ]);
 
                 MovimientoPoliza::create([
@@ -2356,6 +2492,9 @@ public function storeAbono(Request $request)
                     'monto_base' => -$monto,
                     'monto_iva' => 0,
                     'monto_traspaso' => null,
+                    'monto_iva_cero' => 0,
+                    'monto_iva_dieciseis' => 0,
+                    'iva_dieciseis' => 0,
                 ]);
 
                 $this->actualizarSaldoCuenta($empleadoData['id_cuenta_fondeadora']);
@@ -2701,7 +2840,6 @@ public function storeAbono(Request $request)
 
         $search = $request->get('q', '');
 
-        // ✅ SOLO EMPLEADOS
         $empleados = Persona::where('activo', true)
             ->where('empleado', 1)
             ->where(function($query) use ($search) {
@@ -3090,127 +3228,6 @@ public function storeAbono(Request $request)
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error al exportar PDF: ' . $e->getMessage());
         }
-    }
-
-    // ============================================
-    // 🔧 FUNCIONES AUXILIARES
-    // ============================================
-    
-    private function getEstatusTexto($estatus)
-    {
-        $map = [
-            'CAPTURADO' => 'Capturado',
-            'REVISADO' => 'Revisado',
-            'AUTORIZADO' => 'Autorizado',
-            'ABONADO' => 'Abonado',
-            'LIQUIDADO' => 'Liquidado',
-            'PENDIENTE' => 'Pendiente',
-            'CERRADO' => 'Cerrado',
-        ];
-        return $map[$estatus] ?? $estatus;
-    }
-
-    private function actualizarEstatusPoliza($poliza)
-    {
-        $totalMovimientos = $poliza->movimientos()->sum('monto');
-        $totalAbonado = $poliza->abonos()->sum('monto_abonado');
-
-        if (in_array($poliza->estatus, ['CAPTURADO', 'REVISADO', 'AUTORIZADO', 'PENDIENTE'])) {
-            if ($totalAbonado > 0) {
-                $poliza->estatus = 'ABONADO';
-                $poliza->fecha_abono = now();
-            }
-            if ($totalAbonado >= abs($totalMovimientos) && $totalMovimientos != 0) {
-                $poliza->estatus = 'LIQUIDADO';
-                $poliza->fecha_liquidacion = now();
-            }
-        } elseif ($poliza->estatus === 'ABONADO') {
-            if ($totalAbonado >= abs($totalMovimientos) && $totalMovimientos != 0) {
-                $poliza->estatus = 'LIQUIDADO';
-                $poliza->fecha_liquidacion = now();
-            }
-        }
-
-        $poliza->save();
-        return $poliza;
-    }
-
-    private function actualizarSaldoCuenta($idCuenta)
-    {
-        if (!$idCuenta) return 0;
-        
-        $totalMonto = MovimientoPoliza::where(function($query) use ($idCuenta) {
-            $query->where('id_cuenta', $idCuenta)
-                  ->orWhere('id_caja_fondo', $idCuenta);
-        })->sum('monto');
-        
-        $traspasosOrigen = MovimientoPoliza::where('id_caja_fondo', $idCuenta)
-            ->whereNotNull('monto_traspaso')
-            ->where('monto_traspaso', '>', 0)
-            ->sum('monto_traspaso');
-        
-        $traspasosDestino = MovimientoPoliza::where('id_cuenta', $idCuenta)
-            ->whereNotNull('monto_traspaso')
-            ->where('monto_traspaso', '>', 0)
-            ->sum('monto_traspaso');
-        
-        $saldoTotal = $totalMonto - $traspasosOrigen + $traspasosDestino;
-        
-        $cuenta = Cuenta::find($idCuenta);
-        if ($cuenta) {
-            $cuenta->saldo_inicial = $saldoTotal;
-            $cuenta->save();
-        }
-        
-        return $saldoTotal;
-    }
-
-    private function calcularDesgloseExacto($totalFactura, $porcentajeIva)
-    {
-        if ($porcentajeIva == 0) {
-            return [
-                'monto_base' => $totalFactura,
-                'monto_iva' => 0,
-                'total' => $totalFactura
-            ];
-        }
-
-        $totalCentavos = round($totalFactura * 100);
-        $factor = 100 + $porcentajeIva;
-        
-        $baseCentavos = round($totalCentavos * 100 / $factor);
-        $ivaCentavos = $totalCentavos - $baseCentavos;
-        
-        $montoBase = $baseCentavos / 100;
-        $montoIva = $ivaCentavos / 100;
-        
-        $suma = $montoBase + $montoIva;
-        if (abs($suma - $totalFactura) > 0.001) {
-            $diferencia = $totalFactura - $suma;
-            $montoIva = round(($montoIva + $diferencia) * 100) / 100;
-        }
-        
-        return [
-            'monto_base' => round($montoBase, 2),
-            'monto_iva' => round($montoIva, 2),
-            'total' => round($montoBase + $montoIva, 2)
-        ];
-    }
-
-    private function formatFechaExcel($fecha)
-    {
-        if (!$fecha) return '—';
-        if ($fecha instanceof \DateTime) {
-            return $fecha->format('d/m/Y');
-        }
-        return date('d/m/Y', strtotime($fecha));
-    }
-
-    private function formatMonto($monto)
-    {
-        if ($monto === null || $monto === '') return '$0.00';
-        $signo = $monto < 0 ? '-' : '';
-        return $signo . '$' . number_format(abs($monto), 2);
     }
 
     // ============================================
@@ -3691,6 +3708,254 @@ public function storeAbono(Request $request)
         ]);
     }
 
+    // ============================================
+    // 💰 STORE LIQUIDACIÓN - LIQUIDAR PÓLIZA DIFERIDA COMPLETAMENTE
+    // ============================================
+    public function storeLiquidacion(Request $request)
+    {
+        \Log::info('=== INICIO storeLiquidacion ===');
+        \Log::info('Datos recibidos:', $request->all());
 
+        if (!Gate::allows('editar-movimientos')) {
+            \Log::warning('Permiso denegado para liquidar pólizas');
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para liquidar pólizas'
+            ], 403);
+        }
 
-}
+        $validator = Validator::make($request->all(), [
+            'id_movimiento' => 'required|exists:movimientos_poliza,id',
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Validación fallida:', $validator->errors()->toArray());
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos: ' . $validator->errors()->first()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+            \Log::info('Transacción iniciada');
+
+            $movimientoOriginal = MovimientoPoliza::with(['poliza', 'cuenta', 'cuentaFondeadora'])
+                ->find($request->id_movimiento);
+            
+            if (!$movimientoOriginal) {
+                \Log::error('Movimiento original no encontrado');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Movimiento original no encontrado'
+                ], 404);
+            }
+
+            $polizaOriginal = $movimientoOriginal->poliza;
+            
+            if (!$polizaOriginal) {
+                \Log::error('Póliza original no encontrada');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Póliza original no encontrada'
+                ], 404);
+            }
+
+            if (in_array($polizaOriginal->estatus, ['LIQUIDADO'])) {
+                \Log::warning('Póliza ya liquidada:', ['estatus' => $polizaOriginal->estatus]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta póliza ya está liquidada'
+                ], 400);
+            }
+
+            $totalAbonado = AbonoPoliza::where('id_poliza', $polizaOriginal->id)->sum('monto_abonado');
+            
+            $esTraspaso = $polizaOriginal->tipo_poliza === 'TRASPASO';
+            $montoTotal = $esTraspaso 
+                ? abs($movimientoOriginal->monto_traspaso ?? $movimientoOriginal->monto)
+                : abs($movimientoOriginal->monto);
+            
+            $saldoPendiente = round($montoTotal - $totalAbonado, 2);
+            
+            if ($saldoPendiente <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta póliza ya está completamente pagada/cobrada'
+                ], 400);
+            }
+
+            $esIngreso = $movimientoOriginal->monto > 0;
+            $esEgreso = $movimientoOriginal->monto < 0;
+
+            $cuentaFondeadoraId = null;
+            $cuentaFondeadora = null;
+
+            if ($esEgreso) {
+                $cuentaFondeadoraId = $movimientoOriginal->id_caja_fondo;
+                
+                if (!$cuentaFondeadoraId) {
+                    $cuentaFondeadoraId = $this->obtenerCuentaFondeadoraDefecto($polizaOriginal->id_empresa);
+                }
+
+                if (!$cuentaFondeadoraId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se encontró una cuenta fondeadora para esta póliza de egreso.'
+                    ], 400);
+                }
+
+                $cuentaFondeadora = Cuenta::find($cuentaFondeadoraId);
+                if (!$cuentaFondeadora) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cuenta fondeadora no encontrada'
+                    ], 404);
+                }
+
+                $saldoActual = (float) ($cuentaFondeadora->saldo_inicial ?? 0);
+                if ($saldoActual < $saldoPendiente) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Saldo insuficiente en la cuenta fondeadora. Disponible: $" . number_format($saldoActual, 2) . ", Necesario: $" . number_format($saldoPendiente, 2)
+                    ], 400);
+                }
+            }
+
+            $empresaId = $polizaOriginal->id_empresa;
+            $fechaLiquidacion = now()->toDateString();
+            
+            $tipoPolizaLiquidacion = $esIngreso ? 'INGRESO' : 'EGRESO';
+            
+            $nuevaPoliza = Poliza::create([
+                'id_empresa' => $empresaId,
+                'tipo_poliza' => $tipoPolizaLiquidacion,
+                'fecha_poliza' => $fechaLiquidacion,
+                'fecha_vencimiento' => null,
+                'categoria' => 'NO_FISCAL',
+                'estatus' => 'CAPTURADO',
+                'es_por_pagar' => false,
+                'referencia' => ($esIngreso ? 'COB-' : 'PAG-') . $polizaOriginal->folio,
+                'nota' => ($esIngreso ? 'COBRO' : 'PAGO') . ' TOTAL de póliza ' . $polizaOriginal->folio . ' - Liquidación completa',
+                'id_persona' => $polizaOriginal->id_persona,
+                'id_usuario_creador' => auth()->id(),
+                'id_usuario_autorizador' => null,
+                'fecha_creacion' => now(),
+                'fecha_autorizacion' => null,
+                'id_marcador' => $polizaOriginal->id_marcador,
+                'fecha_factura' => null,
+                'numero_factura' => null,
+                'ruta_pdf' => null,
+                'nombre_pdf' => null,
+                'nombre_xml' => null,
+                'uuid_factura' => null,
+                'serie_factura' => null,
+                'folio_factura' => null,
+            ]);
+
+            $nuevaPoliza->refresh();
+
+            $montoLiquidacion = $esIngreso ? $saldoPendiente : -$saldoPendiente;
+            
+            MovimientoPoliza::create([
+                'id_poliza' => $nuevaPoliza->id,
+                'id_cuenta' => $movimientoOriginal->id_cuenta,
+                'id_caja_fondo' => $esEgreso ? $cuentaFondeadoraId : null,
+                'id_tipo_iva' => null,
+                'monto' => $montoLiquidacion,
+                'monto_base' => $montoLiquidacion,
+                'monto_iva' => 0,
+                'monto_traspaso' => null,
+                'monto_iva_cero' => 0,
+                'monto_iva_dieciseis' => 0,
+                'iva_dieciseis' => 0,
+            ]);
+
+            if ($esEgreso && $cuentaFondeadoraId) {
+                $this->actualizarSaldoCuenta($cuentaFondeadoraId);
+            }
+
+            if ($esIngreso) {
+                $this->actualizarSaldoCuenta($movimientoOriginal->id_cuenta);
+            }
+
+            if ($esEgreso && $movimientoOriginal->id_cuenta && $movimientoOriginal->id_cuenta != $cuentaFondeadoraId) {
+                $this->actualizarSaldoCuenta($movimientoOriginal->id_cuenta);
+            }
+
+            AbonoPoliza::create([
+                'id_poliza' => $polizaOriginal->id,
+                'monto_abonado' => $saldoPendiente,
+                'fecha_abono' => $fechaLiquidacion,
+                'referencia' => ($esIngreso ? 'COBRO-' : 'PAGO-') . $nuevaPoliza->folio,
+                'metodo_pago' => 'TRANSFERENCIA',
+                'nota' => ($esIngreso ? 'COBRO' : 'PAGO') . ' TOTAL - Póliza liquidada completamente | Póliza de ' . ($esIngreso ? 'cobro' : 'pago') . ': ' . $nuevaPoliza->folio,
+                'id_usuario' => auth()->id(),
+                'id_poliza_egreso' => $nuevaPoliza->id,
+            ]);
+
+            $polizaOriginal->estatus = 'LIQUIDADO';
+            $polizaOriginal->fecha_liquidacion = now();
+            $polizaOriginal->save();
+
+            DB::commit();
+
+            $tipoAccion = $esIngreso ? 'cobrada' : 'liquidada';
+            $mensaje = '✅ Póliza ' . $tipoAccion . ' exitosamente. ' .
+                    'Se creó la póliza de ' . ($esIngreso ? 'cobro' : 'pago') . ': ' . $nuevaPoliza->folio . 
+                    ' por $' . number_format($saldoPendiente, 2) . 
+                    '. La póliza ' . $polizaOriginal->folio . ' ha sido ' . $tipoAccion . ' completamente.';
+
+            return response()->json([
+                'success' => true,
+                'message' => $mensaje,
+                'data' => [
+                    'tipo' => $esIngreso ? 'INGRESO' : 'EGRESO',
+                    'poliza_liquidacion' => $nuevaPoliza->folio,
+                    'monto_liquidado' => $saldoPendiente,
+                    'cuenta_fondeadora' => $esEgreso ? ($cuentaFondeadora->nombre_cuenta ?? 'N/A') : 'N/A (Ingreso)',
+                    'poliza_original' => $polizaOriginal->folio
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error en storeLiquidacion:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al liquidar la póliza: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener la cuenta fondeadora por defecto de la empresa
+     */
+    private function obtenerCuentaFondeadoraDefecto($idEmpresa)
+    {
+        $cuenta = Cuenta::where('id_empresa', $idEmpresa)
+            ->where('en_uso', true)
+            ->where('tipo_cuenta', 'FONDEADORA')
+            ->first();
+
+        if (!$cuenta) {
+            $cuenta = Cuenta::where('id_empresa', $idEmpresa)
+                ->where('en_uso', true)
+                ->where('tipo_cuenta', 'CAJA')
+                ->first();
+        }
+
+        if (!$cuenta) {
+            $cuenta = Cuenta::where('id_empresa', $idEmpresa)
+                ->where('en_uso', true)
+                ->first();
+        }
+
+        return $cuenta ? $cuenta->id_cuenta : null;
+    }
+
+} // FIN DEL CONTROLADOR

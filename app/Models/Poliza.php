@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class Poliza extends Model
 {
@@ -73,7 +73,7 @@ class Poliza extends Model
         
         static::creating(function ($poliza) {
             if (empty($poliza->folio)) {
-                $poliza->folio = 'P-' . date('Ymd') . '-' . Str::random(6);
+                $poliza->folio = self::generarSiguienteFolio();
             }
             // Establecer estatus inicial
             if (empty($poliza->estatus)) {
@@ -82,8 +82,66 @@ class Poliza extends Model
         });
     }
 
+    /**
+     * Genera el siguiente folio secuencial (0001, 0002, 0003...)
+     */
+    public static function generarSiguienteFolio()
+    {
+        $ultimoFolio = self::orderBy('id', 'desc')->value('folio');
+        
+        if (!$ultimoFolio) {
+            return '0001';
+        }
+        
+        // Extraer el número del folio
+        $numero = (int) $ultimoFolio;
+        $siguiente = $numero + 1;
+        
+        // Formatear con ceros a la izquierda (4 dígitos)
+        return str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Obtener el siguiente folio sin guardar (para previsualización)
+     */
+    public static function obtenerSiguienteFolio()
+    {
+        $ultimoFolio = self::orderBy('id', 'desc')->value('folio');
+        
+        if (!$ultimoFolio) {
+            return '0001';
+        }
+        
+        $numero = (int) $ultimoFolio;
+        $siguiente = $numero + 1;
+        
+        return str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Reiniciar el contador de folios (solo para uso administrativo)
+     */
+    public static function reiniciarContadorFolio($inicio = 1)
+    {
+        // Esta función solo debe usarse en casos especiales
+        // Normalmente no se recomienda reiniciar el contador
+        $folioInicio = str_pad($inicio, 4, '0', STR_PAD_LEFT);
+        
+        // Obtener todas las pólizas y reasignar folios
+        $polizas = self::orderBy('id')->get();
+        $contador = $inicio;
+        
+        foreach ($polizas as $poliza) {
+            $poliza->folio = str_pad($contador, 4, '0', STR_PAD_LEFT);
+            $poliza->save();
+            $contador++;
+        }
+        
+        return $contador - $inicio;
+    }
+
     // ============================================
-    // ✅ RELACIONES - AGREGAR usuarioRevisor
+    // ✅ RELACIONES
     // ============================================
     
     public function marcador()
@@ -111,7 +169,6 @@ class Poliza extends Model
         return $this->belongsTo(Usuario::class, 'id_usuario_autorizador');
     }
 
-    // ✅ NUEVA RELACIÓN - AGREGAR ESTA
     public function usuarioRevisor()
     {
         return $this->belongsTo(Usuario::class, 'id_usuario_revisor');
@@ -138,7 +195,9 @@ class Poliza extends Model
             'REVISADO' => 'Revisado',
             'AUTORIZADO' => 'Autorizado',
             'ABONADO' => 'Abonado',
-            'LIQUIDADO' => 'Liquidado'
+            'LIQUIDADO' => 'Liquidado',
+            'PENDIENTE' => 'Pendiente',
+            'CERRADO' => 'Cerrado'
         ];
         return $estados[$this->estatus] ?? $this->estatus;
     }
@@ -150,7 +209,9 @@ class Poliza extends Model
             'REVISADO' => 'bg-blue-100 text-blue-700',
             'AUTORIZADO' => 'bg-green-100 text-green-700',
             'ABONADO' => 'bg-yellow-100 text-yellow-700',
-            'LIQUIDADO' => 'bg-purple-100 text-purple-700'
+            'LIQUIDADO' => 'bg-purple-100 text-purple-700',
+            'PENDIENTE' => 'bg-orange-100 text-orange-700',
+            'CERRADO' => 'bg-red-100 text-red-700'
         ];
         return $colores[$this->estatus] ?? 'bg-gray-100 text-gray-700';
     }
@@ -162,7 +223,9 @@ class Poliza extends Model
             'REVISADO' => '👀',
             'AUTORIZADO' => '✅',
             'ABONADO' => '💰',
-            'LIQUIDADO' => '🏁'
+            'LIQUIDADO' => '🏁',
+            'PENDIENTE' => '⏳',
+            'CERRADO' => '🔒'
         ];
         return $iconos[$this->estatus] ?? '📝';
     }
@@ -219,13 +282,10 @@ class Poliza extends Model
     // ✅ MÉTODOS DE ACCIÓN - FLUJO DE ESTADOS
     // ============================================
     
-    /**
-     * Revisar la póliza (CAPTURADO → REVISADO)
-     */
     public function revisar($usuarioId, $comentario = null)
     {
-        if ($this->estatus !== 'CAPTURADO') {
-            throw new \Exception('La póliza debe estar en estado CAPTURADO para ser revisada');
+        if ($this->estatus !== 'CAPTURADO' && $this->estatus !== 'PENDIENTE') {
+            throw new \Exception('La póliza debe estar en estado CAPTURADO o PENDIENTE para ser revisada');
         }
 
         $this->estatus_anterior = $this->estatus;
@@ -238,9 +298,6 @@ class Poliza extends Model
         return $this;
     }
 
-    /**
-     * Autorizar la póliza (REVISADO → AUTORIZADO)
-     */
     public function autorizar($usuarioId, $comentario = null)
     {
         if ($this->estatus !== 'REVISADO') {
@@ -257,9 +314,6 @@ class Poliza extends Model
         return $this;
     }
 
-    /**
-     * Rechazar la póliza (REVISADO o AUTORIZADO → CAPTURADO)
-     */
     public function rechazar($usuarioId, $motivo)
     {
         if (!in_array($this->estatus, ['REVISADO', 'AUTORIZADO'])) {
@@ -270,7 +324,6 @@ class Poliza extends Model
         $this->estatus = 'CAPTURADO';
         $this->motivo_rechazo = $motivo;
         
-        // Limpiar datos de revisión/autorización si existen
         if ($this->estatus_anterior === 'REVISADO') {
             $this->id_usuario_revisor = null;
             $this->fecha_revision = null;
@@ -286,9 +339,6 @@ class Poliza extends Model
         return $this;
     }
 
-    /**
-     * Regresar a estado anterior (REVISADO → CAPTURADO)
-     */
     public function revertirRevision($usuarioId, $motivo)
     {
         if ($this->estatus !== 'REVISADO') {
@@ -306,13 +356,10 @@ class Poliza extends Model
         return $this;
     }
 
-    /**
-     * Marcar como abonada (AUTORIZADO → ABONADO)
-     */
     public function marcarAbonada()
     {
-        if (!in_array($this->estatus, ['AUTORIZADO', 'CAPTURADO'])) {
-            throw new \Exception('La póliza debe estar en estado AUTORIZADO o CAPTURADO para ser abonada');
+        if (!in_array($this->estatus, ['AUTORIZADO', 'CAPTURADO', 'REVISADO'])) {
+            throw new \Exception('La póliza debe estar en estado AUTORIZADO, CAPTURADO o REVISADO para ser abonada');
         }
 
         $this->estatus_anterior = $this->estatus;
@@ -322,9 +369,6 @@ class Poliza extends Model
         return $this;
     }
 
-    /**
-     * Liquidar la póliza (ABONADO → LIQUIDADO)
-     */
     public function liquidar()
     {
         if ($this->estatus !== 'ABONADO') {
@@ -337,6 +381,39 @@ class Poliza extends Model
 
         $this->estatus_anterior = $this->estatus;
         $this->estatus = 'LIQUIDADO';
+        $this->save();
+        
+        return $this;
+    }
+
+    public function cerrar($usuarioId, $motivo = null)
+    {
+        if (in_array($this->estatus, ['LIQUIDADO', 'AUTORIZADO'])) {
+            throw new \Exception('No se puede cerrar una póliza en estado ' . $this->estatus);
+        }
+
+        $this->estatus = 'CERRADO';
+        $this->fecha_cierre = now();
+        $this->id_usuario_cierre = $usuarioId;
+        $this->motivo_cierre = $motivo ?? 'Cierre manual de póliza';
+        $this->save();
+        
+        return $this;
+    }
+
+    public function reabrir($usuarioId, $motivo = null)
+    {
+        if ($this->estatus !== 'CERRADO') {
+            throw new \Exception('Solo se pueden reabrir pólizas en estado CERRADO');
+        }
+
+        $nuevoEstatus = $this->es_por_pagar ? 'PENDIENTE' : 'CAPTURADO';
+        
+        $this->estatus = $nuevoEstatus;
+        $this->fecha_cierre = null;
+        $this->id_usuario_cierre = null;
+        $this->motivo_cierre = null;
+        $this->motivo_rechazo = $motivo ?? 'Póliza reabierta';
         $this->save();
         
         return $this;
@@ -444,9 +521,14 @@ class Poliza extends Model
         return $query->where('estatus', 'LIQUIDADO');
     }
 
+    public function scopeCerrados($query)
+    {
+        return $query->where('estatus', 'CERRADO');
+    }
+
     public function scopePendientesAutorizacion($query)
     {
-        return $query->whereIn('estatus', ['CAPTURADO', 'REVISADO']);
+        return $query->whereIn('estatus', ['CAPTURADO', 'REVISADO', 'PENDIENTE']);
     }
 
     public function scopeFiscales($query)
@@ -482,13 +564,15 @@ class Poliza extends Model
     public function scopeVencidas($query)
     {
         return $query->where('fecha_vencimiento', '<', now())
-                     ->where('estatus', '!=', 'LIQUIDADO');
+                     ->where('estatus', '!=', 'LIQUIDADO')
+                     ->where('estatus', '!=', 'CERRADO');
     }
 
     public function scopePorVencer($query, $dias = 7)
     {
         return $query->whereBetween('fecha_vencimiento', [now(), now()->addDays($dias)])
-                     ->where('estatus', '!=', 'LIQUIDADO');
+                     ->where('estatus', '!=', 'LIQUIDADO')
+                     ->where('estatus', '!=', 'CERRADO');
     }
 
     public function scopeByEmpresa($query, $empresaId)
@@ -525,5 +609,19 @@ class Poliza extends Model
     public function scopePorUuid($query, $uuid)
     {
         return $query->where('uuid_factura', $uuid);
+    }
+
+    public function scopePorFolio($query, $folio)
+    {
+        return $query->where('folio', $folio);
+    }
+
+    // ============================================
+    // ✅ MÉTODO PARA OBTENER FOLIO FORMATEADO
+    // ============================================
+    
+    public function getFolioFormateadoAttribute()
+    {
+        return str_pad($this->folio, 4, '0', STR_PAD_LEFT);
     }
 }

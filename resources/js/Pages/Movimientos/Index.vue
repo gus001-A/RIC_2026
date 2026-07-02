@@ -187,16 +187,6 @@
                                 <span class="total-pendiente-label">Total pendiente:</span>
                                 <span class="total-pendiente-value">${{ formatNumber(totalPendiente) }}</span>
                             </span>
-                            <span v-if="soloFiscales && movimientos.data && movimientos.data.length > 0" class="fiscal-badge">
-                                <FilePdfOutlined style="font-size: 14px;" />
-                                Mostrando solo fiscales
-                            </span>
-                            <span v-if="vistaActual === 'traspasos' && movimientos.data && movimientos.data.length > 0" class="traspaso-badge">
-                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                </svg>
-                                Mostrando solo traspasos
-                            </span>
                         </div>
                         <div class="table-header-right-ultra">
                             <div class="btn-group-actions">
@@ -390,21 +380,9 @@
                                 <!-- ACCIONES -->
                                 <template v-if="column.key === 'acciones'">
                                     <div class="acciones-cell">
-                                        <button 
-                                            v-if="permisos?.puede_autorizar && record.es_por_pagar && record.tipo_poliza === 'EGRESO'"
-                                            class="btn-accion liquidar" 
-                                            @click="accionLiquidar(record)"
-                                            :disabled="record.estatus === 'LIQUIDADO' || record.saldo_pendiente === 0"
-                                            title="Liquidar"
-                                        >
-                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                            Liquidar
-                                        </button>
                                         
                                         <button 
-                                            v-if="permisos?.puede_autorizar"
+                                            v-if="permisos?.puede_autorizar && record.es_por_pagar && record.saldo_pendiente > 0"
                                             class="btn-accion abonar" 
                                             @click="accionAbonar(record)"
                                             :disabled="record.estatus === 'LIQUIDADO' || record.saldo_pendiente === 0"
@@ -625,6 +603,14 @@
 
         <!-- MODAL DE ALERTAS -->
         <ModalAlert ref="modalAlert" />
+
+        <!-- MODAL DE LIQUIDACIÓN -->
+        <ModalLiquidacion 
+            ref="modalLiquidacion"
+            :movimiento="movimientoSeleccionado"
+            :cuentas-fondeadoras="cuentasFondeadorasDisponibles"
+            @liquidado="onLiquidado"
+        />
     </AppLayout>
 </template>
 
@@ -636,6 +622,7 @@ import Pagination from '@/Components/Pagination.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import ModalAlert from '@/Components/AlertModal.vue';
 import ColumnSelector from '@/Components/ColumnSelector.vue';
+import ModalLiquidacion from '@/Components/ModalLiquidacion.vue';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import {
@@ -686,6 +673,10 @@ const props = defineProps({
     vista: {
         type: String,
         default: 'normal'
+    },
+    cuentas_fondeadoras: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -694,6 +685,8 @@ const props = defineProps({
 // ============================================
 const loading = ref(false);
 const modalAlert = ref(null);
+const modalLiquidacion = ref(null);
+const movimientoSeleccionado = ref(null);
 const empresaSeleccionada = ref(props.empresa_seleccionada || null);
 
 // ✅ FUNCIÓN PARA OBTENER FECHA LOCAL CORRECTA
@@ -711,6 +704,20 @@ const mostrarTodos = ref(false);
 const soloFiscales = ref(false);
 const columnasActivas = ref([]);
 let timeoutId = null;
+
+// ============================================
+// CUENTAS FONDEADORAS PARA EL MODAL
+// ============================================
+const cuentasFondeadorasDisponibles = computed(() => {
+    // Si vienen desde props, usarlas
+    if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
+        return props.cuentas_fondeadoras;
+    }
+    
+    // Si no, intentar obtenerlas de la sesión o hacer una petición
+    // Por ahora, devolvemos un array vacío
+    return [];
+});
 
 // ============================================
 // COLUMNAS
@@ -1081,6 +1088,33 @@ const accionAbonar = (record) => {
     router.get(route('movimientos.abono', record.id_movimiento));
 };
 
+const accionLiquidar = (record) => {
+    if (record.saldo_pendiente <= 0) {
+        mostrarModal('warning', 'Ya liquidado', 'Esta póliza ya está completamente liquidada.');
+        return;
+    }
+    
+    // Guardar el movimiento seleccionado
+    movimientoSeleccionado.value = record;
+    
+    // Abrir el modal de liquidación
+    if (modalLiquidacion.value) {
+        modalLiquidacion.value.open();
+    } else {
+        mostrarModal('error', 'Error', 'No se pudo abrir el modal de liquidación.');
+    }
+};
+
+const onLiquidado = (data) => {
+    // Mostrar mensaje de éxito
+    mostrarModal('success', '¡Liquidación exitosa!', data.message || 'La póliza ha sido liquidada completamente.');
+    
+    // Recargar la página para actualizar los datos
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+};
+
 const accionEditar = (record) => router.get(route('movimientos.edit', record.id_movimiento));
 const accionVer = (record) => router.get(route('movimientos.show', record.id_movimiento));
 
@@ -1092,10 +1126,6 @@ const verPdf = (record) => {
     } else {
         mostrarModal('info', 'Sin PDF Fiscal', 'Esta póliza no es fiscal.');
     }
-};
-
-const accionLiquidar = async (record) => {
-    mostrarModal('info', 'Liquidar', 'Función de liquidación implementada.');
 };
 
 const exportarExcel = () => {

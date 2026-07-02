@@ -175,7 +175,7 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 2: MONTOS Y DESGLOSE DE IVA -->
+                    <!-- SECCIÓN 2: MONTOS Y DESGLOSE DE IVA (CORREGIDO) -->
                     <!-- ============================================================ -->
                     <div class="detail-section">
                         <div class="section-header">
@@ -214,6 +214,9 @@
                             </div>
                         </div>
 
+                        <!-- ============================================================ -->
+                        <!-- DOBLE IVA CORREGIDO: El total es la SUMA DE BASES, NO incluye IVA -->
+                        <!-- ============================================================ -->
                         <div v-if="movimiento.tiene_doble_iva" class="doble-iva-box">
                             <div class="doble-iva-header">
                                 <span class="doble-iva-title">📋 Desglose de Doble IVA</span>
@@ -233,7 +236,7 @@
                                     </span>
                                 </div>
                                 <div class="doble-iva-item">
-                                    <span class="doble-iva-label">IVA 16% (Calculado)</span>
+                                    <span class="doble-iva-label">IVA 16% (Impuesto)</span>
                                     <span class="doble-iva-value" style="color: #ef4444;">
                                         ${{ formatNumber(movimiento.iva_dieciseis) }}
                                     </span>
@@ -247,11 +250,14 @@
                             </div>
                             <div class="doble-iva-footer">
                                 <span class="doble-iva-note">
-                                    <strong>Nota:</strong> La póliza incluye dos tipos de IVA (0% y 16%).
+                                    <strong>Nota:</strong> La póliza incluye dos tipos de IVA (0% y 16%). 
+                                    El <strong>Total Factura</strong> es la suma de las bases sin IVA.
+                                    El IVA 16% (Impuesto) es el cálculo del impuesto sobre la base.
                                 </span>
                             </div>
                         </div>
 
+                        <!-- IVA SIMPLE -->
                         <div v-else-if="movimiento.es_ingreso_egreso && movimiento.monto_iva != 0" class="iva-simple-box">
                             <div class="iva-simple-grid">
                                 <div class="iva-simple-item">
@@ -269,6 +275,7 @@
                             </div>
                         </div>
 
+                        <!-- SIN IVA -->
                         <div v-else-if="movimiento.es_ingreso_egreso && movimiento.monto_iva == 0 && movimiento.monto_base != 0" class="iva-simple-box iva-cero-box">
                             <div class="iva-simple-grid">
                                 <div class="iva-simple-item">
@@ -409,63 +416,7 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 5: USUARIOS Y REVISIONES -->
-                    <!-- ============================================================ -->
-                    <div class="detail-section">
-                        <div class="section-header">
-                            <div class="section-icon teal">
-                                <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="section-title">Usuarios y Revisiones</h3>
-                                <p class="section-subtitle">Flujo de aprobación de la póliza</p>
-                            </div>
-                        </div>
-
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <span class="info-label">Creado por</span>
-                                <span class="info-value">{{ movimiento.usuario_nombre || movimiento.usuario || '—' }}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Fecha creación</span>
-                                <span class="info-value">{{ formatFechaHora(movimiento.fecha_creacion) }}</span>
-                            </div>
-                            <div class="info-item" v-if="movimiento.usuario_revisor">
-                                <span class="info-label">Revisado por</span>
-                                <span class="info-value">{{ movimiento.usuario_revisor }}</span>
-                            </div>
-                            <div class="info-item" v-if="movimiento.fecha_revision">
-                                <span class="info-label">Fecha revisión</span>
-                                <span class="info-value">{{ formatFechaHora(movimiento.fecha_revision) }}</span>
-                            </div>
-                            <div class="info-item" v-if="movimiento.usuario_autorizador">
-                                <span class="info-label">Autorizado por</span>
-                                <span class="info-value">{{ movimiento.usuario_autorizador }}</span>
-                            </div>
-                            <div class="info-item" v-if="movimiento.fecha_autorizacion">
-                                <span class="info-label">Fecha autorización</span>
-                                <span class="info-value">{{ formatFechaHora(movimiento.fecha_autorizacion) }}</span>
-                            </div>
-                            <div class="info-item full-width" v-if="movimiento.comentario_revision">
-                                <span class="info-label">Comentario revisión</span>
-                                <span class="info-value comentario">{{ movimiento.comentario_revision }}</span>
-                            </div>
-                            <div class="info-item full-width" v-if="movimiento.comentario_autorizacion">
-                                <span class="info-label">Comentario autorización</span>
-                                <span class="info-value comentario">{{ movimiento.comentario_autorizacion }}</span>
-                            </div>
-                            <div class="info-item full-width" v-if="movimiento.motivo_rechazo">
-                                <span class="info-label">Motivo rechazo</span>
-                                <span class="info-value comentario rechazo">{{ movimiento.motivo_rechazo }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ============================================================ -->
-                    <!-- SECCIÓN 6: NOTA (SI EXISTE) -->
+                    <!-- SECCIÓN 5: NOTA (SI EXISTE) -->
                     <!-- ============================================================ -->
                     <div v-if="movimiento.nota" class="detail-section">
                         <div class="section-header">
@@ -485,33 +436,78 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- BOTONES DE ACCIÓN (CORREGIDOS) -->
+                    <!-- BOTONES DE ACCIÓN -->
                     <!-- ============================================================ -->
                     <div class="action-footer no-print">
                         <div class="action-left">
-                            <span class="footer-info">
-                                Creado: {{ formatFechaHora(movimiento.fecha_creacion) }}
-                                <span v-if="movimiento.fecha_actualizacion">
-                                    | Actualizado: {{ formatFechaHora(movimiento.fecha_actualizacion) }}
-                                </span>
-                            </span>
-                            <span v-if="movimiento.usuario_revisor" class="footer-info revisor-info">
-                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                </svg>
-                                Revisó: {{ movimiento.usuario_revisor }}
-                                <span v-if="movimiento.fecha_revision">({{ formatFechaHora(movimiento.fecha_revision) }})</span>
-                            </span>
-                            <span v-if="movimiento.usuario_autorizador" class="footer-info autorizador-info">
-                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Autorizó: {{ movimiento.usuario_autorizador }}
-                                <span v-if="movimiento.fecha_autorizacion">({{ formatFechaHora(movimiento.fecha_autorizacion) }})</span>
-                            </span>
+                            <div class="audit-timeline">
+                                <!-- Creado por -->
+                                <div class="audit-item created">
+                                    <div class="audit-icon created-icon">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="audit-content">
+                                        <span class="audit-label">Creado por</span>
+                                        <span class="audit-name">{{ movimiento.usuario_nombre || movimiento.usuario || '—' }}</span>
+                                        <span class="audit-date">{{ formatFechaHora(movimiento.fecha_creacion) }}</span>
+                                    </div>
+                                </div>
+
+                                <div v-if="movimiento.usuario_revisor || movimiento.usuario_autorizador" class="audit-connector">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+
+                                <div v-if="movimiento.usuario_revisor" class="audit-item reviewed">
+                                    <div class="audit-icon reviewed-icon">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="audit-content">
+                                        <span class="audit-label">Revisó</span>
+                                        <span class="audit-name">{{ movimiento.usuario_revisor }}</span>
+                                        <span class="audit-date">{{ formatFechaHora(movimiento.fecha_revision) }}</span>
+                                    </div>
+                                </div>
+
+                                <div v-if="movimiento.usuario_revisor && movimiento.usuario_autorizador" class="audit-connector">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+
+                                <div v-if="movimiento.usuario_autorizador" class="audit-item authorized">
+                                    <div class="audit-icon authorized-icon">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="audit-content">
+                                        <span class="audit-label">Autorizó</span>
+                                        <span class="audit-name">{{ movimiento.usuario_autorizador }}</span>
+                                        <span class="audit-date">{{ formatFechaHora(movimiento.fecha_autorizacion) }}</span>
+                                    </div>
+                                </div>
+
+                                <div v-if="movimiento.motivo_rechazo" class="audit-item rejected">
+                                    <div class="audit-icon rejected-icon">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="audit-content">
+                                        <span class="audit-label">Rechazado</span>
+                                        <span class="audit-name rejected">{{ movimiento.motivo_rechazo }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="action-right">
-                            <!-- 📄 PDF - TODOS LOS USUARIOS PUEDEN IMPRIMIR -->
                             <button 
                                 class="btn-action btn-pdf"
                                 @click="accionImprimir"
@@ -522,7 +518,6 @@
                                 PDF
                             </button>
 
-                            <!-- ✅ REVISAR - SOLO ADMINISTRADOR Y SUPER USUARIO -->
                             <button 
                                 v-if="permisos?.puede_revisar && movimiento.estatus === 'CAPTURADO'"
                                 class="btn-action btn-revisar"
@@ -535,7 +530,6 @@
                                 Revisar
                             </button>
 
-                            <!-- ✅ AUTORIZAR - SOLO AUDITOR Y SUPER USUARIO -->
                             <button 
                                 v-if="permisos?.puede_autorizar && movimiento.estatus === 'REVISADO'"
                                 class="btn-action btn-autorizar"
@@ -547,7 +541,6 @@
                                 Autorizar
                             </button>
 
-                            <!-- ❌ CERRAR - TODOS LOS USUARIOS EXCEPTO AUDITOR -->
                             <button 
                                 v-if="permisos?.puede_cerrar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'"
                                 class="btn-action btn-cerrar"
@@ -559,7 +552,6 @@
                                 Cerrar
                             </button>
 
-                            <!-- 🔄 REABRIR - SOLO ADMINISTRADOR Y SUPER USUARIO -->
                             <button 
                                 v-if="permisos?.puede_reabrir && movimiento.estatus === 'CERRADO'"
                                 class="btn-action btn-reabrir"
@@ -571,7 +563,6 @@
                                 Reabrir
                             </button>
 
-                            <!-- ✏️ EDITAR - CONDICIONES ESPECIALES -->
                             <Link 
                                 v-if="permisos?.puede_editar && puedeEditar()" 
                                 :href="route('movimientos.edit', movimiento.id)" 
@@ -583,7 +574,6 @@
                                 Editar
                             </Link>
 
-                            <!-- 🗑️ ELIMINAR - SOLO SUPER USUARIO -->
                             <button 
                                 v-if="permisos?.puede_eliminar" 
                                 class="btn-action btn-eliminar"
@@ -595,7 +585,6 @@
                                 Eliminar
                             </button>
 
-                            <!-- 🔙 REGRESAR - TODOS LOS USUARIOS -->
                             <Link 
                                 :href="route('movimientos.index')" 
                                 class="btn-action btn-regresar"
@@ -646,32 +635,29 @@ const tituloPagina = computed(() => {
 });
 
 // ============================================
-// COMPUTED
+// COMPUTED - CORREGIDO: Total factura = SUMA DE BASES (sin IVA)
 // ============================================
 const calcularTotalDobleIva = computed(() => {
     const cero = Number(props.movimiento.monto_iva_cero) || 0;
     const dieciseisBase = Number(props.movimiento.monto_iva_dieciseis) || 0;
-    const dieciseisIva = Number(props.movimiento.iva_dieciseis) || 0;
-    return cero + dieciseisBase + dieciseisIva;
+    // Total factura = suma de bases (0% + 16%), NO incluye el IVA
+    return cero + dieciseisBase;
 });
 
 // ============================================
-// ✅ FUNCIÓN PARA DETERMINAR SI PUEDE EDITAR
+// FUNCIÓN PARA DETERMINAR SI PUEDE EDITAR
 // ============================================
 const puedeEditar = () => {
     const estatus = props.movimiento.estatus;
     
-    // 🔹 SUPER USUARIO: puede editar siempre
     if (permisos.value?.es_super_usuario) {
         return true;
     }
     
-    // 🔹 AUDITOR: nunca puede editar
     if (permisos.value?.es_auditor) {
         return false;
     }
     
-    // 🔹 CAPTURISTA Y ADMINISTRADOR: solo si NO está revisada, autorizada, liquidada o cerrada
     const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO'];
     return !estatusNoEditables.includes(estatus);
 };
@@ -856,7 +842,7 @@ const accionImprimir = () => {
 };
 
 // ============================================
-// ✅ REVISAR
+// REVISAR
 // ============================================
 const accionRevisar = () => {
     Swal.fire({
@@ -890,7 +876,7 @@ const accionRevisar = () => {
 };
 
 // ============================================
-// ✅ AUTORIZAR
+// AUTORIZAR
 // ============================================
 const accionAutorizar = () => {
     Swal.fire({
@@ -924,7 +910,7 @@ const accionAutorizar = () => {
 };
 
 // ============================================
-// ❌ CERRAR
+// CERRAR
 // ============================================
 const accionCerrar = () => {
     Swal.fire({
@@ -958,7 +944,7 @@ const accionCerrar = () => {
 };
 
 // ============================================
-// 🔄 REABRIR
+// REABRIR
 // ============================================
 const accionReabrir = () => {
     Swal.fire({
@@ -992,7 +978,7 @@ const accionReabrir = () => {
 };
 
 // ============================================
-// 🗑️ ELIMINAR
+// ELIMINAR
 // ============================================
 const accionEliminar = () => {
     Swal.fire({
@@ -1463,22 +1449,6 @@ const accionEliminar = () => {
     border-radius: 4px;
 }
 
-.info-value.comentario {
-    font-style: italic;
-    color: #475569;
-    background: #f1f5f9;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border-left: 3px solid #3b82f6;
-    width: 100%;
-}
-
-.info-value.comentario.rechazo {
-    border-left-color: #dc2626;
-    background: #fef2f2;
-    color: #991b1b;
-}
-
 .info-value.pdf-name {
     font-size: 0.8rem;
     color: #475569;
@@ -1546,7 +1516,7 @@ const accionEliminar = () => {
 .monto-value.egreso { color: #dc2626; }
 .monto-value.neutro { color: #94a3b8; }
 
-/* ========== DOBLE IVA ========== */
+/* ========== DOBLE IVA CORREGIDO ========== */
 .doble-iva-box {
     margin-top: 16px;
     background: linear-gradient(135deg, #fefce8, #fef3c7);
@@ -1787,85 +1757,229 @@ const accionEliminar = () => {
     border-top: 2px solid #f1f5f9;
 }
 
-@media (min-width: 640px) {
-    .action-footer { flex-direction: row; }
+@media (min-width: 768px) {
+    .action-footer {
+        flex-direction: row;
+        align-items: stretch;
+    }
 }
 
+/* ===== AUDIT TIMELINE ===== */
 .action-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.audit-timeline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    background: #f8fafc;
+    padding: 8px 16px 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    width: 100%;
+}
+
+.audit-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 6px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.audit-item:hover {
+    transform: translateY(-1px);
+}
+
+.audit-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.audit-icon .w-4 { width: 14px; height: 14px; }
+.audit-icon .h-4 { width: 14px; height: 14px; }
+
+.created-icon {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.reviewed-icon {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.authorized-icon {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.rejected-icon {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.audit-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     flex-wrap: wrap;
 }
 
-.footer-info {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
+.audit-label {
+    font-size: 0.6rem;
+    font-weight: 600;
     color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.footer-info .inline { display: inline; }
-
-.revisor-info {
-    color: #3b82f6 !important;
-    font-weight: 600 !important;
+.audit-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0f172a;
 }
 
-.autorizador-info {
-    color: #10b981 !important;
-    font-weight: 600 !important;
+.audit-name.rejected {
+    color: #991b1b;
 }
 
+.audit-date {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.audit-connector {
+    display: flex;
+    align-items: center;
+    color: #cbd5e1;
+    flex-shrink: 0;
+}
+
+.audit-connector .w-3 { width: 12px; height: 12px; }
+.audit-connector .h-3 { width: 12px; height: 12px; }
+
+/* ===== BOTONES ===== */
 .action-right {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .btn-action {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 20px;
+    padding: 8px 18px;
     font-weight: 600;
     border: none;
     border-radius: 10px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     transition: all 0.3s ease;
     cursor: pointer;
     text-decoration: none;
+    white-space: nowrap;
 }
 
-.btn-action:hover { transform: translateY(-2px); }
+.btn-action:hover {
+    transform: translateY(-2px);
+}
 
-.btn-pdf { background: #dc2626; color: white; }
-.btn-pdf:hover { background: #b91c1c; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); color: white; }
+.btn-action:active {
+    transform: translateY(0px) scale(0.97);
+}
 
-.btn-revisar { background: #dbeafe; color: #1e40af; }
-.btn-revisar:hover { background: #bfdbfe; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2); }
+.btn-pdf {
+    background: #dc2626;
+    color: white;
+}
+.btn-pdf:hover {
+    background: #b91c1c;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    color: white;
+}
 
-.btn-autorizar { background: #d1fae5; color: #065f46; }
-.btn-autorizar:hover { background: #a7f3d0; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.2); }
+.btn-revisar {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.btn-revisar:hover {
+    background: #bfdbfe;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+}
 
-.btn-cerrar { background: #ef4444; color: white; }
-.btn-cerrar:hover { background: #dc2626; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); color: white; }
+.btn-autorizar {
+    background: #d1fae5;
+    color: #065f46;
+}
+.btn-autorizar:hover {
+    background: #a7f3d0;
+    box-shadow: 0 4px 12px rgba(6, 95, 70, 0.2);
+}
 
-.btn-reabrir { background: #dbeafe; color: #1e40af; }
-.btn-reabrir:hover { background: #bfdbfe; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2); }
+.btn-cerrar {
+    background: #ef4444;
+    color: white;
+}
+.btn-cerrar:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    color: white;
+}
 
-.btn-editar { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-.btn-editar:hover { box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); color: white; }
+.btn-reabrir {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.btn-reabrir:hover {
+    background: #bfdbfe;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+}
 
-.btn-eliminar { background: #fee2e2; color: #991b1b; }
-.btn-eliminar:hover { background: #fecaca; box-shadow: 0 4px 12px rgba(153, 27, 27, 0.2); }
+.btn-editar {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+.btn-editar:hover {
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    color: white;
+}
 
-.btn-regresar { background: #f1f5f9; color: #475569; }
-.btn-regresar:hover { background: #e2e8f0; box-shadow: 0 4px 12px rgba(71, 85, 105, 0.15); }
+.btn-eliminar {
+    background: #fee2e2;
+    color: #991b1b;
+}
+.btn-eliminar:hover {
+    background: #fecaca;
+    box-shadow: 0 4px 12px rgba(153, 27, 27, 0.2);
+}
 
-/* ========== RESPONSIVE ========== */
+.btn-regresar {
+    background: #f1f5f9;
+    color: #475569;
+}
+.btn-regresar:hover {
+    background: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.15);
+}
+
+/* ============================================================ */
+/* RESPONSIVE */
+/* ============================================================ */
 @media (max-width: 768px) {
     .detail-card { padding: 1.25rem; }
     .info-grid { grid-template-columns: 1fr; }
@@ -1878,13 +1992,19 @@ const accionEliminar = () => {
     .status-badge { flex: 1; text-align: center; justify-content: center; }
     .badge-categoria, .badge-abonos { margin-left: 0; width: 100%; text-align: center; }
     .docs-actions { margin-left: 0; width: 100%; justify-content: flex-start; }
-    .action-footer { flex-direction: column; align-items: stretch; }
-    .action-left { justify-content: center; flex-wrap: wrap; }
-    .action-right { justify-content: center; flex-wrap: wrap; }
-    .btn-action { flex: 1; justify-content: center; min-width: 120px; }
     .section-header { flex-wrap: wrap; }
     .header-subtitle { flex-wrap: wrap; }
     .doble-iva-tag { margin-left: 0; width: 100%; text-align: center; }
+    .action-footer { flex-direction: column; align-items: stretch; gap: 12px; }
+    .action-left { width: 100%; }
+    .audit-timeline { padding: 6px 12px; gap: 4px; justify-content: center; }
+    .audit-item { padding: 3px 6px; }
+    .audit-label { font-size: 0.5rem; }
+    .audit-name { font-size: 0.7rem; }
+    .audit-date { font-size: 0.55rem; }
+    .audit-connector { display: none; }
+    .action-right { justify-content: center; width: 100%; }
+    .btn-action { flex: 1; justify-content: center; min-width: 80px; padding: 6px 12px; font-size: 0.7rem; }
 }
 
 @media (max-width: 480px) {
@@ -1895,8 +2015,6 @@ const accionEliminar = () => {
     .header-title { font-size: 1.1rem; }
     .header-subtitle { font-size: 0.75rem; }
     .section-title { font-size: 0.95rem; }
-    .action-right { flex-direction: column; width: 100%; }
-    .btn-action { width: 100%; justify-content: center; }
     .abonos-table { font-size: 0.75rem; }
     .abonos-table th, .abonos-table td { padding: 6px 10px; }
     .summary-card { padding: 14px 16px; }
@@ -1904,9 +2022,21 @@ const accionEliminar = () => {
     .info-item { padding: 8px 12px; }
     .doble-iva-box { padding: 12px 16px; }
     .iva-simple-box { padding: 12px 16px; }
+    .audit-timeline { flex-wrap: wrap; justify-content: center; gap: 2px; }
+    .audit-item { padding: 2px 4px; }
+    .audit-icon { width: 18px; height: 18px; }
+    .audit-icon .w-4 { width: 12px; height: 12px; }
+    .audit-icon .h-4 { width: 12px; height: 12px; }
+    .audit-label { font-size: 0.45rem; }
+    .audit-name { font-size: 0.65rem; }
+    .audit-date { font-size: 0.5rem; }
+    .action-right { flex-direction: column; width: 100%; }
+    .btn-action { width: 100%; justify-content: center; }
 }
 
-/* ========== PRINT ========== */
+/* ============================================================ */
+/* PRINT */
+/* ============================================================ */
 @media print {
     .no-print, .btn-back, .btn-doc, .btn-action, .header-actions .status-badge {
         display: none !important;
@@ -1947,5 +2077,10 @@ const accionEliminar = () => {
     .action-footer { border-top: 2px solid #e5e7eb !important; }
     .detail-section { page-break-inside: avoid; break-inside: avoid; }
     .summary-card { page-break-after: avoid; break-after: avoid; }
+    .audit-timeline { background: #f8fafc !important; border: 1px solid #e5e7eb !important; }
+    .created-icon { background: #dbeafe !important; }
+    .reviewed-icon { background: #d1fae5 !important; }
+    .authorized-icon { background: #e0e7ff !important; }
+    .rejected-icon { background: #fee2e2 !important; }
 }
 </style>
