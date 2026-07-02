@@ -29,7 +29,7 @@
                     </Link>
                     <div class="header-content">
                         <h2 class="header-title">Generar Pólizas de Nómina</h2>
-                        <p class="header-subtitle">Genera de manera masiva las pólizas de pago de empleados para la quincena seleccionada</p>
+                        <p class="header-subtitle">Genera de manera masiva las pólizas de pago de empleados</p>
                     </div>
                 </div>
             </div>
@@ -61,35 +61,12 @@
                                 </div>
                                 <div>
                                     <h3 class="section-title-text">Configuración de la Nómina</h3>
-                                    <p class="section-title-sub">Selecciona la quincena y configura los datos generales</p>
+                                    <p class="section-title-sub">Configura los datos generales de la nómina</p>
                                 </div>
                             </div>
 
                             <div class="form-grid-premium">
-                                <!-- Quincena -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        Quincena <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium">
-                                        <select v-model="formData.quincena" 
-                                                @change="clearError('quincena')"
-                                                class="form-input-premium form-select-premium"
-                                                :class="{ 'error': errors.quincena }">
-                                            <option value="">Selecciona una quincena</option>
-                                            <option value="1">1ra Quincena</option>
-                                            <option value="2">2da Quincena</option>
-                                        </select>
-                                        <div class="input-icon-premium">
-                                            <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="errors.quincena" class="error-message-premium">{{ errors.quincena }}</div>
-                                </div>
-
-                                <!-- Fecha de Pago (automatica) -->
+                                <!-- Fecha de Pago (automatica - fecha del sistema) -->
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">
                                         Fecha de Pago <span class="required-star">*</span>
@@ -105,13 +82,12 @@
                                             </svg>
                                         </div>
                                     </div>
-                                    <div class="field-hint-premium">La fecha se calcula automáticamente según la quincena</div>
+                                    <div class="field-hint-premium">La fecha se autocompleta con la fecha del sistema</div>
                                     <div v-if="errors.fecha_pago" class="error-message-premium">{{ errors.fecha_pago }}</div>
                                 </div>
 
-                                <!-- ELIMINADA: Cuenta de Destino -->
 
-                                <!-- Caja Fondo (ahora ocupa el espacio de la cuenta destino) -->
+                                <!-- Caja Fondo -->
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">
                                         Caja Fondo <span class="required-star">*</span>
@@ -175,16 +151,19 @@
                                     </div>
                                 </div>
 
-                                <!-- Descripcion de la Poliza -->
+                                <!-- Observación General (se replica en todos los empleados) -->
                                 <div class="form-group-premium full-width-premium">
-                                    <label class="form-label-premium">Descripción de la Póliza</label>
+                                    <label class="form-label-premium">
+                                        Observación General <span class="required-star">*</span>
+                                    </label>
                                     <div class="input-wrapper-premium">
-                                        <input type="text" v-model="formData.descripcion"
+                                        <input type="text" v-model="formData.observacion_general"
                                                class="form-input-premium"
                                                placeholder="Ej: Pago de nómina quincenal"
-                                               @input="clearError('descripcion')">
+                                               @input="replicarObservacion">
                                     </div>
-                                    <div class="field-hint-premium">Breve descripción que identificará esta nómina</div>
+                                    <div class="field-hint-premium">Esta observación se replicará en todos los empleados seleccionados</div>
+                                    <div v-if="errors.observacion_general" class="error-message-premium">{{ errors.observacion_general }}</div>
                                 </div>
                             </div>
                         </div>
@@ -282,7 +261,7 @@
                                                     <input type="text" 
                                                            v-model="empleado.observacion"
                                                            class="form-input-premium"
-                                                           placeholder="Sueldo quincenal">
+                                                           placeholder="Observación">
                                                 </div>
                                             </td>
                                         </tr>
@@ -394,6 +373,7 @@ const props = defineProps({
     empresa_id: { type: Number, default: null },
     empleados: { type: Array, default: () => [] },
     cuentas_fondeadoras: { type: Array, default: () => [] },
+    cuentas_nomina: { type: Array, default: () => [] },
     marcadores: { type: Array, default: () => [] }
 });
 
@@ -405,28 +385,27 @@ const modalMarcadorVisible = ref(false);
 const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
-const fechaActual = ref(new Date().toISOString().split('T')[0]);
 
 // ============================================
 // DATOS REACTIVOS
 // ============================================
 const cuentasFondeadoras = ref(props.cuentas_fondeadoras || []);
+const cuentasNomina = ref(props.cuentas_nomina || []);
 const marcadores = ref(props.marcadores || []);
 
 // Inicializar empleados con datos de props
 const empleados = ref([]);
 
 // ============================================
-// FORMULARIO - Usar reactive para mejor rendimiento
+// FORMULARIO
 // ============================================
 const formData = reactive({
-    quincena: '',
-    fecha_pago: '',
-    // ELIMINADO: id_cuenta
+    fecha_pago: '', // Se autocompleta con la fecha del sistema
+    id_cuenta: props.cuentas_nomina?.length > 0 ? props.cuentas_nomina[0].id_cuenta : null,
     id_cuenta_fondeadora: props.cuentas_fondeadoras?.length > 0 ? props.cuentas_fondeadoras[0].id_cuenta : null,
     tipo_poliza: 'EGRESO',
     id_marcador: null,
-    descripcion: '',
+    observacion_general: '', // Nueva: observación que se replica
 });
 
 const errors = reactive({});
@@ -456,16 +435,17 @@ const todosSeleccionados = computed({
 });
 
 const isFormValid = computed(() => {
-    // Validar quincena
-    if (!formData.quincena) return false;
-    
     // Validar fecha de pago
     if (!formData.fecha_pago) return false;
     
-    // ELIMINADA: validación de cuenta de destino
+    // Validar cuenta
+    if (!formData.id_cuenta) return false;
     
     // Validar cuenta fondeadora
     if (!formData.id_cuenta_fondeadora) return false;
+    
+    // Validar observación general
+    if (!formData.observacion_general || formData.observacion_general.trim() === '') return false;
     
     // Validar que haya al menos un empleado seleccionado
     if (empleadosSeleccionados.value === 0) return false;
@@ -490,34 +470,6 @@ const isFormValid = computed(() => {
 // ============================================
 // METODOS
 // ============================================
-const calcularFechaPago = () => {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = hoy.getMonth();
-    const day = hoy.getDate();
-    
-    let fechaPago = null;
-    
-    if (formData.quincena === '1') {
-        if (day >= 1 && day <= 15) {
-            fechaPago = hoy;
-        } else {
-            fechaPago = new Date(year, month, 15);
-        }
-    } else if (formData.quincena === '2') {
-        const ultimoDia = new Date(year, month + 1, 0).getDate();
-        if (day >= 16 && day <= ultimoDia) {
-            fechaPago = hoy;
-        } else {
-            fechaPago = new Date(year, month, ultimoDia);
-        }
-    }
-    
-    if (fechaPago) {
-        formData.fecha_pago = fechaPago.toISOString().split('T')[0];
-    }
-};
-
 const clearError = (field) => {
     if (errors[field]) delete errors[field];
 };
@@ -538,6 +490,18 @@ const deseleccionarTodos = () => {
 const toggleSeleccionarTodos = (event) => {
     const checked = event.target.checked;
     empleados.value.forEach(e => e.seleccionado = checked);
+};
+
+// ============================================
+// REPLICAR OBSERVACIÓN
+// ============================================
+const replicarObservacion = () => {
+    const observacion = formData.observacion_general;
+    empleados.value.forEach(e => {
+        if (e.seleccionado) {
+            e.observacion = observacion;
+        }
+    });
 };
 
 // ============================================
@@ -585,16 +549,6 @@ const guardarMarcador = async () => {
 };
 
 // ============================================
-// WATCHERS
-// ============================================
-watch(
-    () => formData.quincena,
-    () => {
-        calcularFechaPago();
-    }
-);
-
-// ============================================
 // SUBMIT
 // ============================================
 const submit = () => {
@@ -603,13 +557,6 @@ const submit = () => {
     // Limpiar errores
     Object.keys(errors).forEach(key => delete errors[key]);
 
-    // Validar quincena
-    if (!formData.quincena) {
-        errors.quincena = 'Selecciona una quincena';
-        processing.value = false;
-        return;
-    }
-
     // Validar fecha de pago
     if (!formData.fecha_pago) {
         errors.fecha_pago = 'La fecha de pago no se ha calculado correctamente';
@@ -617,11 +564,23 @@ const submit = () => {
         return;
     }
 
-    // ELIMINADA: validación de cuenta de destino
+    // Validar cuenta
+    if (!formData.id_cuenta) {
+        errors.id_cuenta = 'Selecciona una cuenta para la nómina';
+        processing.value = false;
+        return;
+    }
 
     // Validar cuenta fondeadora
     if (!formData.id_cuenta_fondeadora) {
         errors.id_cuenta_fondeadora = 'Selecciona una caja fondo';
+        processing.value = false;
+        return;
+    }
+
+    // Validar observación general
+    if (!formData.observacion_general || formData.observacion_general.trim() === '') {
+        errors.observacion_general = 'Ingresa una observación general para la nómina';
         processing.value = false;
         return;
     }
@@ -669,18 +628,17 @@ const submit = () => {
 
     // Preparar datos para enviar
     const data = {
-        quincena: formData.quincena,
         fecha_pago: formData.fecha_pago,
-        // ELIMINADO: id_cuenta
+        id_cuenta: formData.id_cuenta,
         id_cuenta_fondeadora: formData.id_cuenta_fondeadora,
         tipo_poliza: formData.tipo_poliza,
         id_marcador: formData.id_marcador,
-        descripcion: formData.descripcion,
+        observacion_general: formData.observacion_general,
         empleados: empleadosSeleccionados.map(e => ({
             id_persona: e.id_persona,
             monto: e.monto,
             id_cuenta_fondeadora: e.id_cuenta_fondeadora,
-            observacion: e.observacion || 'Sueldo quincenal'
+            observacion: e.observacion || formData.observacion_general
         }))
     };
 
@@ -729,12 +687,40 @@ const submit = () => {
 };
 
 // ============================================
+// WATCHERS
+// ============================================
+// Cuando cambia la selección de empleados, replicar observación a los seleccionados
+watch(
+    () => empleados.value.map(e => e.seleccionado),
+    () => {
+        const observacion = formData.observacion_general;
+        empleados.value.forEach(e => {
+            if (e.seleccionado) {
+                e.observacion = observacion;
+            }
+        });
+    },
+    { deep: true }
+);
+
+// ============================================
 // MOUNTED
 // ============================================
 onMounted(() => {
     console.log('Props recibidas:', props);
     
-    // ELIMINADO: inicialización de cuentas de destino
+    // 🔥 Fecha del sistema autocompletada
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    formData.fecha_pago = `${year}-${month}-${day}`;
+    
+    // Inicializar cuentas de nómina
+    if (props.cuentas_nomina && props.cuentas_nomina.length > 0) {
+        cuentasNomina.value = props.cuentas_nomina;
+        formData.id_cuenta = props.cuentas_nomina[0].id_cuenta;
+    }
 
     // Inicializar cuentas fondeadoras
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
@@ -754,7 +740,7 @@ onMounted(() => {
             seleccionado: false,
             monto: 0,
             id_cuenta_fondeadora: props.cuentas_fondeadoras?.length > 0 ? props.cuentas_fondeadoras[0].id_cuenta : null,
-            observacion: 'Sueldo quincenal'
+            observacion: ''
         }));
         console.log('Empleados inicializados:', empleados.value.length);
     } else {

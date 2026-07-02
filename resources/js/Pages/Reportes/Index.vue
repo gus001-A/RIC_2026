@@ -301,15 +301,12 @@
                             </a-table>
                         </div>
 
+                        <!-- TOTALES FONDEADORAS (SIN CUENTAS ACTIVAS) -->
                         <div class="totales-fondeadoras-wrapper">
                             <div class="totales-fondeadoras-container">
                                 <div class="total-item-fondeadora">
                                     <span class="total-label-fondeadora">Total disponible</span>
                                     <span class="total-value-fondeadora ingreso">${{ formatNumber(totalDisponible) }}</span>
-                                </div>
-                                <div class="total-item-fondeadora">
-                                    <span class="total-label-fondeadora">Cuentas activas</span>
-                                    <span class="total-value-fondeadora">{{ reporteFondeadoras.length }}</span>
                                 </div>
                             </div>
                         </div>

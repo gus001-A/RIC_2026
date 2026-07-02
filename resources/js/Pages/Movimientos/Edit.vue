@@ -19,7 +19,6 @@
                         <span v-else-if="isComplete">✓ Completado</span>
                         <span v-else>📝 {{ Math.round(progressPercentage) }}%</span>
                     </div>
-                    <!-- ✅ BOTÓN DE AUTORIZAR - solo admin, auditor, super -->
                     <button 
                         v-if="permisos?.puede_autorizar && puedeAutorizar"
                         @click="confirmarAutorizar"
@@ -38,7 +37,7 @@
         <div class="page-content">
             <div class="container-custom">
                 <div class="form-card">
-                    <!-- Selector de Tipo de Poliza -->
+                    <!-- Selector de Tipo de Póliza -->
                     <div class="tipo-selector-premium">
                         <button 
                             type="button"
@@ -76,10 +75,10 @@
                         </button>
                     </div>
 
-                    <form @submit.prevent="submit" id="polizaForm" novalidate>
+                    <form @submit.prevent="submit" id="polizaForm" novalidate enctype="multipart/form-data">
                         <!-- INGRESO / EGRESO -->
                         <div v-if="tipoPolizaSeleccionado === 'INGRESO_EGRESO'" class="fade-slide">
-                            <!-- Seccion 1: Datos Generales -->
+                            <!-- Sección 1: Datos Generales -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium blue">
@@ -88,15 +87,15 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="section-title-text">Informacion General</h3>
-                                        <p class="section-title-sub">Configura la poliza con los datos principales</p>
+                                        <h3 class="section-title-text">Información General</h3>
+                                        <p class="section-title-sub">Configura la póliza con los datos principales</p>
                                     </div>
                                 </div>
 
                                 <div class="form-grid-premium">
                                     <div class="form-group-premium">
                                         <label class="form-label-premium">
-                                            Tipo de Poliza <span class="required-star">*</span>
+                                            Tipo de Póliza <span class="required-star">*</span>
                                         </label>
                                         <div class="input-wrapper-premium">
                                             <select v-model="form.tipo_poliza" 
@@ -120,8 +119,9 @@
                                         <label class="form-label-premium">Persona</label>
                                         <div class="input-wrapper-premium">
                                             <select v-model="form.id_persona"
+                                                    @change="onPersonaChange"
                                                     class="form-input-premium form-select-premium"
-                                                    :class="{ 'error': form.errors.id_persona }">
+                                                    :class="{ 'error': form.errors.id_persona, 'has-data': polizaCargada }">
                                                 <option value="">Selecciona una persona</option>
                                                 <option v-for="p in personas" :key="p.id_persona" :value="p.id_persona">
                                                     {{ p.nombre_completo }}
@@ -132,8 +132,18 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                                 </svg>
                                             </div>
+                                            <div v-if="cargandoPoliza" class="loading-spinner-persona">
+                                                <span class="spinner-mini"></span>
+                                                Cargando...
+                                            </div>
                                         </div>
                                         <div class="field-hint-premium">Escribe para buscar personas</div>
+                                        <div v-if="polizaCargada && form.id_persona" class="poliza-cargada-badge">
+                                            <svg class="icon-svg-sm" fill="none" stroke="#10b981" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Última póliza cargada
+                                        </div>
                                     </div>
 
                                     <div class="form-group-premium">
@@ -155,7 +165,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group-premium" v-if="form.tipo_poliza === 'EGRESO'">
+                                    <div class="form-group-premium">
                                         <label class="form-label-premium">Cuenta Fondeadora <span class="required-star">*</span></label>
                                         <div class="input-wrapper-premium">
                                             <select v-model="form.id_cuenta_fondeadora"
@@ -174,17 +184,6 @@
                                             </div>
                                         </div>
                                         <div v-if="form.errors.id_cuenta_fondeadora" class="error-message-premium">{{ form.errors.id_cuenta_fondeadora }}</div>
-                                    </div>
-
-                                    <div class="form-group-premium" v-if="form.tipo_poliza === 'INGRESO'">
-                                        <div class="info-message-ingreso">
-                                            <span class="info-icon-ingreso">
-                                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                            </span>
-                                            <span>En un ingreso no se requiere cuenta fondeadora, el dinero se recibe en la cuenta seleccionada.</span>
-                                        </div>
                                     </div>
 
                                     <div class="form-group-premium checkbox-group-premium">
@@ -236,7 +235,7 @@
                                 </div>
                             </div>
 
-                            <!-- Seccion 2: Monto y Desglose -->
+                            <!-- Sección 2: Desglose de IVA con Tarjetas -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium green">
@@ -245,109 +244,138 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="section-title-text">Monto y Desglose</h3>
-                                        <p class="section-title-sub">Configuracion financiera y fiscal detallada</p>
+                                        <h3 class="section-title-text">Desglose de IVA</h3>
+                                        <p class="section-title-sub">Selecciona hasta 2 tipos de IVA para esta póliza</p>
                                     </div>
                                 </div>
 
-                                <div class="form-grid-premium">
-                                    <div class="form-group-premium">
-                                        <label class="form-label-premium">Total Factura <span class="required-star">*</span></label>
-                                        <div class="input-wrapper-premium">
-                                            <span class="input-prefix-premium">$</span>
-                                            <input type="number" step="0.01" v-model.number="form.total_factura"
-                                                   @input="calcularDesglose; clearError('total_factura')"
-                                                   class="form-input-premium"
-                                                   :class="{ 'error': form.errors.total_factura }"
-                                                   placeholder="0.00"
-                                                   min="0.01">
+                                <!-- Selector de IVAs -->
+                                <div class="iva-selector-premium">
+                                    <div class="iva-selector-grid">
+                                        <div 
+                                            v-for="iva in tiposIva" 
+                                            :key="iva.id"
+                                            class="iva-select-item"
+                                            :class="{ 
+                                                selected: ivasSeleccionados.includes(iva.id),
+                                                disabled: ivasSeleccionados.length >= 2 && !ivasSeleccionados.includes(iva.id)
+                                            }"
+                                            @click="toggleIva(iva.id)"
+                                        >
+                                            <span class="iva-select-badge" :class="iva.porcentaje === 0 ? 'badge-cero' : 'badge-dieciseis'">
+                                                {{ iva.porcentaje }}%
+                                            </span>
+                                            <span class="iva-select-name">{{ iva.nombre }}</span>
+                                            <span class="iva-select-check" v-if="ivasSeleccionados.includes(iva.id)">✓</span>
                                         </div>
-                                        <div v-if="form.errors.total_factura" class="error-message-premium">{{ form.errors.total_factura }}</div>
                                     </div>
+                                    <div class="iva-selector-hint">
+                                        <span v-if="ivasSeleccionados.length === 0">Selecciona al menos un tipo de IVA</span>
+                                        <span v-else-if="ivasSeleccionados.length === 1">1 IVA seleccionado</span>
+                                        <span v-else>2 IVAs seleccionados (máximo)</span>
+                                    </div>
+                                </div>
 
-                                    <div class="form-group-premium">
-                                        <label class="form-label-premium">IVA</label>
-                                        <div class="input-wrapper-premium">
-                                            <select v-model="form.id_tipo_iva"
-                                                    @change="calcularDesglose"
-                                                    class="form-input-premium form-select-premium"
-                                                    :class="{ 'error': form.errors.id_tipo_iva }">
-                                                <option value="">Sin IVA</option>
-                                                <option v-for="iva in tiposIva" :key="iva.id" :value="iva.id">
-                                                    {{ iva.nombre }} ({{ iva.porcentaje_formateado }})
-                                                </option>
-                                            </select>
-                                            <div class="input-icon-premium">
-                                                <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                                </svg>
+                                <!-- Tarjetas de IVA -->
+                                <div class="iva-cards-row" v-if="ivasSeleccionados.length > 0">
+                                    <div 
+                                        v-for="ivaId in ivasSeleccionados" 
+                                        :key="ivaId"
+                                        class="iva-card"
+                                        :class="getIvaCardClass(ivaId)"
+                                    >
+                                        <div class="card-header">
+                                            <span class="card-badge" :class="getIvaBadgeClass(ivaId)">
+                                                {{ getIvaPorcentaje(ivaId) }}%
+                                            </span>
+                                            <span class="card-title">{{ getIvaNombre(ivaId) }}</span>
+                                            <button 
+                                                type="button" 
+                                                @click="quitarIva(ivaId)" 
+                                                class="card-remove"
+                                                title="Quitar IVA"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="input-wrapper card-input-wrapper">
+                                                <span class="input-prefix">$</span>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    v-model.number="form.ivas[ivaId].monto"
+                                                    @input="calcularTotales"
+                                                    class="form-input-premium card-input"
+                                                    :class="{ 'error': form.errors[`iva_${ivaId}_monto`] }"
+                                                    placeholder="0.00"
+                                                    min="0"
+                                                >
                                             </div>
                                         </div>
-                                        <div v-if="form.errors.id_tipo_iva" class="error-message-premium">{{ form.errors.id_tipo_iva }}</div>
+                                        <div class="card-footer">
+                                            <span class="card-result">
+                                                IVA {{ getIvaPorcentaje(ivaId) }}%: 
+                                                ${{ formatNumber(calcularIvaMonto(ivaId)) }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tarjeta TOTAL -->
+                                    <div class="iva-card card-total">
+                                        <div class="card-header">
+                                            <span class="card-badge badge-total">TOTAL</span>
+                                            <span class="card-title">TOTAL FACTURA</span>
+                                        </div>
+                                        <div class="card-body total-body">
+                                            <span class="total-amount">${{ formatNumber(totalFacturaCalculado) }}</span>
+                                        </div>
+                                        <div class="card-footer total-footer">
+                                            <span class="card-result">
+                                                IVA Total: ${{ formatNumber(totalIvaCalculado) }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div v-if="form.total_factura > 0 && form.id_tipo_iva" class="desglose-box-premium">
+                                <!-- Desglose Automático -->
+                                <div v-if="totalFacturaCalculado > 0 && ivasSeleccionados.length > 0" class="desglose-box-premium">
                                     <div class="desglose-header-premium">
-                                        <span class="desglose-title-premium">Desglose Automatico</span>
-                                        <span class="desglose-subtitle-premium">Calculo del sistema</span>
+                                        <span class="desglose-title-premium">Desglose Automático</span>
+                                        <span class="desglose-subtitle-premium">Cálculo del sistema</span>
                                     </div>
                                     <div class="desglose-grid-premium">
-                                        <div class="desglose-item-premium">
-                                            <span class="desglose-label-premium">Base Gravable</span>
-                                            <span class="desglose-value-premium" style="color: #2563eb;">${{ formatNumber(form.monto_base) }}</span>
+                                        <div v-for="ivaId in ivasSeleccionados" :key="ivaId" class="desglose-item-premium">
+                                            <span class="desglose-label-premium">Base {{ getIvaPorcentaje(ivaId) }}%</span>
+                                            <span class="desglose-value-premium" style="color: #2563eb;">
+                                                ${{ formatNumber(form.ivas[ivaId]?.monto || 0) }}
+                                            </span>
                                         </div>
                                         <div class="desglose-item-premium">
-                                            <span class="desglose-label-premium">IVA en Pesos</span>
-                                            <span class="desglose-value-premium" style="color: #f59e0b;">${{ formatNumber(form.monto_iva) }}</span>
+                                            <span class="desglose-label-premium">IVA Total</span>
+                                            <span class="desglose-value-premium" style="color: #f59e0b;">
+                                                ${{ formatNumber(totalIvaCalculado) }}
+                                            </span>
                                         </div>
                                         <div class="desglose-item-premium">
                                             <span class="desglose-label-premium font-bold">Total Factura</span>
-                                            <span class="desglose-value-premium font-bold" style="color: #10b981;">${{ formatNumber(calcularSumaTotal) }}</span>
+                                            <span class="desglose-value-premium font-bold" style="color: #10b981;">
+                                                ${{ formatNumber(totalFacturaCalculado) }}
+                                            </span>
                                         </div>
-                                    </div>
-                                    <div class="desglose-verificacion" v-if="mostrarAvisoRedondeo">
-                                        <span class="desglose-verificacion-text">Ajuste por redondeo aplicado</span>
                                     </div>
                                 </div>
 
-                                <div v-if="form.es_fiscal && form.total_factura > 0 && form.id_tipo_iva" class="desglose-fiscal-box-premium">
-                                    <div class="desglose-fiscal-header-premium">
-                                        <span class="desglose-fiscal-title-premium">Desglose Fiscal</span>
-                                        <span class="desglose-fiscal-subtitle-premium">Este desglose se usara para efectos fiscales y contables</span>
-                                    </div>
-                                    <div class="desglose-fiscal-grid-premium">
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Base Gravable</span>
-                                            <span class="desglose-fiscal-value-premium" style="color: #2563eb;">${{ formatNumber(form.monto_base) }}</span>
-                                        </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">IVA</span>
-                                            <span class="desglose-fiscal-value-premium" style="color: #f59e0b;">${{ formatNumber(form.monto_iva) }}</span>
-                                        </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Total</span>
-                                            <span class="desglose-fiscal-value-premium" style="color: #10b981;">${{ formatNumber(calcularSumaTotal) }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="desglose-fiscal-footer-premium">
-                                        <span class="desglose-fiscal-leyenda-premium">Este desglose se usara para efectos fiscales y contables</span>
-                                    </div>
-                                </div>
-
-                                <div v-if="form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada" class="saldo-box-premium" :class="saldoSuficiente ? 'saldo-ok-premium' : 'saldo-error-premium'">
-                                    <span class="saldo-icon-premium">
-                                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </span>
+                                <!-- Saldo de fondeadora - SOLO PARA EGRESO -->
+                                <div v-if="mostrarSaldoFondeadora" class="saldo-box-premium" :class="saldoSuficiente ? 'saldo-ok-premium' : 'saldo-error-premium'">
+                                    <span class="saldo-icon-premium">{{ saldoSuficiente ? '✓' : '✗' }}</span>
                                     <span class="saldo-label-premium">Saldo disponible:</span>
-                                    <span class="saldo-value-premium">${{ formatNumber(cuentaFondeadoraSeleccionada.saldo) }}</span>
+                                    <span class="saldo-value-premium">${{ formatNumber(cuentaFondeadoraSeleccionada?.saldo || 0) }}</span>
                                     <span v-if="!saldoSuficiente" class="saldo-warning-premium">Fondos insuficientes</span>
                                 </div>
                             </div>
 
-                            <!-- Seccion 3: Factura y Archivos -->
+                            <!-- Sección 3: Factura y Archivos -->
                             <div v-if="form.es_fiscal" class="section-block-premium fade-slide">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium orange">
@@ -356,7 +384,7 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="section-title-text">Facturacion</h3>
+                                        <h3 class="section-title-text">Facturación</h3>
                                         <p class="section-title-sub">Datos de la factura y archivos adjuntos</p>
                                     </div>
                                 </div>
@@ -372,7 +400,7 @@
                                     </div>
 
                                     <div class="form-group-premium">
-                                        <label class="form-label-premium">Numero Factura</label>
+                                        <label class="form-label-premium">Número Factura</label>
                                         <div class="input-wrapper-premium">
                                             <input type="text" v-model="form.numero_factura"
                                                    class="form-input-premium"
@@ -382,42 +410,93 @@
 
                                     <div class="form-group-premium">
                                         <label class="form-label-premium">PDF</label>
-                                        <div class="file-upload-premium">
-                                            <input type="file" @change="handleFileUpload('pdf', $event)" 
-                                                   accept=".pdf" class="file-input-premium">
-                                            <div class="file-upload-area-premium">
+                                        <div class="file-upload-wrapper-premium">
+                                            <div class="file-upload-area-premium" @click="$refs.pdfInput.click()">
                                                 <span class="file-upload-icon-premium">
-                                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17h10M7 13h10M7 9h6"/>
                                                     </svg>
                                                 </span>
-                                                <span class="file-upload-text-premium">{{ archivos.pdf ? archivos.pdf.name : 'Seleccionar PDF' }}</span>
+                                                <span class="file-upload-text-premium">
+                                                    {{ archivos.pdf ? archivos.pdf.name : 'Seleccionar archivo PDF' }}
+                                                </span>
+                                                <span class="file-upload-size-premium" v-if="archivos.pdf">
+                                                    ({{ (archivos.pdf.size / 1024).toFixed(2) }} KB)
+                                                </span>
                                             </div>
-                                            <button v-if="archivos.pdf" type="button" @click="archivos.pdf = null" class="file-remove-premium">×</button>
+                                            <input 
+                                                type="file" 
+                                                ref="pdfInput"
+                                                @change="handleFileUpload('pdf', $event)" 
+                                                accept=".pdf"
+                                                class="file-input-hidden"
+                                            />
+                                            <button 
+                                                v-if="archivos.pdf" 
+                                                type="button" 
+                                                @click="eliminarArchivo('pdf')" 
+                                                class="file-remove-premium"
+                                                title="Eliminar archivo"
+                                            >
+                                                ✕
+                                            </button>
                                         </div>
+                                        <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo PDF (máx. 5MB)</div>
                                     </div>
 
                                     <div class="form-group-premium">
                                         <label class="form-label-premium">XML</label>
-                                        <div class="file-upload-premium">
-                                            <input type="file" @change="handleFileUpload('xml', $event)" 
-                                                   accept=".xml" class="file-input-premium">
-                                            <div class="file-upload-area-premium">
+                                        <div class="file-upload-wrapper-premium">
+                                            <div class="file-upload-area-premium" @click="$refs.xmlInput.click()">
                                                 <span class="file-upload-icon-premium">
-                                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                     </svg>
                                                 </span>
-                                                <span class="file-upload-text-premium">{{ archivos.xml ? archivos.xml.name : 'Seleccionar XML' }}</span>
+                                                <span class="file-upload-text-premium">
+                                                    {{ archivos.xml ? archivos.xml.name : 'Seleccionar archivo XML' }}
+                                                </span>
+                                                <span class="file-upload-size-premium" v-if="archivos.xml">
+                                                    ({{ (archivos.xml.size / 1024).toFixed(2) }} KB)
+                                                </span>
                                             </div>
-                                            <button v-if="archivos.xml" type="button" @click="archivos.xml = null" class="file-remove-premium">×</button>
+                                            <input 
+                                                type="file" 
+                                                ref="xmlInput"
+                                                @change="handleFileUpload('xml', $event)" 
+                                                accept=".xml"
+                                                class="file-input-hidden"
+                                            />
+                                            <button 
+                                                v-if="archivos.xml" 
+                                                type="button" 
+                                                @click="eliminarArchivo('xml')" 
+                                                class="file-remove-premium"
+                                                title="Eliminar archivo"
+                                            >
+                                                ✕
+                                            </button>
                                         </div>
+                                        <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo XML (máx. 5MB)</div>
+                                    </div>
+                                </div>
+
+                                <div v-if="archivos.pdf || archivos.xml" class="archivos-seleccionados-premium">
+                                    <span class="archivos-seleccionados-title">Archivos seleccionados:</span>
+                                    <div class="archivos-seleccionados-list">
+                                        <span v-if="archivos.pdf" class="archivo-item pdf">
+                                            {{ archivos.pdf.name }}
+                                            <span class="archivo-size">({{ (archivos.pdf.size / 1024).toFixed(2) }} KB)</span>
+                                        </span>
+                                        <span v-if="archivos.xml" class="archivo-item xml">
+                                            {{ archivos.xml.name }}
+                                            <span class="archivo-size">({{ (archivos.xml.size / 1024).toFixed(2) }} KB)</span>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Seccion 4: Observaciones -->
+                            <!-- Sección 4: Observaciones -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium teal">
@@ -433,11 +512,11 @@
 
                                 <div class="form-grid-premium">
                                     <div class="form-group-premium full-width-premium">
-                                        <label class="form-label-premium">Observacion</label>
+                                        <label class="form-label-premium">Observación</label>
                                         <div class="input-wrapper-premium">
                                             <textarea v-model="form.nota" rows="3"
                                                       class="form-textarea-premium"
-                                                      placeholder="Agrega notas o comentarios sobre esta poliza..."
+                                                      placeholder="Agrega notas o comentarios sobre esta póliza..."
                                                       @input="clearError('nota')"></textarea>
                                         </div>
                                         <div v-if="form.nota" class="char-counter-premium">{{ form.nota.length }} caracteres</div>
@@ -448,7 +527,7 @@
 
                         <!-- TRASPASO -->
                         <div v-if="tipoPolizaSeleccionado === 'TRASPASO'" class="fade-slide">
-                            <!-- Seccion 1: Informacion General Traspaso -->
+                            <!-- Sección 1: Información General Traspaso -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium purple">
@@ -457,14 +536,14 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="section-title-text">Informacion del Traspaso</h3>
-                                        <p class="section-title-sub">Configuracion de la transferencia entre cuentas</p>
+                                        <h3 class="section-title-text">Información del Traspaso</h3>
+                                        <p class="section-title-sub">Configuración de la transferencia entre cuentas</p>
                                     </div>
                                 </div>
 
                                 <div class="form-grid-premium">
                                     <div class="form-group-premium">
-                                        <label class="form-label-premium">Tipo de Poliza <span class="required-star">*</span></label>
+                                        <label class="form-label-premium">Tipo de Póliza <span class="required-star">*</span></label>
                                         <div class="input-wrapper-premium">
                                             <select v-model="formTraspaso.tipo_poliza"
                                                     class="form-input-premium form-select-premium"
@@ -479,37 +558,14 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group-premium">
-                                        <label class="form-label-premium">Referencia / Folio</label>
-                                        <div class="input-wrapper-premium">
-                                            <input type="text" v-model="formTraspaso.referencia"
-                                                   class="form-input-premium"
-                                                   placeholder="Ej: TR-2024-001">
-                                        </div>
-                                    </div>
-
                                     <div class="form-group-premium checkbox-group-premium">
                                         <label class="form-label-premium">Opciones</label>
                                         <div class="checkbox-grid-premium">
                                             <label class="checkbox-premium">
-                                                <input type="checkbox" v-model="formTraspaso.es_fiscal" class="checkbox-input-premium">
+                                                <input type="checkbox" v-model="formTraspaso.es_fiscal" @change="toggleFiscalTraspaso" class="checkbox-input-premium">
                                                 <span class="checkbox-custom-premium"></span>
                                                 <span class="checkbox-text-premium">Fiscal</span>
                                             </label>
-                                            <label class="checkbox-premium">
-                                                <input type="checkbox" v-model="formTraspaso.es_por_pagar" class="checkbox-input-premium">
-                                                <span class="checkbox-custom-premium"></span>
-                                                <span class="checkbox-text-premium">Por Pagar</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group-premium" v-if="formTraspaso.es_por_pagar">
-                                        <label class="form-label-premium">Fecha Vencimiento <span class="required-star">*</span></label>
-                                        <div class="input-wrapper-premium">
-                                            <input type="date" v-model="formTraspaso.fecha_vencimiento"
-                                                   class="form-input-premium"
-                                                   :min="fechaActual">
                                         </div>
                                     </div>
 
@@ -534,7 +590,7 @@
                                 </div>
                             </div>
 
-                            <!-- Seccion 2: Cuentas Traspaso -->
+                            <!-- Sección 2: Cuentas Traspaso -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium blue">
@@ -549,12 +605,12 @@
                                 </div>
 
                                 <div class="traspaso-layout-premium">
-                                    <!-- Cuenta Origen -->
+                                    <!-- CUENTA ORIGEN -->
                                     <div class="cuenta-origen-premium">
                                         <div class="cuenta-card-premium">
                                             <div class="cuenta-card-header-premium">
                                                 <span class="cuenta-card-icon">
-                                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                                     </svg>
                                                 </span>
@@ -564,6 +620,7 @@
                                             <div class="cuenta-card-body-premium">
                                                 <div class="input-wrapper-premium">
                                                     <select v-model="formTraspaso.id_cuenta_origen"
+                                                            @change="onCuentaOrigenChange"
                                                             class="form-input-premium form-select-premium"
                                                             :class="{ 'error': formTraspaso.errors.id_cuenta_origen }">
                                                         <option value="">Selecciona una cuenta</option>
@@ -580,13 +637,26 @@
                                                 <div v-if="formTraspaso.errors.id_cuenta_origen" class="error-message-premium">{{ formTraspaso.errors.id_cuenta_origen }}</div>
                                                 <div class="cuenta-card-info">
                                                     <span class="info-label">Saldo actual</span>
-                                                    <span class="info-value">${{ formatNumber(obtenerSaldoCuenta(formTraspaso.id_cuenta_origen)) }}</span>
+                                                    <span class="info-value" :class="saldoOrigenColor">
+                                                        ${{ formatNumber(saldoCuentaOrigen) }}
+                                                    </span>
+                                                </div>
+                                                <div v-if="formTraspaso.monto > 0 && saldoCuentaOrigen > 0" class="saldo-progress-premium">
+                                                    <div class="saldo-progress-bar">
+                                                        <div class="saldo-progress-fill" 
+                                                             :style="{ width: Math.min((formTraspaso.monto / saldoCuentaOrigen) * 100, 100) + '%' }"
+                                                             :class="porcentajeSaldoOrigen > 80 ? 'progress-danger' : 'progress-warning'">
+                                                        </div>
+                                                    </div>
+                                                    <span class="saldo-progress-text">
+                                                        {{ Math.min((formTraspaso.monto / saldoCuentaOrigen) * 100, 100).toFixed(0) }}% del saldo
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Flecha Central -->
+                                    <!-- FLECHA CENTRAL -->
                                     <div class="transfer-center-premium">
                                         <div class="transfer-arrows-premium">
                                             <div class="arrow-container">
@@ -609,12 +679,12 @@
                                         </div>
                                     </div>
 
-                                    <!-- Cuenta Destino -->
+                                    <!-- CUENTA DESTINO -->
                                     <div class="cuenta-destino-premium">
                                         <div class="cuenta-card-premium">
                                             <div class="cuenta-card-header-premium">
                                                 <span class="cuenta-card-icon">
-                                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                                     </svg>
                                                 </span>
@@ -624,6 +694,7 @@
                                             <div class="cuenta-card-body-premium">
                                                 <div class="input-wrapper-premium">
                                                     <select v-model="formTraspaso.id_cuenta_destino"
+                                                            @change="onCuentaDestinoChange"
                                                             class="form-input-premium form-select-premium"
                                                             :class="{ 'error': formTraspaso.errors.id_cuenta_destino }">
                                                         <option value="">Selecciona una cuenta</option>
@@ -640,54 +711,284 @@
                                                 <div v-if="formTraspaso.errors.id_cuenta_destino" class="error-message-premium">{{ formTraspaso.errors.id_cuenta_destino }}</div>
                                                 <div class="cuenta-card-info">
                                                     <span class="info-label">Saldo actual</span>
-                                                    <span class="info-value">${{ formatNumber(obtenerSaldoCuenta(formTraspaso.id_cuenta_destino)) }}</span>
+                                                    <span class="info-value" :class="saldoDestinoColor">
+                                                        ${{ formatNumber(saldoCuentaDestino) }}
+                                                    </span>
+                                                </div>
+                                                <div v-if="formTraspaso.monto > 0" class="saldo-destino-preview-premium">
+                                                    <span class="saldo-destino-label">Nuevo saldo después del traspaso:</span>
+                                                    <span class="saldo-destino-value" :class="nuevoSaldoDestino > 0 ? 'text-success' : 'text-danger'">
+                                                        ${{ formatNumber(saldoCuentaDestino + formTraspaso.monto) }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Monto a Transferir -->
+                                <!-- MONTO Y DESGLOSE DE IVA PARA TRASPASO -->
                                 <div class="monto-transferir-premium">
-                                    <label class="form-label-premium">Monto a Transferir <span class="required-star">*</span></label>
-                                    <div class="input-wrapper-premium">
-                                        <span class="input-prefix-premium">$</span>
-                                        <input type="number" step="0.01" v-model.number="formTraspaso.monto"
-                                               @input="clearErrorTraspaso('monto')"
-                                               class="form-input-premium"
-                                               :class="{ 'error': formTraspaso.errors.monto }"
-                                               placeholder="0.00"
-                                               min="0.01">
+                                    <div class="form-grid-premium">
+                                        <div class="form-group-premium">
+                                            <label class="form-label-premium">Monto a Transferir <span class="required-star">*</span></label>
+                                            <div class="input-wrapper-premium">
+                                                <span class="input-prefix-premium">$</span>
+                                                <input type="number" step="0.01" v-model.number="formTraspaso.monto"
+                                                       @input="clearErrorTraspaso('monto')"
+                                                       class="form-input-premium"
+                                                       :class="{ 'error': formTraspaso.errors.monto }"
+                                                       placeholder="0.00"
+                                                       min="0.01">
+                                            </div>
+                                            <div v-if="formTraspaso.errors.monto" class="error-message-premium">{{ formTraspaso.errors.monto }}</div>
+                                            <div v-if="formTraspaso.monto > 0 && formTraspaso.id_cuenta_origen && saldoCuentaOrigen < formTraspaso.monto" class="saldo-insuficiente-premium">
+                                                <span class="saldo-insuficiente-icon">⚠️</span>
+                                                <span class="saldo-insuficiente-text">Saldo insuficiente en la cuenta origen. Disponible: ${{ formatNumber(saldoCuentaOrigen) }}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div v-if="formTraspaso.errors.monto" class="error-message-premium">{{ formTraspaso.errors.monto }}</div>
-                                </div>
 
-                                <div v-if="formTraspaso.es_fiscal && formTraspaso.monto > 0" class="desglose-fiscal-box-premium fade-slide">
-                                    <div class="desglose-fiscal-header-premium">
-                                        <span class="desglose-fiscal-title-premium">Desglose Fiscal del Traspaso</span>
-                                        <span class="desglose-fiscal-subtitle-premium">Este desglose se usara para efectos fiscales y contables</span>
+                                    <!-- Selector de IVAs para Traspaso -->
+                                    <div class="iva-selector-premium" style="margin-top: 16px;">
+                                        <div class="iva-selector-grid">
+                                            <div 
+                                                v-for="iva in tiposIva" 
+                                                :key="iva.id"
+                                                class="iva-select-item"
+                                                :class="{ 
+                                                    selected: ivasSeleccionadosTraspaso.includes(iva.id),
+                                                    disabled: ivasSeleccionadosTraspaso.length >= 2 && !ivasSeleccionadosTraspaso.includes(iva.id)
+                                                }"
+                                                @click="toggleIvaTraspaso(iva.id)"
+                                            >
+                                                <span class="iva-select-badge" :class="iva.porcentaje === 0 ? 'badge-cero' : 'badge-dieciseis'">
+                                                    {{ iva.porcentaje }}%
+                                                </span>
+                                                <span class="iva-select-name">{{ iva.nombre }}</span>
+                                                <span class="iva-select-check" v-if="ivasSeleccionadosTraspaso.includes(iva.id)">✓</span>
+                                            </div>
+                                        </div>
+                                        <div class="iva-selector-hint">
+                                            <span v-if="ivasSeleccionadosTraspaso.length === 0">Selecciona al menos un tipo de IVA</span>
+                                            <span v-else-if="ivasSeleccionadosTraspaso.length === 1">1 IVA seleccionado</span>
+                                            <span v-else>2 IVAs seleccionados (máximo)</span>
+                                        </div>
                                     </div>
-                                    <div class="desglose-fiscal-grid-premium">
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Monto Transferido</span>
-                                            <span class="desglose-fiscal-value-premium" style="color: #2563eb;">${{ formatNumber(formTraspaso.monto) }}</span>
+
+                                    <!-- Tarjetas de IVA para Traspaso -->
+                                    <div class="iva-cards-row" v-if="ivasSeleccionadosTraspaso.length > 0" style="margin-top: 16px;">
+                                        <div 
+                                            v-for="ivaId in ivasSeleccionadosTraspaso" 
+                                            :key="ivaId"
+                                            class="iva-card"
+                                            :class="getIvaCardClass(ivaId)"
+                                        >
+                                            <div class="card-header">
+                                                <span class="card-badge" :class="getIvaBadgeClass(ivaId)">
+                                                    {{ getIvaPorcentaje(ivaId) }}%
+                                                </span>
+                                                <span class="card-title">{{ getIvaNombre(ivaId) }}</span>
+                                                <button 
+                                                    type="button" 
+                                                    @click="quitarIvaTraspaso(ivaId)" 
+                                                    class="card-remove"
+                                                    title="Quitar IVA"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="input-wrapper card-input-wrapper">
+                                                    <span class="input-prefix">$</span>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01" 
+                                                        v-model.number="formTraspaso.ivas[ivaId].monto"
+                                                        @input="calcularTotalesTraspaso"
+                                                        class="form-input-premium card-input"
+                                                        :class="{ 'error': formTraspaso.errors[`iva_${ivaId}_monto`] }"
+                                                        placeholder="0.00"
+                                                        min="0"
+                                                    >
+                                                </div>
+                                            </div>
+                                            <div class="card-footer">
+                                                <span class="card-result">
+                                                    IVA {{ getIvaPorcentaje(ivaId) }}%: 
+                                                    ${{ formatNumber(calcularIvaMontoTraspaso(ivaId)) }}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Cuenta Origen</span>
-                                            <span class="desglose-fiscal-value-premium">{{ cuentaOrigenNombre }}</span>
-                                        </div>
-                                        <div class="desglose-fiscal-item-premium">
-                                            <span class="desglose-fiscal-label-premium">Cuenta Destino</span>
-                                            <span class="desglose-fiscal-value-premium">{{ cuentaDestinoNombre }}</span>
+
+                                        <!-- Tarjeta TOTAL para Traspaso -->
+                                        <div class="iva-card card-total">
+                                            <div class="card-header">
+                                                <span class="card-badge badge-total">TOTAL</span>
+                                                <span class="card-title">TOTAL TRASPASO</span>
+                                            </div>
+                                            <div class="card-body total-body">
+                                                <span class="total-amount">${{ formatNumber(totalFacturaTraspasoCalculado) }}</span>
+                                            </div>
+                                            <div class="card-footer total-footer">
+                                                <span class="card-result">
+                                                    IVA Total: ${{ formatNumber(totalIvaTraspasoCalculado) }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="desglose-fiscal-footer-premium">
-                                        <span class="desglose-fiscal-leyenda-premium">Este desglose se usara para efectos fiscales y contables</span>
+
+                                    <!-- Desglose Automático para Traspaso -->
+                                    <div v-if="totalFacturaTraspasoCalculado > 0 && ivasSeleccionadosTraspaso.length > 0" class="desglose-box-premium">
+                                        <div class="desglose-header-premium">
+                                            <span class="desglose-title-premium">Desglose Automático</span>
+                                            <span class="desglose-subtitle-premium">Cálculo del sistema</span>
+                                        </div>
+                                        <div class="desglose-grid-premium">
+                                            <div v-for="ivaId in ivasSeleccionadosTraspaso" :key="ivaId" class="desglose-item-premium">
+                                                <span class="desglose-label-premium">Base {{ getIvaPorcentaje(ivaId) }}%</span>
+                                                <span class="desglose-value-premium" style="color: #2563eb;">
+                                                    ${{ formatNumber(formTraspaso.ivas[ivaId]?.monto || 0) }}
+                                                </span>
+                                            </div>
+                                            <div class="desglose-item-premium">
+                                                <span class="desglose-label-premium">IVA Total</span>
+                                                <span class="desglose-value-premium" style="color: #f59e0b;">
+                                                    ${{ formatNumber(totalIvaTraspasoCalculado) }}
+                                                </span>
+                                            </div>
+                                            <div class="desglose-item-premium">
+                                                <span class="desglose-label-premium font-bold">Total Traspaso</span>
+                                                <span class="desglose-value-premium font-bold" style="color: #10b981;">
+                                                    ${{ formatNumber(totalFacturaTraspasoCalculado) }}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Seccion 3: Observaciones Traspaso -->
+                            <!-- Sección 3: Facturación y Archivos para Traspaso -->
+                            <div v-if="formTraspaso.es_fiscal" class="section-block-premium fade-slide">
+                                <div class="section-header-premium">
+                                    <div class="section-icon-premium orange">
+                                        <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="section-title-text">Facturación del Traspaso</h3>
+                                        <p class="section-title-sub">Datos de la factura y archivos adjuntos para el traspaso</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid-premium">
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">Fecha Factura</label>
+                                        <div class="input-wrapper-premium">
+                                            <input type="date" v-model="formTraspaso.fecha_factura"
+                                                   class="form-input-premium"
+                                                   :max="fechaActual">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">Número Factura</label>
+                                        <div class="input-wrapper-premium">
+                                            <input type="text" v-model="formTraspaso.numero_factura"
+                                                   class="form-input-premium"
+                                                   placeholder="Ej: A-1258">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">PDF</label>
+                                        <div class="file-upload-wrapper-premium">
+                                            <div class="file-upload-area-premium" @click="$refs.pdfInputTraspaso.click()">
+                                                <span class="file-upload-icon-premium">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="file-upload-text-premium">
+                                                    {{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : 'Seleccionar archivo PDF' }}
+                                                </span>
+                                                <span class="file-upload-size-premium" v-if="archivosTraspaso.pdf">
+                                                    ({{ (archivosTraspaso.pdf.size / 1024).toFixed(2) }} KB)
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                ref="pdfInputTraspaso"
+                                                @change="handleFileUploadTraspaso('pdf', $event)" 
+                                                accept=".pdf"
+                                                class="file-input-hidden"
+                                            />
+                                            <button 
+                                                v-if="archivosTraspaso.pdf" 
+                                                type="button" 
+                                                @click="eliminarArchivoTraspaso('pdf')" 
+                                                class="file-remove-premium"
+                                                title="Eliminar archivo"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo PDF (máx. 5MB)</div>
+                                    </div>
+
+                                    <div class="form-group-premium">
+                                        <label class="form-label-premium">XML</label>
+                                        <div class="file-upload-wrapper-premium">
+                                            <div class="file-upload-area-premium" @click="$refs.xmlInputTraspaso.click()">
+                                                <span class="file-upload-icon-premium">
+                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="file-upload-text-premium">
+                                                    {{ archivosTraspaso.xml ? archivosTraspaso.xml.name : 'Seleccionar archivo XML' }}
+                                                </span>
+                                                <span class="file-upload-size-premium" v-if="archivosTraspaso.xml">
+                                                    ({{ (archivosTraspaso.xml.size / 1024).toFixed(2) }} KB)
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                ref="xmlInputTraspaso"
+                                                @change="handleFileUploadTraspaso('xml', $event)" 
+                                                accept=".xml"
+                                                class="file-input-hidden"
+                                            />
+                                            <button 
+                                                v-if="archivosTraspaso.xml" 
+                                                type="button" 
+                                                @click="eliminarArchivoTraspaso('xml')" 
+                                                class="file-remove-premium"
+                                                title="Eliminar archivo"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo XML (máx. 5MB)</div>
+                                    </div>
+                                </div>
+
+                                <div v-if="archivosTraspaso.pdf || archivosTraspaso.xml" class="archivos-seleccionados-premium">
+                                    <span class="archivos-seleccionados-title">Archivos seleccionados:</span>
+                                    <div class="archivos-seleccionados-list">
+                                        <span v-if="archivosTraspaso.pdf" class="archivo-item pdf">
+                                            {{ archivosTraspaso.pdf.name }}
+                                            <span class="archivo-size">({{ (archivosTraspaso.pdf.size / 1024).toFixed(2) }} KB)</span>
+                                        </span>
+                                        <span v-if="archivosTraspaso.xml" class="archivo-item xml">
+                                            {{ archivosTraspaso.xml.name }}
+                                            <span class="archivo-size">({{ (archivosTraspaso.xml.size / 1024).toFixed(2) }} KB)</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sección 4: Observaciones Traspaso -->
                             <div class="section-block-premium">
                                 <div class="section-header-premium">
                                     <div class="section-icon-premium teal">
@@ -703,7 +1004,7 @@
 
                                 <div class="form-grid-premium">
                                     <div class="form-group-premium full-width-premium">
-                                        <label class="form-label-premium">Observacion</label>
+                                        <label class="form-label-premium">Observación</label>
                                         <div class="input-wrapper-premium">
                                             <textarea v-model="formTraspaso.nota" rows="3"
                                                       class="form-textarea-premium"
@@ -728,11 +1029,10 @@
                             <div class="actions-left-premium">
                                 <div class="total-card-premium">
                                     <span class="total-label-premium">Total</span>
-                                    <span class="total-value-premium">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? calcularSumaTotal : formTraspaso.monto) }}</span>
+                                    <span class="total-value-premium">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalFacturaCalculado : totalFacturaTraspasoCalculado) }}</span>
                                 </div>
                             </div>
                             <div class="actions-right-premium">
-                                <!-- ✅ ELIMINAR - solo admin, auditor, super -->
                                 <button 
                                     v-if="permisos?.puede_eliminar"
                                     type="button" 
@@ -749,7 +1049,6 @@
                                     </svg>
                                     Cancelar
                                 </Link>
-                                <!-- ✅ ACTUALIZAR - solo admin, auditor, super -->
                                 <button 
                                     v-if="permisos?.puede_editar"
                                     type="submit" 
@@ -759,7 +1058,7 @@
                                     <svg v-else class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
                                     </svg>
-                                    {{ processing ? 'Guardando...' : 'Actualizar Poliza' }}
+                                    {{ processing ? 'Guardando...' : 'Actualizar Póliza' }}
                                 </button>
                             </div>
                         </div>
@@ -790,12 +1089,12 @@
                             </div>
                         </div>
                         <div class="form-group-premium" style="margin-top: 16px;">
-                            <label class="form-label-premium">Descripcion</label>
+                            <label class="form-label-premium">Descripción</label>
                             <div class="input-wrapper-premium">
                                 <textarea v-model="nuevoMarcador.descripcion"
                                           class="form-textarea-premium"
                                           rows="2"
-                                          placeholder="Breve descripcion..."></textarea>
+                                          placeholder="Breve descripción..."></textarea>
                             </div>
                         </div>
                         <div class="modal-actions-premium">
@@ -847,6 +1146,10 @@ const props = defineProps({
 // REFS
 // ============================================
 const alertRef = ref(null);
+const pdfInput = ref(null);
+const xmlInput = ref(null);
+const pdfInputTraspaso = ref(null);
+const xmlInputTraspaso = ref(null);
 const personas = ref([]);
 const cuentaFondeadoraSeleccionada = ref(null);
 const fechaActual = ref(new Date().toISOString().split('T')[0]);
@@ -856,13 +1159,24 @@ const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
 const processingAutorizar = ref(false);
 const archivos = ref({ pdf: null, xml: null });
-const mostrarAvisoRedondeo = ref(false);
+const archivosTraspaso = ref({ pdf: null, xml: null });
+const cargandoPoliza = ref(false);
+const polizaCargada = ref(false);
 
+// SALDOS DE TRASPASO
+const saldoCuentaOrigen = ref(0);
+const saldoCuentaDestino = ref(0);
+
+// DATOS REACTIVOS
 const tiposIva = ref(props.tipos_iva || []);
 const cuentasFondeadoras = ref(props.cuentas_fondeadoras || []);
 const cuentas = ref(props.cuentas || []);
 const marcadores = ref(props.marcadores || []);
 const tipoPolizaSeleccionado = ref(props.es_traspaso ? 'TRASPASO' : 'INGRESO_EGRESO');
+
+// IVAs seleccionados
+const ivasSeleccionados = ref([]);
+const ivasSeleccionadosTraspaso = ref([]);
 
 // ============================================
 // COMPUTED
@@ -875,23 +1189,24 @@ const puedeAutorizar = computed(() => {
 const saldoSuficiente = computed(() => {
     if (!cuentaFondeadoraSeleccionada.value) return true;
     const saldo = parseFloat(cuentaFondeadoraSeleccionada.value.saldo) || 0;
-    const total = parseFloat(form.total_factura) || 0;
+    const total = parseFloat(totalFacturaCalculado.value) || 0;
     return saldo >= total;
 });
 
-const hasErrors = computed(() => Object.keys(form.errors).length > 0);
-const errorCount = computed(() => Object.keys(form.errors).length);
+const hasErrors = computed(() => Object.keys(form.errors).length > 0 || Object.keys(formTraspaso.errors).length > 0);
+const errorCount = computed(() => Object.keys(form.errors).length + Object.keys(formTraspaso.errors).length);
 
 const requiredFields = computed(() => {
-    const fields = ['tipo_poliza', 'total_factura'];
-    if (form.tipo_poliza === 'EGRESO') fields.push('id_cuenta_fondeadora');
+    const fields = ['tipo_poliza', 'id_cuenta_fondeadora'];
     if (form.es_por_pagar) fields.push('fecha_vencimiento');
+    if (ivasSeleccionados.value.length === 0) fields.push('iva_seleccion');
     return fields;
 });
 
 const progressPercentage = computed(() => {
     const total = requiredFields.value.length;
     const filled = requiredFields.value.filter(f => {
+        if (f === 'iva_seleccion') return ivasSeleccionados.value.length > 0;
         const val = form[f];
         return val !== null && val !== undefined && val !== '' && val !== 0;
     }).length;
@@ -906,40 +1221,83 @@ const statusClass = computed(() => {
     return 'status-progress';
 });
 
-const calcularSumaTotal = computed(() => {
-    if (!form.total_factura || form.total_factura <= 0) return 0;
-    if (!form.id_tipo_iva) return form.total_factura;
-    const base = parseFloat(form.monto_base) || 0;
-    const iva = parseFloat(form.monto_iva) || 0;
-    return Math.round((base + iva) * 100) / 100;
+// Cálculo de IVAs para INGRESO/EGRESO
+const totalIvaCalculado = computed(() => {
+    let total = 0;
+    ivasSeleccionados.value.forEach(ivaId => {
+        const monto = form.ivas[ivaId]?.monto || 0;
+        const iva = tiposIva.value.find(i => i.id === ivaId);
+        if (iva) {
+            total += Math.round(monto * (iva.porcentaje / 100) * 100) / 100;
+        }
+    });
+    return Math.round(total * 100) / 100;
 });
 
-const cuentaOrigenNombre = computed(() => {
-    if (!formTraspaso.id_cuenta_origen) return 'Seleccionar';
-    const cuenta = cuentas.value.find(c => c.id_cuenta === formTraspaso.id_cuenta_origen);
-    return cuenta ? cuenta.nombre_cuenta : 'Seleccionar';
+const totalFacturaCalculado = computed(() => {
+    let base = 0;
+    ivasSeleccionados.value.forEach(ivaId => {
+        base += form.ivas[ivaId]?.monto || 0;
+    });
+    return Math.round((base + totalIvaCalculado.value) * 100) / 100;
 });
 
-const cuentaDestinoNombre = computed(() => {
-    if (!formTraspaso.id_cuenta_destino) return 'Seleccionar';
-    const cuenta = cuentas.value.find(c => c.id_cuenta === formTraspaso.id_cuenta_destino);
-    return cuenta ? cuenta.nombre_cuenta : 'Seleccionar';
+// Cálculo de IVAs para TRASPASO
+const totalIvaTraspasoCalculado = computed(() => {
+    let total = 0;
+    ivasSeleccionadosTraspaso.value.forEach(ivaId => {
+        const monto = formTraspaso.ivas[ivaId]?.monto || 0;
+        const iva = tiposIva.value.find(i => i.id === ivaId);
+        if (iva) {
+            total += Math.round(monto * (iva.porcentaje / 100) * 100) / 100;
+        }
+    });
+    return Math.round(total * 100) / 100;
+});
+
+const totalFacturaTraspasoCalculado = computed(() => {
+    let base = 0;
+    ivasSeleccionadosTraspaso.value.forEach(ivaId => {
+        base += formTraspaso.ivas[ivaId]?.monto || 0;
+    });
+    return Math.round((base + totalIvaTraspasoCalculado.value) * 100) / 100;
+});
+
+const saldoOrigenColor = computed(() => {
+    if (formTraspaso.monto <= 0 || !formTraspaso.id_cuenta_origen) return '';
+    return saldoCuentaOrigen.value >= formTraspaso.monto ? 'text-success' : 'text-danger';
+});
+
+const saldoDestinoColor = computed(() => {
+    return 'text-info';
+});
+
+const nuevoSaldoDestino = computed(() => {
+    return saldoCuentaDestino.value + formTraspaso.monto;
+});
+
+const porcentajeSaldoOrigen = computed(() => {
+    if (saldoCuentaOrigen.value <= 0) return 0;
+    return (formTraspaso.monto / saldoCuentaOrigen.value) * 100;
 });
 
 const isFormValidGeneral = computed(() => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
         if (!form.tipo_poliza) return false;
-        if (form.tipo_poliza === 'EGRESO' && !form.id_cuenta_fondeadora) return false;
-        if (form.total_factura <= 0) return false;
+        if (!form.id_cuenta_fondeadora) return false;
+        if (totalFacturaCalculado.value <= 0) return false;
+        if (ivasSeleccionados.value.length === 0) return false;
         if (form.es_por_pagar && !form.fecha_vencimiento) return false;
-        if (hasErrors.value) return false;
+        if (Object.keys(form.errors).length > 0) return false;
         return true;
     } else {
         if (!formTraspaso.id_cuenta_origen) return false;
         if (!formTraspaso.id_cuenta_destino) return false;
         if (formTraspaso.monto <= 0) return false;
         if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) return false;
-        if (formTraspaso.es_por_pagar && !formTraspaso.fecha_vencimiento) return false;
+        if (ivasSeleccionadosTraspaso.value.length === 0) return false;
+        if (saldoCuentaOrigen.value < formTraspaso.monto) return false;
+        if (Object.keys(formTraspaso.errors).length > 0) return false;
         return true;
     }
 });
@@ -978,7 +1336,8 @@ const form = useForm({
     numero_factura: props.movimiento.numero_factura || null,
     nota: props.movimiento.nota || '',
     referencia: props.movimiento.referencia || null,
-    folio: props.movimiento.folio || null
+    folio: props.movimiento.folio || null,
+    ivas: {}
 });
 
 const formTraspaso = useForm({
@@ -991,8 +1350,116 @@ const formTraspaso = useForm({
     fecha_vencimiento: props.movimiento.fecha_vencimiento || null,
     id_marcador: props.movimiento.id_marcador || null,
     referencia: props.movimiento.referencia || null,
-    nota: props.movimiento.nota || null
+    nota: props.movimiento.nota || null,
+    ivas: {}
 });
+
+// ============================================
+// MÉTODOS PARA IVA
+// ============================================
+const toggleIva = (ivaId) => {
+    const index = ivasSeleccionados.value.indexOf(ivaId);
+    if (index > -1) {
+        ivasSeleccionados.value.splice(index, 1);
+        delete form.ivas[ivaId];
+    } else {
+        if (ivasSeleccionados.value.length >= 2) {
+            alertRef.value?.show({
+                type: 'warning',
+                title: 'Límite alcanzado',
+                message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
+                buttonText: 'Entendido'
+            });
+            return;
+        }
+        ivasSeleccionados.value.push(ivaId);
+        if (!form.ivas[ivaId]) {
+            form.ivas[ivaId] = { monto: 0 };
+        }
+    }
+};
+
+const quitarIva = (ivaId) => {
+    const index = ivasSeleccionados.value.indexOf(ivaId);
+    if (index > -1) {
+        ivasSeleccionados.value.splice(index, 1);
+        delete form.ivas[ivaId];
+    }
+};
+
+const toggleIvaTraspaso = (ivaId) => {
+    const index = ivasSeleccionadosTraspaso.value.indexOf(ivaId);
+    if (index > -1) {
+        ivasSeleccionadosTraspaso.value.splice(index, 1);
+        delete formTraspaso.ivas[ivaId];
+    } else {
+        if (ivasSeleccionadosTraspaso.value.length >= 2) {
+            alertRef.value?.show({
+                type: 'warning',
+                title: 'Límite alcanzado',
+                message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
+                buttonText: 'Entendido'
+            });
+            return;
+        }
+        ivasSeleccionadosTraspaso.value.push(ivaId);
+        if (!formTraspaso.ivas[ivaId]) {
+            formTraspaso.ivas[ivaId] = { monto: 0 };
+        }
+    }
+};
+
+const quitarIvaTraspaso = (ivaId) => {
+    const index = ivasSeleccionadosTraspaso.value.indexOf(ivaId);
+    if (index > -1) {
+        ivasSeleccionadosTraspaso.value.splice(index, 1);
+        delete formTraspaso.ivas[ivaId];
+    }
+};
+
+const getIvaCardClass = (ivaId) => {
+    const iva = tiposIva.value.find(i => i.id === ivaId);
+    if (!iva) return '';
+    return iva.porcentaje === 0 ? 'card-cero' : 'card-dieciseis';
+};
+
+const getIvaBadgeClass = (ivaId) => {
+    const iva = tiposIva.value.find(i => i.id === ivaId);
+    if (!iva) return '';
+    return iva.porcentaje === 0 ? 'badge-cero' : 'badge-dieciseis';
+};
+
+const getIvaPorcentaje = (ivaId) => {
+    const iva = tiposIva.value.find(i => i.id === ivaId);
+    return iva ? iva.porcentaje : 0;
+};
+
+const getIvaNombre = (ivaId) => {
+    const iva = tiposIva.value.find(i => i.id === ivaId);
+    return iva ? iva.nombre : '';
+};
+
+const calcularIvaMonto = (ivaId) => {
+    const monto = form.ivas[ivaId]?.monto || 0;
+    const iva = tiposIva.value.find(i => i.id === ivaId);
+    if (!iva) return 0;
+    return Math.round(monto * (iva.porcentaje / 100) * 100) / 100;
+};
+
+const calcularIvaMontoTraspaso = (ivaId) => {
+    const monto = formTraspaso.ivas[ivaId]?.monto || 0;
+    const iva = tiposIva.value.find(i => i.id === ivaId);
+    if (!iva) return 0;
+    return Math.round(monto * (iva.porcentaje / 100) * 100) / 100;
+};
+
+const calcularTotales = () => {
+    // Solo recalcula los totales
+};
+
+const calcularTotalesTraspaso = () => {
+    // Solo recalcula los totales
+};
 
 // ============================================
 // AUTORIZAR PÓLIZA
@@ -1016,7 +1483,7 @@ const confirmarAutorizar = () => {
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 4px 0;">
                         <span style="font-weight: 600; color: #64748b;">Monto:</span>
-                        <span style="font-weight: 700; color: #10b981; font-size: 16px;">$${formatNumber(props.movimiento.total_factura || props.movimiento.monto_abs || 0)}</span>
+                        <span style="font-weight: 700; color: #10b981; font-size: 16px;">$${formatNumber(totalFacturaCalculado.value || props.movimiento.monto_abs || 0)}</span>
                     </div>
                 </div>
                 <div style="background: #ecfdf5; border-radius: 8px; padding: 12px 16px; border-left: 4px solid #10b981;">
@@ -1088,7 +1555,6 @@ const autorizarPoliza = () => {
 // ELIMINAR PÓLIZA
 // ============================================
 const confirmarEliminar = () => {
-    // ✅ Verificar permiso
     if (!permisos.value?.puede_eliminar) {
         Swal.fire({
             icon: 'error',
@@ -1105,8 +1571,7 @@ const confirmarEliminar = () => {
                        'S/N';
     
     const tipo = form.tipo_poliza || props.movimiento.tipo_poliza || 'N/A';
-    const monto = form.total_factura || props.movimiento.total_factura || props.movimiento.monto_abs || 0;
-    const idPoliza = props.movimiento.id_poliza || props.movimiento.id || null;
+    const monto = totalFacturaCalculado.value || props.movimiento.monto_abs || 0;
     
     Swal.fire({
         title: 'Eliminar esta póliza?',
@@ -1211,7 +1676,6 @@ const eliminarPoliza = () => {
 // SUBMIT
 // ============================================
 const submit = () => {
-    // ✅ Verificar permiso para editar
     if (!permisos.value?.puede_editar) {
         Swal.fire({
             icon: 'error',
@@ -1225,17 +1689,20 @@ const submit = () => {
     processing.value = true;
 
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
-        if (form.id_tipo_iva && form.total_factura > 0) {
-            const suma = form.monto_base + form.monto_iva;
-            const total = parseFloat(form.total_factura);
-            if (Math.abs(suma - total) > 0.01) {
-                const ajuste = total - suma;
-                form.monto_iva = Math.round((form.monto_iva + ajuste) * 100) / 100;
-            }
+        // Validar que haya IVAs seleccionados
+        if (ivasSeleccionados.value.length === 0) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Error', 
+                message: 'Selecciona al menos un tipo de IVA', 
+                buttonText: 'Entendido' 
+            });
+            processing.value = false;
+            return;
         }
-        
-        if (form.tipo_poliza === 'EGRESO' && !form.id_cuenta_fondeadora) {
-            alertRef.value?.show({ type: 'error', title: 'Error', message: 'Selecciona una cuenta fondeadora para el egreso', buttonText: 'Entendido' });
+
+        if (!form.id_cuenta_fondeadora) {
+            alertRef.value?.show({ type: 'error', title: 'Error', message: 'Selecciona una cuenta fondeadora', buttonText: 'Entendido' });
             processing.value = false;
             return;
         }
@@ -1244,31 +1711,111 @@ const submit = () => {
             processing.value = false;
             return;
         }
-        if (form.total_factura <= 0) {
+        if (totalFacturaCalculado.value <= 0) {
             alertRef.value?.show({ type: 'error', title: 'Error', message: 'El total debe ser mayor a 0', buttonText: 'Entendido' });
             processing.value = false;
             return;
         }
 
-        form.put(route('movimientos.update', props.movimiento.id), {
-            preserveState: false,
-            preserveScroll: false,
-            onSuccess: () => {
-                processing.value = false;
+        // ✅ Construir el array de IVAs para enviar
+        const ivasArray = ivasSeleccionados.value.map(ivaId => {
+            return {
+                id: ivaId,
+                monto: form.ivas[ivaId]?.monto || 0
+            };
+        });
+
+        const formData = new FormData();
+        
+        // Campos básicos
+        Object.keys(form.data()).forEach(key => {
+            if (key === 'ivas') return;
+            let value = form[key];
+            if (typeof value === 'boolean') value = value ? 'true' : 'false';
+            if (value === null || value === undefined) value = '';
+            if (value !== '' && value !== null && value !== undefined) {
+                formData.append(key, value);
+            }
+        });
+
+        // Enviar IVAs como array
+        ivasArray.forEach((iva, index) => {
+            formData.append(`ivas[${index}][id]`, iva.id);
+            formData.append(`ivas[${index}][monto]`, iva.monto);
+        });
+
+        // Archivos
+        if (archivos.value.pdf) formData.append('pdf_file', archivos.value.pdf);
+        if (archivos.value.xml) formData.append('xml_file', archivos.value.xml);
+
+        // Total calculado
+        formData.append('total_factura', totalFacturaCalculado.value);
+
+        formData.append('_method', 'PUT');
+
+        axios.post(route('movimientos.update', props.movimiento.id), formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        .then(() => {
+            processing.value = false;
+            alertRef.value?.show({ 
+                type: 'success', 
+                title: 'Éxito', 
+                message: 'La póliza se ha actualizado correctamente.',
+                buttonText: 'Ir al listado'
+            });
+            setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
-            },
-            onError: (errors) => {
-                processing.value = false;
+            }, 1500);
+        })
+        .catch(error => {
+            processing.value = false;
+            console.error('Error completo:', error);
+            
+            if (error.response?.data?.errors) {
+                const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
                 alertRef.value?.show({ 
                     type: 'error', 
+                    title: 'Error de validación', 
+                    message: Array.isArray(firstError) ? firstError[0] : firstError,
+                    buttonText: 'Entendido' 
+                });
+                Object.keys(errors).forEach(key => {
+                    form.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
+                });
+            } else if (error.response?.data?.message) {
+                alertRef.value?.show({ 
+                    type: 'error', 
                     title: 'Error', 
-                    message: firstError || 'Error al actualizar la póliza.', 
+                    message: error.response.data.message,
+                    buttonText: 'Entendido' 
+                });
+            } else {
+                alertRef.value?.show({ 
+                    type: 'error', 
+                    title: 'Error', 
+                    message: 'Error al actualizar la póliza. Intenta nuevamente.',
                     buttonText: 'Entendido' 
                 });
             }
         });
+
     } else {
+        // ============================================
+        // TRASPASO
+        // ============================================
+        if (ivasSeleccionadosTraspaso.value.length === 0) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Error', 
+                message: 'Selecciona al menos un tipo de IVA para el traspaso', 
+                buttonText: 'Entendido' 
+            });
+            processing.value = false;
+            return;
+        }
+
         if (!formTraspaso.id_cuenta_origen) {
             alertRef.value?.show({ type: 'error', title: 'Error', message: 'Selecciona una cuenta origen', buttonText: 'Entendido' });
             processing.value = false;
@@ -1289,26 +1836,96 @@ const submit = () => {
             processing.value = false;
             return;
         }
-        if (formTraspaso.es_por_pagar && !formTraspaso.fecha_vencimiento) {
-            alertRef.value?.show({ type: 'error', title: 'Error', message: 'Ingresa una fecha de vencimiento', buttonText: 'Entendido' });
+        if (saldoCuentaOrigen.value < formTraspaso.monto) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Saldo insuficiente', 
+                message: `El saldo de la cuenta origen ($${formatNumber(saldoCuentaOrigen.value)}) es insuficiente para cubrir el monto del traspaso ($${formatNumber(formTraspaso.monto)})`,
+                buttonText: 'Entendido' 
+            });
             processing.value = false;
             return;
         }
 
-        formTraspaso.put(route('movimientos.update', props.movimiento.id), {
-            preserveState: false,
-            preserveScroll: false,
-            onSuccess: () => {
-                processing.value = false;
+        // ✅ Construir el array de IVAs para traspaso
+        const ivasArray = ivasSeleccionadosTraspaso.value.map(ivaId => {
+            return {
+                id: ivaId,
+                monto: formTraspaso.ivas[ivaId]?.monto || 0
+            };
+        });
+
+        const traspasoFormData = new FormData();
+        
+        // Campos básicos
+        Object.keys(formTraspaso.data()).forEach(key => {
+            if (key === 'ivas') return;
+            let value = formTraspaso[key];
+            if (typeof value === 'boolean') value = value ? 'true' : 'false';
+            if (value === null || value === undefined) value = '';
+            if (value !== '' && value !== null && value !== undefined) {
+                traspasoFormData.append(key, value);
+            }
+        });
+
+        // Enviar IVAs como array
+        ivasArray.forEach((iva, index) => {
+            traspasoFormData.append(`ivas[${index}][id]`, iva.id);
+            traspasoFormData.append(`ivas[${index}][monto]`, iva.monto);
+        });
+
+        // Archivos del traspaso
+        if (archivosTraspaso.value.pdf) traspasoFormData.append('pdf_file', archivosTraspaso.value.pdf);
+        if (archivosTraspaso.value.xml) traspasoFormData.append('xml_file', archivosTraspaso.value.xml);
+
+        // Totales calculados
+        traspasoFormData.append('total_factura', totalFacturaTraspasoCalculado.value);
+
+        traspasoFormData.append('_method', 'PUT');
+
+        axios.post(route('movimientos.update', props.movimiento.id), traspasoFormData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        .then(() => {
+            processing.value = false;
+            alertRef.value?.show({ 
+                type: 'success', 
+                title: 'Éxito', 
+                message: 'El traspaso se ha actualizado correctamente.',
+                buttonText: 'Ir al listado'
+            });
+            setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
-            },
-            onError: (errors) => {
-                processing.value = false;
+            }, 1500);
+        })
+        .catch(error => {
+            processing.value = false;
+            console.error('Error completo:', error);
+            
+            if (error.response?.data?.errors) {
+                const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
                 alertRef.value?.show({ 
                     type: 'error', 
+                    title: 'Error de validación', 
+                    message: Array.isArray(firstError) ? firstError[0] : firstError,
+                    buttonText: 'Entendido' 
+                });
+                Object.keys(errors).forEach(key => {
+                    formTraspaso.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
+                });
+            } else if (error.response?.data?.message) {
+                alertRef.value?.show({ 
+                    type: 'error', 
                     title: 'Error', 
-                    message: firstError || 'Error al actualizar el traspaso.', 
+                    message: error.response.data.message,
+                    buttonText: 'Entendido' 
+                });
+            } else {
+                alertRef.value?.show({ 
+                    type: 'error', 
+                    title: 'Error', 
+                    message: 'Error al actualizar el traspaso. Intenta nuevamente.',
                     buttonText: 'Entendido' 
                 });
             }
@@ -1335,6 +1952,59 @@ const buscarPersonas = async (search) => {
     } catch (error) { console.error('Error al buscar personas:', error); }
 };
 
+const onPersonaChange = async () => {
+    polizaCargada.value = false;
+    await obtenerUltimaPoliza(form.id_persona);
+};
+
+const obtenerUltimaPoliza = async (idPersona) => {
+    if (!idPersona) {
+        polizaCargada.value = false;
+        return;
+    }
+    
+    cargandoPoliza.value = true;
+    
+    try {
+        const response = await axios.get(route('movimientos.ultima.poliza', { id: idPersona }));
+        const data = response.data;
+        
+        if (data && data.existe) {
+            form.id_cuenta = data.id_cuenta || null;
+            form.es_por_pagar = data.es_por_pagar || false;
+            form.fecha_vencimiento = data.fecha_vencimiento || null;
+            form.es_fiscal = data.es_fiscal || false;
+            form.id_marcador = data.id_marcador || null;
+            form.fecha_factura = data.fecha_factura || null;
+            form.numero_factura = data.numero_factura || '';
+            form.nota = data.nota || '';
+            form.referencia = data.referencia || '';
+            
+            if (data.id_cuenta_fondeadora) {
+                form.id_cuenta_fondeadora = data.id_cuenta_fondeadora;
+                await cambiarCuentaFondeadora();
+            }
+            
+            polizaCargada.value = true;
+            
+            alertRef.value?.show({
+                type: 'success',
+                title: 'Póliza cargada',
+                message: `Se cargaron los datos de la última póliza de ${data.persona_nombre || 'la persona'}.`,
+                buttonText: 'Aceptar',
+                duration: 3000
+            });
+        } else {
+            polizaCargada.value = false;
+        }
+    } catch (error) {
+        console.error('Error al obtener última póliza:', error);
+        polizaCargada.value = false;
+    } finally {
+        cargandoPoliza.value = false;
+    }
+};
+
 const cambiarCuentaFondeadora = async () => {
     if (!form.id_cuenta_fondeadora) { 
         cuentaFondeadoraSeleccionada.value = null; 
@@ -1344,13 +2014,7 @@ const cambiarCuentaFondeadora = async () => {
         const res = await axios.get(route('movimientos.saldo.cuenta'), { 
             params: { id: form.id_cuenta_fondeadora } 
         });
-        if (res.data) {
-            cuentaFondeadoraSeleccionada.value = {
-                id_cuenta: res.data.id_cuenta,
-                nombre_cuenta: res.data.cuenta,
-                saldo: res.data.saldo || 0
-            };
-        }
+        cuentaFondeadoraSeleccionada.value = res.data;
         clearError('id_cuenta_fondeadora');
     } catch (error) { 
         console.error('Error al obtener saldo:', error); 
@@ -1358,74 +2022,33 @@ const cambiarCuentaFondeadora = async () => {
     }
 };
 
+const onCuentaOrigenChange = () => {
+    saldoCuentaOrigen.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_origen);
+    clearErrorTraspaso('id_cuenta_origen');
+    
+    if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
+        formTraspaso.errors.id_cuenta_destino = 'La cuenta destino debe ser diferente a la cuenta origen';
+    } else {
+        delete formTraspaso.errors.id_cuenta_destino;
+    }
+};
+
+const onCuentaDestinoChange = () => {
+    saldoCuentaDestino.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_destino);
+    clearErrorTraspaso('id_cuenta_destino');
+    
+    if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
+        formTraspaso.errors.id_cuenta_destino = 'La cuenta destino debe ser diferente a la cuenta origen';
+    } else {
+        delete formTraspaso.errors.id_cuenta_destino;
+    }
+};
+
 const obtenerSaldoCuenta = (idCuenta) => {
     if (!idCuenta) return 0;
     const cuenta = cuentas.value.find(c => c.id_cuenta === idCuenta);
-    return cuenta ? cuenta.saldo_inicial || 0 : 0;
+    return cuenta ? (cuenta.saldo_inicial || 0) : 0;
 };
-
-const calcularDesglose = async () => {
-    if (!form.total_factura || form.total_factura <= 0 || !form.id_tipo_iva) {
-        form.monto_base = 0;
-        form.monto_iva = 0;
-        mostrarAvisoRedondeo.value = false;
-        return;
-    }
-    
-    try {
-        const ivaSeleccionado = tiposIva.value.find(iva => iva.id === form.id_tipo_iva);
-        if (!ivaSeleccionado) {
-            form.monto_base = 0;
-            form.monto_iva = 0;
-            mostrarAvisoRedondeo.value = false;
-            return;
-        }
-        
-        const porcentaje = ivaSeleccionado.porcentaje || 0;
-        const total = parseFloat(form.total_factura);
-        const factor = 1 + (porcentaje / 100);
-        
-        const base = total / factor;
-        const iva = total - base;
-        
-        form.monto_base = Math.round(base * 100) / 100;
-        form.monto_iva = Math.round(iva * 100) / 100;
-        
-        const suma = form.monto_base + form.monto_iva;
-        const diferencia = Math.abs(suma - total);
-        
-        if (diferencia > 0.01) {
-            const ajuste = total - suma;
-            form.monto_iva = Math.round((form.monto_iva + ajuste) * 100) / 100;
-            mostrarAvisoRedondeo.value = true;
-        } else {
-            mostrarAvisoRedondeo.value = false;
-        }
-    } catch (error) { 
-        console.error('Error al calcular desglose:', error); 
-        form.monto_base = 0;
-        form.monto_iva = 0;
-        mostrarAvisoRedondeo.value = false;
-    }
-};
-
-watch(
-    () => [form.total_factura, form.id_tipo_iva],
-    () => {
-        calcularDesglose();
-    },
-    { deep: true }
-);
-
-watch(
-    () => form.tipo_poliza,
-    (nuevoValor) => {
-        if (nuevoValor === 'INGRESO') {
-            form.id_cuenta_fondeadora = null;
-            cuentaFondeadoraSeleccionada.value = null;
-        }
-    }
-);
 
 const toggleFiscal = () => {
     if (!form.es_fiscal) {
@@ -1436,10 +2059,88 @@ const toggleFiscal = () => {
     }
 };
 
+const toggleFiscalTraspaso = () => {
+    if (!formTraspaso.es_fiscal) {
+        formTraspaso.fecha_factura = null;
+        formTraspaso.numero_factura = null;
+        archivosTraspaso.value.pdf = null;
+        archivosTraspaso.value.xml = null;
+    }
+};
+
+// ============================================
+// MANEJO DE ARCHIVOS INGRESO/EGRESO
+// ============================================
 const handleFileUpload = (tipo, event) => {
     const file = event.target.files[0];
     if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Archivo demasiado grande', 
+                message: `El archivo ${file.name} excede el límite de 5MB.`, 
+                buttonText: 'Entendido' 
+            });
+            event.target.value = '';
+            return;
+        }
+        
         archivos.value[tipo] = file;
+        
+        alertRef.value?.show({ 
+            type: 'success', 
+            title: 'Archivo seleccionado', 
+            message: `Se ha seleccionado ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 
+            buttonText: 'Aceptar' 
+        });
+    }
+};
+
+const eliminarArchivo = (tipo) => {
+    archivos.value[tipo] = null;
+    if (tipo === 'pdf' && pdfInput.value) {
+        pdfInput.value.value = '';
+    }
+    if (tipo === 'xml' && xmlInput.value) {
+        xmlInput.value.value = '';
+    }
+};
+
+// ============================================
+// MANEJO DE ARCHIVOS TRASPASO
+// ============================================
+const handleFileUploadTraspaso = (tipo, event) => {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Archivo demasiado grande', 
+                message: `El archivo ${file.name} excede el límite de 5MB.`, 
+                buttonText: 'Entendido' 
+            });
+            event.target.value = '';
+            return;
+        }
+        
+        archivosTraspaso.value[tipo] = file;
+        
+        alertRef.value?.show({ 
+            type: 'success', 
+            title: 'Archivo seleccionado', 
+            message: `Se ha seleccionado ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 
+            buttonText: 'Aceptar' 
+        });
+    }
+};
+
+const eliminarArchivoTraspaso = (tipo) => {
+    archivosTraspaso.value[tipo] = null;
+    if (tipo === 'pdf' && pdfInputTraspaso.value) {
+        pdfInputTraspaso.value.value = '';
+    }
+    if (tipo === 'xml' && xmlInputTraspaso.value) {
+        xmlInputTraspaso.value.value = '';
     }
 };
 
@@ -1452,16 +2153,16 @@ const clearErrorTraspaso = (field) => {
 };
 
 const formatNumber = (value) => {
-    if (value === null || value === undefined || value === '') return '0.00';
-    const num = parseFloat(value);
-    if (isNaN(num)) return '0.00';
-    return num.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (!value && value !== 0) return '0.00';
+    return Number(value).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const seleccionarTipo = (tipo) => {
     tipoPolizaSeleccionado.value = tipo;
     form.clearErrors();
     formTraspaso.clearErrors();
+    saldoCuentaOrigen.value = 0;
+    saldoCuentaDestino.value = 0;
 };
 
 // ============================================
@@ -1511,6 +2212,45 @@ const guardarMarcador = async () => {
 };
 
 // ============================================
+// WATCHERS
+// ============================================
+watch(
+    () => form.errors,
+    (newErrors) => {
+        if (Object.keys(newErrors).length > 0) {
+            const firstError = Object.values(newErrors)[0];
+            if (firstError) {
+                alertRef.value?.show({
+                    type: 'error',
+                    title: 'Error de validación',
+                    message: firstError,
+                    buttonText: 'Entendido'
+                });
+            }
+        }
+    },
+    { deep: true }
+);
+
+watch(
+    () => formTraspaso.errors,
+    (newErrors) => {
+        if (Object.keys(newErrors).length > 0) {
+            const firstError = Object.values(newErrors)[0];
+            if (firstError) {
+                alertRef.value?.show({
+                    type: 'error',
+                    title: 'Error de validación',
+                    message: firstError,
+                    buttonText: 'Entendido'
+                });
+            }
+        }
+    },
+    { deep: true }
+);
+
+// ============================================
 // MOUNTED
 // ============================================
 onMounted(async () => {
@@ -1522,11 +2262,7 @@ onMounted(async () => {
                 c => c.id_cuenta === form.id_cuenta_fondeadora
             );
             if (cuentaEncontrada) {
-                cuentaFondeadoraSeleccionada.value = {
-                    id_cuenta: cuentaEncontrada.id_cuenta,
-                    nombre_cuenta: cuentaEncontrada.nombre_cuenta,
-                    saldo: cuentaEncontrada.saldo_inicial || 0
-                };
+                cuentaFondeadoraSeleccionada.value = cuentaEncontrada;
             } else {
                 form.id_cuenta_fondeadora = cuentasFondeadoras.value[0]?.id_cuenta || null;
                 if (form.id_cuenta_fondeadora) {
@@ -1623,6 +2359,7 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .status-badge {
@@ -1649,7 +2386,6 @@ onMounted(async () => {
     color: #4338ca;
 }
 
-/* ========== BOTÓN AUTORIZAR ========== */
 .btn-autorizar-premium {
     display: inline-flex;
     align-items: center;
@@ -1912,6 +2648,16 @@ onMounted(async () => {
     animation: shake 0.5s ease;
 }
 
+.form-input-premium.has-data {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.form-input-premium.has-data:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
 .form-select-premium {
     appearance: none;
     cursor: pointer;
@@ -1965,6 +2711,48 @@ onMounted(async () => {
 .icon-svg-sm-premium {
     width: 18px;
     height: 18px;
+}
+
+/* ========== LOADING SPINNER ========== */
+.loading-spinner-persona {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.spinner-mini {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+.poliza-cargada-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #166534;
+    border: 1px solid #86efac;
+    animation: fadeSlide 0.3s ease;
+    margin-top: 4px;
+    width: fit-content;
 }
 
 /* ========== CHECKBOX ========== */
@@ -2058,21 +2846,234 @@ onMounted(async () => {
     margin-top: 2px;
 }
 
-/* ========== INFO INGRESO ========== */
-.info-message-ingreso {
+/* ========== IVA SELECTOR ========== */
+.iva-selector-premium {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 16px 20px;
+    border: 2px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+
+.iva-selector-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.iva-select-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-    border-radius: 10px;
-    border: 2px solid #6ee7b7;
-    font-size: 0.85rem;
-    color: #065f46;
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
 }
 
-.info-icon-ingreso {
-    font-size: 1.2rem;
+.iva-select-item:hover:not(.disabled) {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.iva-select-item.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f8f7ff, #eef2ff);
+}
+
+.iva-select-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.iva-select-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+}
+
+.iva-select-badge.badge-cero {
+    background: #64748b;
+}
+
+.iva-select-badge.badge-dieciseis {
+    background: #3b82f6;
+}
+
+.iva-select-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.iva-select-check {
+    color: #10b981;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.iva-selector-hint {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* ========== IVA CARDS ========== */
+.iva-cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+}
+
+.iva-card {
+    background: white;
+    border-radius: 14px;
+    border: 2px solid #e5e7eb;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.iva-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.card-cero {
+    border-color: #94a3b8;
+    background: linear-gradient(180deg, #f8fafc, white);
+}
+
+.card-cero .card-header {
+    background: #f1f5f9;
+}
+
+.card-dieciseis {
+    border-color: #60a5fa;
+    background: linear-gradient(180deg, #eff6ff, white);
+}
+
+.card-dieciseis .card-header {
+    background: #dbeafe;
+}
+
+.card-total {
+    border-color: #34d399;
+    background: linear-gradient(180deg, #ecfdf5, white);
+    border-width: 3px;
+}
+
+.card-total .card-header {
+    background: #d1fae5;
+}
+
+.card-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.card-badge {
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+.badge-cero { background: #64748b; }
+.badge-dieciseis { background: #3b82f6; }
+.badge-total { background: #10b981; }
+
+.card-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #1e293b;
+    flex: 1;
+}
+
+.card-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: rgba(0,0,0,0.06);
+    border-radius: 50%;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.card-remove:hover {
+    background: #fecaca;
+    color: #dc2626;
+    transform: rotate(90deg);
+}
+
+.card-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.card-input-wrapper {
+    width: 100%;
+}
+
+.card-input {
+    height: 48px;
+    font-size: 1.1rem;
+}
+
+.total-body {
+    justify-content: center;
+    padding: 16px 20px;
+}
+
+.total-amount {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #059669;
+    letter-spacing: -0.5px;
+}
+
+.card-footer {
+    padding: 8px 16px 12px 16px;
+    border-top: 1px solid #f1f5f9;
+    text-align: center;
+}
+
+.card-result {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.total-footer {
+    background: #d1fae5;
+    border-top: 2px solid #34d399;
+    border-radius: 0 0 12px 12px;
+}
+
+.total-footer .card-result {
+    color: #065f46;
+    font-weight: 700;
 }
 
 /* ========== DESGLOSE ========== */
@@ -2144,101 +3145,6 @@ onMounted(async () => {
 
 .font-bold {
     font-weight: 700;
-}
-
-.desglose-verificacion {
-    margin-top: 10px;
-    padding: 6px 12px;
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.desglose-verificacion-text {
-    font-size: 0.7rem;
-    color: #92400e;
-    font-weight: 500;
-}
-
-/* ========== DESGLOSE FISCAL ========== */
-.desglose-fiscal-box-premium {
-    background: linear-gradient(135deg, #fefce8, #fef3c7);
-    border: 2px solid #fcd34d;
-    border-radius: 14px;
-    padding: 18px 24px;
-    margin-top: 16px;
-    transition: all 0.3s ease;
-}
-
-.desglose-fiscal-box-premium:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
-}
-
-.desglose-fiscal-header-premium {
-    margin-bottom: 12px;
-}
-
-.desglose-fiscal-title-premium {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #92400e;
-    display: block;
-}
-
-.desglose-fiscal-subtitle-premium {
-    font-size: 0.75rem;
-    color: #b45309;
-    font-style: italic;
-}
-
-.desglose-fiscal-grid-premium {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    background: white;
-    padding: 14px 16px;
-    border-radius: 10px;
-    border: 1px solid #fde68a;
-    margin-top: 10px;
-}
-
-.desglose-fiscal-item-premium {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.desglose-fiscal-label-premium {
-    font-size: 0.6rem;
-    color: #78716c;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.desglose-fiscal-value-premium {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #1c1917;
-    margin-top: 2px;
-}
-
-.desglose-fiscal-footer-premium {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 2px dashed #fcd34d;
-}
-
-.desglose-fiscal-leyenda-premium {
-    font-size: 0.8rem;
-    color: #92400e;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-weight: 600;
 }
 
 /* ========== SALDO BOX ========== */
@@ -2366,6 +3272,101 @@ onMounted(async () => {
     color: #0f172a;
 }
 
+.text-success {
+    color: #10b981 !important;
+}
+
+.text-danger {
+    color: #dc2626 !important;
+}
+
+.text-info {
+    color: #3b82f6 !important;
+}
+
+.saldo-progress-premium {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.saldo-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.saldo-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    background: #3b82f6;
+}
+
+.saldo-progress-fill.progress-warning {
+    background: #f59e0b;
+}
+
+.saldo-progress-fill.progress-danger {
+    background: #ef4444;
+}
+
+.saldo-progress-text {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    display: block;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.saldo-destino-preview-premium {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.saldo-destino-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.saldo-destino-value {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.saldo-insuficiente-premium {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    margin-top: 8px;
+    animation: shake 0.5s ease;
+}
+
+.saldo-insuficiente-icon {
+    font-size: 1.1rem;
+}
+
+.saldo-insuficiente-text {
+    font-size: 0.8rem;
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.monto-transferir-premium {
+    margin-top: 16px;
+}
+
 /* ===== TRANSFER CENTER ===== */
 .transfer-center-premium {
     display: flex;
@@ -2431,19 +3432,11 @@ onMounted(async () => {
 }
 
 /* ===== FILE UPLOAD ===== */
-.file-upload-premium {
-    position: relative;
+.file-upload-wrapper-premium {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.file-input-premium {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
+    position: relative;
 }
 
 .file-upload-area-premium {
@@ -2451,66 +3444,128 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 16px;
+    padding: 12px 16px;
     border: 2px dashed #d1d5db;
     border-radius: 10px;
     background: #f9fafb;
+    cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 44px;
 }
 
-.file-upload-premium:hover .file-upload-area-premium {
+.file-upload-area-premium:hover {
     border-color: #667eea;
     background: linear-gradient(135deg, #f8f7ff, #eef2ff);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.file-upload-area-premium.has-file {
+    border-color: #10b981;
+    background: #ecfdf5;
+}
+
+.file-upload-area-premium.has-file:hover {
+    border-color: #059669;
+    background: #d1fae5;
 }
 
 .file-upload-icon-premium {
-    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .file-upload-text-premium {
     font-size: 0.85rem;
     color: #6b7280;
     font-weight: 500;
+    flex: 1;
+}
+
+.file-upload-size-premium {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.file-input-hidden {
+    position: absolute;
+    opacity: 0;
+    width: 0.1px;
+    height: 0.1px;
+    pointer-events: none;
 }
 
 .file-remove-premium {
-    padding: 2px 10px;
-    background: linear-gradient(135deg, #fecaca, #fca5a5);
-    border: none;
-    border-radius: 6px;
-    color: #991b1b;
-    cursor: pointer;
-    font-weight: 800;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.file-remove-premium:hover {
-    transform: scale(1.1);
-}
-
-/* ===== BOTÓN AGREGAR MARCADOR ===== */
-.btn-add-marcador-premium {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border: 2px dashed #d1d5db;
-    border-radius: 10px;
-    background: white;
-    color: #6b7280;
+    width: 32px;
+    height: 32px;
+    background: #fef2f2;
+    border: 2px solid #fca5a5;
+    border-radius: 50%;
+    color: #dc2626;
     cursor: pointer;
+    font-weight: 800;
+    font-size: 0.9rem;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
-.btn-add-marcador-premium:hover {
-    border-color: #667eea;
-    color: #4f46e5;
-    background: linear-gradient(135deg, #f8f7ff, #eef2ff);
-    transform: scale(1.05) rotate(90deg);
+.file-remove-premium:hover {
+    background: #fecaca;
+    transform: scale(1.1) rotate(90deg);
+}
+
+/* ===== ARCHIVOS SELECCIONADOS ===== */
+.archivos-seleccionados-premium {
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.archivos-seleccionados-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.archivos-seleccionados-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.archivo-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.archivo-item.pdf {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.archivo-item.xml {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.archivo-size {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-weight: 400;
 }
 
 /* ===== BUTTONS ===== */
@@ -2573,6 +3628,27 @@ onMounted(async () => {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.btn-add-marcador-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    background: white;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.btn-add-marcador-premium:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f8f7ff, #eef2ff);
+    transform: scale(1.05) rotate(90deg);
 }
 
 /* ===== FORM ACTIONS ===== */
@@ -2729,10 +3805,6 @@ onMounted(async () => {
     animation: spinner 0.75s linear infinite;
 }
 
-@keyframes spinner {
-    to { transform: rotate(360deg); }
-}
-
 /* ===== ANIMATIONS ===== */
 .fade-slide {
     animation: fadeSlide 0.4s ease;
@@ -2741,6 +3813,11 @@ onMounted(async () => {
 @keyframes fadeSlide {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* ===== RESPONSIVE ===== */
@@ -2822,10 +3899,6 @@ onMounted(async () => {
         padding-bottom: 12px;
     }
 
-    .desglose-fiscal-grid-premium {
-        grid-template-columns: 1fr;
-    }
-
     .tipo-selector-premium {
         flex-direction: column;
     }
@@ -2847,6 +3920,60 @@ onMounted(async () => {
     .btn-autorizar-premium {
         width: 100%;
         justify-content: center;
+    }
+
+    .iva-cards-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-total {
+        grid-column: span 1;
+    }
+
+    .iva-selector-grid {
+        flex-direction: column;
+    }
+
+    .iva-select-item {
+        width: 100%;
+    }
+
+    .file-upload-wrapper-premium {
+        flex-wrap: wrap;
+    }
+    
+    .file-upload-area-premium {
+        padding: 10px 14px;
+        min-height: 38px;
+    }
+    
+    .file-upload-text-premium {
+        font-size: 0.75rem;
+    }
+    
+    .archivos-seleccionados-list {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .traspaso-layout-premium {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .transfer-center-premium {
+        padding: 12px 0;
+    }
+    
+    .saldo-destino-preview-premium {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .poliza-cargada-badge {
+        font-size: 10px;
+        padding: 2px 10px;
     }
 }
 
@@ -2872,6 +3999,30 @@ onMounted(async () => {
     .icon-svg-premium {
         width: 16px;
         height: 16px;
+    }
+    
+    .loading-spinner-persona {
+        font-size: 10px;
+        right: 36px;
+    }
+    
+    .spinner-mini {
+        width: 12px;
+        height: 12px;
+    }
+
+    .total-amount {
+        font-size: 1.6rem;
+    }
+
+    .desglose-grid-premium {
+        grid-template-columns: 1fr;
+    }
+
+    .desglose-item-premium:not(:last-child) {
+        border-right: none;
+        border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+        padding-bottom: 12px;
     }
 }
 </style>

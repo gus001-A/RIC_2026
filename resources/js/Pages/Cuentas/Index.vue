@@ -26,15 +26,6 @@
                             </select>
                         </div>
                         <div class="empresa-selector-actions">
-                            <!-- ✅ NUEVA CUENTA - solo admin, auditor, super -->
-                            <Link v-if="permisos?.puede_crear_cuentas" :href="route('cuentas.create')">
-                                <a-button type="primary" size="middle" class="btn-nueva-cuenta-premium">
-                                    <template #icon>
-                                        <PlusOutlined />
-                                    </template>
-                                    Nueva Cuenta
-                                </a-button>
-                            </Link>
                             
                             <!-- ✅ VER INACTIVAS - solo admin, auditor, super -->
                             <a-button 

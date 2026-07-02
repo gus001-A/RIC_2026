@@ -17,6 +17,7 @@
                                 {{ getTipoTexto(movimiento.tipo_poliza) }}
                             </span>
                             <span v-if="movimiento.es_fiscal" class="fiscal-badge">FISCAL</span>
+                            <span v-if="movimiento.tiene_doble_iva" class="doble-iva-badge-header">2 IVAs</span>
                         </p>
                     </div>
                 </div>
@@ -57,7 +58,7 @@
                         <!-- 🔹 TRASPASO: Mostrar monto traspaso -->
                         <div class="summary-item" v-if="movimiento.es_traspaso">
                             <span class="summary-label">Monto Traspaso</span>
-                            <span class="summary-value">${{ formatNumber(movimiento.monto_traspaso) }}</span>
+                            <span class="summary-value" style="color: #8b5cf6;">${{ formatNumber(movimiento.monto_traspaso) }}</span>
                         </div>
 
                         <!-- 🔹 POR PAGAR: Mostrar saldo pendiente -->
@@ -173,7 +174,7 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 2: MONTOS Y DESGLOSE -->
+                    <!-- SECCIÓN 2: MONTOS Y DESGLOSE DE IVA -->
                     <!-- ============================================================ -->
                     <div class="detail-section">
                         <div class="section-header">
@@ -183,9 +184,10 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="section-title">Montos y Desglose</h3>
+                                <h3 class="section-title">Montos y Desglose de IVA</h3>
                                 <p class="section-subtitle">Información financiera detallada</p>
                             </div>
+                            <span v-if="movimiento.tiene_doble_iva" class="doble-iva-tag">📋 Doble IVA</span>
                         </div>
 
                         <!-- 🔹 MONTO TOTAL -->
@@ -202,7 +204,7 @@
                                 <span class="monto-label">Base Gravable</span>
                                 <span class="monto-value">${{ formatNumber(movimiento.monto_base) }}</span>
                             </div>
-                            <div class="monto-card" v-if="movimiento.es_ingreso_egreso">
+                            <div class="monto-card" v-if="movimiento.es_ingreso_egreso && !movimiento.tiene_doble_iva">
                                 <span class="monto-label">IVA</span>
                                 <span class="monto-value">${{ formatNumber(movimiento.monto_iva) }}</span>
                             </div>
@@ -242,8 +244,49 @@
                                 <div class="doble-iva-item highlight">
                                     <span class="doble-iva-label font-bold">Total Factura</span>
                                     <span class="doble-iva-value font-bold" style="color: #10b981;">
-                                        ${{ formatNumber(Number(movimiento.monto_iva_cero) + Number(movimiento.monto_iva_dieciseis) + Number(movimiento.iva_dieciseis)) }}
+                                        ${{ formatNumber(calcularTotalDobleIva) }}
                                     </span>
+                                </div>
+                            </div>
+                            <div class="doble-iva-footer">
+                                <span class="doble-iva-note">
+                                    <strong>Nota:</strong> La póliza incluye dos tipos de IVA (0% y 16%).
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- 🔹 IVA SIMPLE (si no tiene doble IVA) -->
+                        <div v-else-if="movimiento.es_ingreso_egreso && movimiento.monto_iva != 0" class="iva-simple-box">
+                            <div class="iva-simple-grid">
+                                <div class="iva-simple-item">
+                                    <span class="iva-simple-label">Tipo de IVA</span>
+                                    <span class="iva-simple-value">{{ getNombreIva(movimiento.id_tipo_iva) || 'IVA General' }}</span>
+                                </div>
+                                <div class="iva-simple-item">
+                                    <span class="iva-simple-label">Porcentaje</span>
+                                    <span class="iva-simple-value">{{ getPorcentajeIva(movimiento.id_tipo_iva) }}%</span>
+                                </div>
+                                <div class="iva-simple-item highlight">
+                                    <span class="iva-simple-label">Monto IVA</span>
+                                    <span class="iva-simple-value" style="color: #f59e0b;">${{ formatNumber(movimiento.monto_iva) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 🔹 IVA CERO (si no tiene IVA) -->
+                        <div v-else-if="movimiento.es_ingreso_egreso && movimiento.monto_iva == 0 && movimiento.monto_base != 0" class="iva-simple-box iva-cero-box">
+                            <div class="iva-simple-grid">
+                                <div class="iva-simple-item">
+                                    <span class="iva-simple-label">Tipo de IVA</span>
+                                    <span class="iva-simple-value">Sin IVA</span>
+                                </div>
+                                <div class="iva-simple-item">
+                                    <span class="iva-simple-label">Porcentaje</span>
+                                    <span class="iva-simple-value">0%</span>
+                                </div>
+                                <div class="iva-simple-item highlight">
+                                    <span class="iva-simple-label">Monto IVA</span>
+                                    <span class="iva-simple-value" style="color: #94a3b8;">$0.00</span>
                                 </div>
                             </div>
                         </div>
@@ -307,6 +350,14 @@
                             <div class="info-item full-width" v-if="movimiento.uuid_factura">
                                 <span class="info-label">UUID</span>
                                 <span class="info-value uuid-value">{{ movimiento.uuid_factura }}</span>
+                            </div>
+                            <div class="info-item full-width" v-if="movimiento.tiene_pdf_fiscal && movimiento.nombre_pdf">
+                                <span class="info-label">Nombre PDF</span>
+                                <span class="info-value pdf-name">{{ movimiento.nombre_pdf }}</span>
+                            </div>
+                            <div class="info-item full-width" v-if="movimiento.tiene_xml_fiscal && movimiento.nombre_xml">
+                                <span class="info-label">Nombre XML</span>
+                                <span class="info-value pdf-name">{{ movimiento.nombre_xml }}</span>
                             </div>
                         </div>
                     </div>
@@ -485,7 +536,7 @@
                             </button>
 
                             <button 
-                                v-if="permisos?.puede_editar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO'"
+                                v-if="permisos?.puede_editar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'"
                                 class="btn-action btn-cerrar"
                                 @click="accionCerrar"
                             >
@@ -495,8 +546,19 @@
                                 Cerrar
                             </button>
 
+                            <button 
+                                v-if="permisos?.puede_editar && movimiento.estatus === 'CERRADO'"
+                                class="btn-action btn-reabrir"
+                                @click="accionReabrir"
+                            >
+                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Reabrir
+                            </button>
+
                             <Link 
-                                v-if="permisos?.puede_editar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO'" 
+                                v-if="permisos?.puede_editar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'" 
                                 :href="route('movimientos.edit', movimiento.id)" 
                                 class="btn-action btn-editar"
                             >
@@ -507,7 +569,7 @@
                             </Link>
 
                             <button 
-                                v-if="permisos?.puede_eliminar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO'" 
+                                v-if="permisos?.puede_eliminar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'" 
                                 class="btn-action btn-eliminar"
                                 @click="accionEliminar"
                             >
@@ -561,6 +623,23 @@ const alertRef = ref(null);
 
 const tituloPagina = computed(() => {
     return `Póliza ${props.movimiento.folio || ''}`;
+});
+
+// ============================================
+// COMPUTED
+// ============================================
+const calcularTotalDobleIva = computed(() => {
+    const cero = Number(props.movimiento.monto_iva_cero) || 0;
+    const dieciseisBase = Number(props.movimiento.monto_iva_dieciseis) || 0;
+    const dieciseisIva = Number(props.movimiento.iva_dieciseis) || 0;
+    return cero + dieciseisBase + dieciseisIva;
+});
+
+const obtenerTipoIva = computed(() => {
+    if (props.movimiento.tiene_doble_iva) {
+        return 'Doble IVA (0% y 16%)';
+    }
+    return 'IVA Simple';
 });
 
 // ============================================
@@ -625,7 +704,8 @@ const getEstatusClass = (estatus) => {
         'AUTORIZADO': 'autorizado',
         'ABONADO': 'abonado',
         'LIQUIDADO': 'liquidado',
-        'PENDIENTE': 'pendiente'
+        'PENDIENTE': 'pendiente',
+        'CERRADO': 'cerrado'
     };
     return classes[estatus] || 'pendiente';
 };
@@ -663,6 +743,20 @@ const isVencido = (fecha) => {
     const fechaVenc = new Date(fecha);
     fechaVenc.setHours(0, 0, 0, 0);
     return fechaVenc < hoy;
+};
+
+const getNombreIva = (id) => {
+    if (!id) return 'IVA General';
+    const tiposIva = window.tiposIva || [];
+    const iva = tiposIva.find(i => i.id === id);
+    return iva ? iva.nombre : 'IVA General';
+};
+
+const getPorcentajeIva = (id) => {
+    if (!id) return 0;
+    const tiposIva = window.tiposIva || [];
+    const iva = tiposIva.find(i => i.id === id);
+    return iva ? iva.porcentaje : 0;
 };
 
 // ============================================
@@ -827,6 +921,40 @@ const accionCerrar = () => {
 };
 
 // ============================================
+// 🔄 REABRIR
+// ============================================
+const accionReabrir = () => {
+    Swal.fire({
+        title: '¿Reabrir póliza?',
+        text: 'Esta acción reabrirá la póliza y la dejará en estado CAPTURADO para poder editarla. ¿Estás seguro?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, reabrir',
+        cancelButtonText: 'Cancelar',
+        input: 'textarea',
+        inputPlaceholder: 'Motivo de la reapertura (opcional)...',
+        inputAttributes: {
+            'aria-label': 'Motivo de la reapertura'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            axios.post(route('movimientos.reabrir', props.movimiento.id_poliza), {
+                motivo: result.value || 'Reapertura manual de póliza'
+            }).then(() => {
+                mostrarModal('success', 'Póliza reabierta', 'La póliza ha sido reabierta exitosamente.');
+                setTimeout(() => {
+                    router.visit(route('movimientos.show', props.movimiento.id));
+                }, 1500);
+            }).catch((error) => {
+                mostrarModal('error', 'Error', error.response?.data?.message || 'Error al reabrir la póliza.');
+            });
+        }
+    });
+};
+
+// ============================================
 // 🗑️ ELIMINAR
 // ============================================
 const accionEliminar = () => {
@@ -962,6 +1090,17 @@ const accionEliminar = () => {
     text-transform: uppercase;
 }
 
+.doble-iva-badge-header {
+    display: inline-block;
+    padding: 2px 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
 .header-divider {
     color: #d1d5db;
 }
@@ -997,6 +1136,7 @@ const accionEliminar = () => {
 .status-badge.abonado { background: #fef3c7; color: #92400e; }
 .status-badge.liquidado { background: #e0e7ff; color: #3730a3; }
 .status-badge.pendiente { background: #fef3c7; color: #92400e; }
+.status-badge.cerrado { background: #e5e7eb; color: #4b5563; }
 
 /* ========== PAGE CONTENT ========== */
 .page-content { padding: 1.5rem 0; }
@@ -1134,6 +1274,16 @@ const accionEliminar = () => {
     font-size: 0.8rem;
     color: #94a3b8;
     margin: 0;
+}
+
+.doble-iva-tag {
+    padding: 4px 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: auto;
 }
 
 /* ========== BADGES ========== */
@@ -1275,6 +1425,14 @@ const accionEliminar = () => {
     color: #991b1b;
 }
 
+.info-value.pdf-name {
+    font-size: 0.8rem;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
 .folio-value {
     font-weight: 700 !important;
     color: #1a3a5c !important;
@@ -1341,6 +1499,12 @@ const accionEliminar = () => {
     border: 2px solid #fcd34d;
     border-radius: 14px;
     padding: 18px 24px;
+    transition: all 0.3s ease;
+}
+
+.doble-iva-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(252, 211, 77, 0.2);
 }
 
 .doble-iva-header {
@@ -1380,6 +1544,7 @@ const accionEliminar = () => {
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
 }
 
 .doble-iva-item.highlight {
@@ -1402,7 +1567,71 @@ const accionEliminar = () => {
     margin-top: 2px;
 }
 
+.doble-iva-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #fde68a;
+}
+
+.doble-iva-note {
+    font-size: 0.8rem;
+    color: #78716c;
+}
+
 .font-bold { font-weight: 700; }
+
+/* ========== IVA SIMPLE ========== */
+.iva-simple-box {
+    margin-top: 16px;
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 2px solid #86efac;
+    border-radius: 14px;
+    padding: 16px 20px;
+    transition: all 0.3s ease;
+}
+
+.iva-simple-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(134, 239, 172, 0.2);
+}
+
+.iva-simple-box.iva-cero-box {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-color: #cbd5e1;
+}
+
+.iva-simple-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.iva-simple-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.iva-simple-item.highlight {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    padding: 4px 8px;
+}
+
+.iva-simple-label {
+    font-size: 0.6rem;
+    color: #78716c;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.iva-simple-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-top: 2px;
+}
 
 /* ========== ESTATUS BADGE ========== */
 .estatus-badge {
@@ -1423,6 +1652,7 @@ const accionEliminar = () => {
 .estatus-badge.abonado { background: #fef3c7; color: #92400e; }
 .estatus-badge.liquidado { background: #e0e7ff; color: #3730a3; }
 .estatus-badge.pendiente { background: #fef3c7; color: #92400e; }
+.estatus-badge.cerrado { background: #e5e7eb; color: #4b5563; }
 
 /* ========== NOTA ========== */
 .nota-content {
@@ -1545,6 +1775,9 @@ const accionEliminar = () => {
 .btn-cerrar { background: #ef4444; color: white; }
 .btn-cerrar:hover { background: #dc2626; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); color: white; }
 
+.btn-reabrir { background: #dbeafe; color: #1e40af; }
+.btn-reabrir:hover { background: #bfdbfe; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2); }
+
 .btn-editar { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
 .btn-editar:hover { box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); color: white; }
 
@@ -1573,12 +1806,14 @@ const accionEliminar = () => {
     .btn-action { flex: 1; justify-content: center; min-width: 120px; }
     .section-header { flex-wrap: wrap; }
     .header-subtitle { flex-wrap: wrap; }
+    .doble-iva-tag { margin-left: 0; width: 100%; text-align: center; }
 }
 
 @media (max-width: 480px) {
     .summary-grid { grid-template-columns: 1fr; }
     .montos-grid { grid-template-columns: 1fr; }
     .doble-iva-grid { grid-template-columns: 1fr; }
+    .iva-simple-grid { grid-template-columns: 1fr; }
     .header-title { font-size: 1.1rem; }
     .header-subtitle { font-size: 0.75rem; }
     .section-title { font-size: 0.95rem; }
@@ -1589,6 +1824,8 @@ const accionEliminar = () => {
     .summary-card { padding: 14px 16px; }
     .detail-card { padding: 1rem; }
     .info-item { padding: 8px 12px; }
+    .doble-iva-box { padding: 12px 16px; }
+    .iva-simple-box { padding: 12px 16px; }
 }
 
 /* ========== PRINT ========== */
@@ -1603,7 +1840,7 @@ const accionEliminar = () => {
     .summary-card { background: #1a3a5c !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 0 !important; padding: 16px !important; margin-bottom: 16px !important; }
     .summary-item { background: rgba(255,255,255,0.08) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .summary-item.highlight { background: rgba(255,255,255,0.15) !important; }
-    .section-icon, .badge-categoria, .badge-abonos, .estatus-badge, .tipo-badge, .fiscal-badge {
+    .section-icon, .badge-categoria, .badge-abonos, .estatus-badge, .tipo-badge, .fiscal-badge, .doble-iva-badge-header, .doble-iva-tag {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -1622,7 +1859,11 @@ const accionEliminar = () => {
     .status-badge.autorizado { background: #d1fae5 !important; color: #065f46 !important; }
     .status-badge.abonado { background: #fef3c7 !important; color: #92400e !important; }
     .status-badge.liquidado { background: #e0e7ff !important; color: #3730a3 !important; }
+    .status-badge.cerrado { background: #e5e7eb !important; color: #4b5563 !important; }
     .monto-card.total-card { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .doble-iva-box { background: #fefce8 !important; border-color: #fcd34d !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .doble-iva-badge { background: #92400e !important; color: white !important; }
+    .iva-simple-box { background: #f0fdf4 !important; border-color: #86efac !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .abonos-table thead { background: #f1f5f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .abonos-table tfoot { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .action-footer { border-top: 2px solid #e5e7eb !important; }

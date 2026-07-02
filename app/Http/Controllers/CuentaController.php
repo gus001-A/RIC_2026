@@ -140,6 +140,7 @@ class CuentaController extends Controller
                         'saldo_inicial' => $cuenta->saldo_inicial,
                         'indice_c' => $cuenta->indice_c,
                         'fondeo_c' => $cuenta->fondeo_c ?? 0,
+                        'cuenta_resultados' => $cuenta->cuenta_resultados ?? 0,
                     ];
                 })->toArray();
             }
@@ -161,7 +162,7 @@ class CuentaController extends Controller
             'stats' => $stats,
             'filtros' => $filtros,
             'datatable_url' => route('cuentas.datatable'),
-            'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+            'flash' => $flash,
         ]);
     }
 
@@ -389,6 +390,77 @@ class CuentaController extends Controller
     }
 
     /**
+     * Obtener cuentas de resultados para el select
+     */
+    public function getCuentasResultados(Request $request)
+    {
+        // ✅ Verificar permiso para ver cuentas
+        if (!Gate::allows('ver-cuentas')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para ver cuentas',
+                'data' => []
+            ], 403);
+        }
+
+        $empresaId = $request->input('empresa_id');
+        
+        if (!$empresaId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Se requiere empresa_id',
+                'data' => []
+            ]);
+        }
+
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado',
+                'data' => []
+            ], 401);
+        }
+
+        $tieneAcceso = DB::table('empresas_usuarios')
+            ->where('id_empresa', $empresaId)
+            ->where('id_usuario', $user->id_usuario)
+            ->exists();
+            
+        if (!$tieneAcceso) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene acceso a esta empresa',
+                'data' => []
+            ], 403);
+        }
+
+        $query = Cuenta::where('id_empresa', $empresaId)
+            ->where('en_uso', 1)
+            ->where('es_cuenta_resultados', 1)
+            ->orderBy('codigo_cuenta');
+
+        $cuentas = $query->get();
+
+        $data = $cuentas->map(function($cuenta) {
+            return [
+                'id_cuenta' => $cuenta->id_cuenta,
+                'codigo_cuenta' => $cuenta->codigo_cuenta,
+                'nombre_cuenta' => $cuenta->nombre_cuenta,
+                'nivel' => $cuenta->nivel,
+                'display' => $cuenta->codigo_cuenta . ' - ' . $cuenta->nombre_cuenta . ' (Nivel ' . $cuenta->nivel . ')'
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'total' => $data->count(),
+            'message' => 'Se encontraron ' . $data->count() . ' cuentas de resultados'
+        ]);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
@@ -427,7 +499,7 @@ class CuentaController extends Controller
         
         return Inertia::render('Cuentas/Create', [
             'empresas' => $empresas,
-            'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+            'flash' => $flash,
         ]);
     }
 
@@ -456,13 +528,13 @@ class CuentaController extends Controller
                 'nombre_cuenta' => 'required|string|max:255',
                 'descripcion' => 'nullable|string',
                 'Naturaleza' => 'required|in:DEUDORA,ACREEDORA',
-                'tipo_cuenta' => 'required|in:FONDEADORA,RESULTADO,ORDEN',
                 'id_cuenta_madre' => 'nullable|exists:cuentas,id_cuenta',
                 'en_uso' => 'nullable|boolean',
                 'es_cuenta_resultados' => 'nullable|boolean',
                 'fondeo_c' => 'nullable|boolean',
                 'saldo_inicial' => 'nullable|numeric',
                 'nivel' => 'required|integer|min:0|max:5',
+                'cuenta_resultados' => 'nullable|exists:cuentas,id_cuenta',
             ]);
 
             // ✅ Verificar que el usuario tiene acceso a la empresa
@@ -482,6 +554,26 @@ class CuentaController extends Controller
             $validated['en_uso'] = $validated['en_uso'] ?? true;
             $validated['es_cuenta_resultados'] = $validated['es_cuenta_resultados'] ?? false;
             $validated['fondeo_c'] = $validated['fondeo_c'] ?? false;
+
+            // 🔥 Si NO es cuenta de resultados, debe tener cuenta_resultados (padre de resultados)
+            if (!$validated['es_cuenta_resultados']) {
+                if (empty($validated['cuenta_resultados'])) {
+                    return redirect()->back()
+                        ->with('error', 'Debes seleccionar una cuenta de resultados a la que pertenece esta cuenta')
+                        ->withInput();
+                }
+                
+                // Verificar que la cuenta seleccionada realmente es de resultados
+                $cuentaResultados = Cuenta::find($validated['cuenta_resultados']);
+                if (!$cuentaResultados || !$cuentaResultados->es_cuenta_resultados) {
+                    return redirect()->back()
+                        ->with('error', 'La cuenta seleccionada no es una cuenta de resultados válida')
+                        ->withInput();
+                }
+            } else {
+                // Si es cuenta de resultados, no tiene padre de resultados
+                $validated['cuenta_resultados'] = null;
+            }
 
             if ($validated['nivel'] == 1) {
                 $validated['id_cuenta_madre'] = null;
@@ -566,7 +658,7 @@ class CuentaController extends Controller
             
             return Inertia::render('Cuentas/Show', [
                 'cuenta' => $cuenta,
-                'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+                'flash' => $flash,
             ]);
 
         } catch (ModelNotFoundException $e) {
@@ -631,6 +723,23 @@ class CuentaController extends Controller
                     ];
                 });
             
+            // 🔥 Obtener cuentas de resultados disponibles
+            $cuentasResultados = Cuenta::where('id_empresa', $cuenta->id_empresa)
+                ->where('en_uso', true)
+                ->where('es_cuenta_resultados', true)
+                ->where('id_cuenta', '!=', $id)
+                ->orderBy('codigo_cuenta')
+                ->get()
+                ->map(function($cuenta) {
+                    return [
+                        'id_cuenta' => $cuenta->id_cuenta,
+                        'codigo_cuenta' => $cuenta->codigo_cuenta,
+                        'nombre_cuenta' => $cuenta->nombre_cuenta,
+                        'nivel' => $cuenta->nivel,
+                        'display' => $cuenta->codigo_cuenta . ' - ' . $cuenta->nombre_cuenta . ' (Nivel ' . $cuenta->nivel . ')'
+                    ];
+                });
+            
             // ✅ RECOPILAR FLASH MESSAGES
             $flash = [];
             $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
@@ -644,7 +753,8 @@ class CuentaController extends Controller
                 'cuenta' => $cuenta,
                 'empresas' => $empresas,
                 'cuentasMadre' => $cuentasMadre,
-                'flash' => $flash, // ✅ PASAR FLASH EXPLÍCITAMENTE
+                'cuentasResultados' => $cuentasResultados,
+                'flash' => $flash,
             ]);
 
         } catch (ModelNotFoundException $e) {
@@ -688,18 +798,38 @@ class CuentaController extends Controller
                 'nombre_cuenta' => 'required|string|max:255',
                 'descripcion' => 'nullable|string',
                 'Naturaleza' => 'required|in:DEUDORA,ACREEDORA',
-                'tipo_cuenta' => 'required|in:FONDEADORA,RESULTADO,ORDEN',
                 'id_cuenta_madre' => 'nullable|exists:cuentas,id_cuenta',
                 'en_uso' => 'nullable|boolean',
                 'es_cuenta_resultados' => 'nullable|boolean',
                 'fondeo_c' => 'nullable|boolean',
                 'saldo_inicial' => 'nullable|numeric',
                 'nivel' => 'required|integer|min:0|max:5',
+                'cuenta_resultados' => 'nullable|exists:cuentas,id_cuenta',
             ]);
 
             $validated['en_uso'] = $validated['en_uso'] ?? $cuenta->en_uso;
             $validated['es_cuenta_resultados'] = $validated['es_cuenta_resultados'] ?? $cuenta->es_cuenta_resultados;
             $validated['fondeo_c'] = $validated['fondeo_c'] ?? $cuenta->fondeo_c;
+
+            // 🔥 Si NO es cuenta de resultados, debe tener cuenta_resultados (padre de resultados)
+            if (!$validated['es_cuenta_resultados']) {
+                if (empty($validated['cuenta_resultados'])) {
+                    return redirect()->back()
+                        ->with('error', 'Debes seleccionar una cuenta de resultados a la que pertenece esta cuenta')
+                        ->withInput();
+                }
+                
+                // Verificar que la cuenta seleccionada realmente es de resultados
+                $cuentaResultados = Cuenta::find($validated['cuenta_resultados']);
+                if (!$cuentaResultados || !$cuentaResultados->es_cuenta_resultados) {
+                    return redirect()->back()
+                        ->with('error', 'La cuenta seleccionada no es una cuenta de resultados válida')
+                        ->withInput();
+                }
+            } else {
+                // Si es cuenta de resultados, no tiene padre de resultados
+                $validated['cuenta_resultados'] = null;
+            }
 
             $cuenta->update($validated);
 

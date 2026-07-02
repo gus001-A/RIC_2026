@@ -229,18 +229,6 @@
                                     </svg>
                                     Nómina
                                 </Link>
-
-                                <!-- BOTÓN FISCAL DOBLE IVA -->
-                                <Link 
-                                    v-if="permisos?.puede_crear"
-                                    :href="route('movimientos.fiscal.doble.iva.create')" 
-                                    class="btn-fiscal-doble-iva"
-                                    title="Crear póliza fiscal con IVA 0% y 16%"
-                                >
-                                    <FilePdfOutlined style="font-size: 16px;" />
-                                    <span class="btn-fiscal-text">Fiscal doble IVA</span>
-                                    <span class="btn-fiscal-badge">0%+16%</span>
-                                </Link>
                             </div>
                         </div>
                     </div>
@@ -1501,145 +1489,6 @@ onMounted(() => {
 }
 
 /* --- BOTONES DE ACCIÓN --- */
-.btn-fiscal-doble-iva {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 16px;
-    height: 36px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
-}
-
-.btn-fiscal-doble-iva:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
-    color: white;
-}
-
-.btn-fiscal-doble-iva .btn-fiscal-text {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.btn-fiscal-doble-iva .btn-fiscal-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 700;
-    color: white;
-}
-
-.fiscal-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 14px;
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #166534;
-    border: 1px solid #86efac;
-}
-
-.traspaso-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 14px;
-    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #5b21b6;
-    border: 1px solid #c4b5fd;
-}
-
-.traspaso-icon {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 4px;
-    background: #ede9fe;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-}
-
-.traspaso-amount-badge {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 4px;
-    font-size: 12px;
-}
-
-.cuenta-destino-label {
-    color: #8b5cf6;
-    font-weight: 700;
-    margin-right: 4px;
-}
-
-.tipo-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.tipo-badge.ingreso-tipo {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-.tipo-badge.egreso-tipo {
-    background: #fecaca;
-    color: #991b1b;
-}
-
-.tipo-badge.traspaso-tipo {
-    background: #ede9fe;
-    color: #5b21b6;
-}
-
-/* --- ESTILOS DE TRASPASOS --- */
-.total-traspasos .total-icon-grande {
-    background: #ede9fe;
-}
-
-.total-traspasos .total-icon-svg-grande {
-    color: #7c3aed;
-}
-
-.traspaso-value {
-    color: #7c3aed;
-}
-
-.fiscal-icon {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 6px;
-    background: #dcfce7;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-}
-
 .btn-nueva-poliza {
     display: inline-flex;
     align-items: center;
@@ -2478,8 +2327,7 @@ onMounted(() => {
     }
     
     .btn-nueva-poliza,
-    .btn-nomina-poliza,
-    .btn-fiscal-doble-iva {
+    .btn-nomina-poliza {
         width: 100%;
         justify-content: center;
     }
@@ -2598,10 +2446,6 @@ onMounted(() => {
     
     .checkbox-todos-text,
     .checkbox-fiscal-text {
-        font-size: 12px;
-    }
-
-    .btn-fiscal-doble-iva .btn-fiscal-text {
         font-size: 12px;
     }
 }

@@ -168,7 +168,7 @@
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- SECCIÓN 2: CLASIFICACIÓN (Naturaleza + Nivel + Tipo en línea) -->
+                        <!-- SECCIÓN 2: CLASIFICACIÓN (Naturaleza + Nivel) -->
                         <!-- ============================================ -->
                         <div class="form-section-premium">
                             <div class="section-header-premium">
@@ -179,7 +179,7 @@
                                 </div>
                                 <div>
                                     <h3 class="section-title-premium">Clasificación</h3>
-                                    <p class="section-subtitle-premium">Define la naturaleza, nivel y tipo de la cuenta</p>
+                                    <p class="section-subtitle-premium">Define la naturaleza y nivel de la cuenta</p>
                                 </div>
                             </div>
 
@@ -255,38 +255,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Tipo -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        <span class="label-icon-wrapper">
-                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                                            </svg>
-                                        </span>
-                                        Tipo <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium input-with-icon">
-                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                                        </svg>
-                                        <select v-model="form.tipo_cuenta" 
-                                                @change="clearError('tipo_cuenta')"
-                                                class="form-input-premium"
-                                                :class="{ 'error': form.errors.tipo_cuenta }">
-                                            <option value="">-- Selecciona --</option>
-                                            <option value="FONDEADORA">Fondeadora</option>
-                                            <option value="RESULTADO">Resultado</option>
-                                            <option value="ORDEN">Orden</option>
-                                        </select>
-                                    </div>
-                                    <div v-if="form.errors.tipo_cuenta" class="error-message-premium">
-                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.tipo_cuenta }}
-                                    </div>
-                                </div>
-
                                 <!-- ============================================ -->
                                 <!-- CHECKBOXES EN UNA SOLA LÍNEA -->
                                 <!-- ============================================ -->
@@ -295,7 +263,7 @@
                                     <div class="checkbox-group-inline">
                                         <label class="checkbox-premium" 
                                                :class="{ 'checked': form.es_cuenta_resultados }"
-                                               @click="form.es_cuenta_resultados = !form.es_cuenta_resultados">
+                                               @click="toggleCuentaResultados">
                                             <div class="checkbox-custom-premium">
                                                 <svg v-if="form.es_cuenta_resultados" class="checkbox-check-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -327,6 +295,48 @@
                                             </div>
                                             <span class="checkbox-label-inline">Cuenta fondeadora</span>
                                         </label>
+                                    </div>
+                                </div>
+
+                                <!-- ============================================ -->
+                                <!-- CAMPO: Cuenta de Resultados Padre (solo cuando NO es cuenta de resultados) -->
+                                <!-- ============================================ -->
+                                <div class="form-group-premium full-width" v-if="!form.es_cuenta_resultados">
+                                    <label class="form-label-premium">
+                                        <span class="label-icon-wrapper">
+                                            <svg class="label-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                            </svg>
+                                        </span>
+                                        Cuenta de Resultados Padre <span class="required-star">*</span>
+                                        <span class="label-badge-premium" style="background: #8b5cf6;">
+                                            Obligatorio
+                                        </span>
+                                    </label>
+                                    <div class="input-wrapper-premium input-with-icon">
+                                        <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                        </svg>
+                                        <select v-model="form.cuenta_resultados" 
+                                                @change="clearError('cuenta_resultados')"
+                                                class="form-input-premium"
+                                                :class="{ 'error': form.errors.cuenta_resultados }">
+                                            <option value="">-- Selecciona una cuenta de resultados --</option>
+                                            <option v-for="cuenta in cuentasResultados" 
+                                                    :key="cuenta.id_cuenta" 
+                                                    :value="cuenta.id_cuenta">
+                                                {{ cuenta.nombre_cuenta }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div v-if="form.errors.cuenta_resultados" class="error-message-premium">
+                                        <svg class="error-icon-premium" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        {{ form.errors.cuenta_resultados }}
+                                    </div>
+                                    <div class="input-helper-premium">
+                                        <span class="text-muted">Selecciona a qué cuenta de resultados pertenece esta cuenta</span>
                                     </div>
                                 </div>
                             </div>
@@ -463,6 +473,12 @@
                                                     {{ cuenta.en_uso ? 'Activa' : 'Inactiva' }}
                                                 </span>
                                             </div>
+                                            <div class="jerarquia-resumen-linea" v-if="form.cuenta_resultados">
+                                                <span class="jerarquia-resumen-label">Cuenta Resultados:</span>
+                                                <span class="jerarquia-resumen-valor" style="color: #8b5cf6; font-weight: 600;">
+                                                    {{ getCuentaResultadosNombre(form.cuenta_resultados) }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -558,7 +574,7 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- MODAL: CREAR CUENTA HIJA (SIMPLIFICADO SIN SALDO) -->
+        <!-- MODAL: CREAR CUENTA HIJA (SIMPLIFICADO) -->
         <!-- ============================================ -->
         <div v-if="modalHijaVisible" class="modal-overlay-premium" @click.self="cerrarModalHija">
             <div class="modal-container-premium modal-hija">
@@ -666,30 +682,6 @@
                                 </div>
                             </div>
 
-                            <!-- Tipo -->
-                            <div class="form-group-premium">
-                                <label class="form-label-premium">
-                                    Tipo <span class="required-star">*</span>
-                                </label>
-                                <div class="input-wrapper-premium input-with-icon">
-                                    <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                                    </svg>
-                                    <select v-model="formHija.tipo_cuenta" 
-                                            @change="clearErrorHija('tipo_cuenta')"
-                                            class="form-input-premium"
-                                            :class="{ 'error': formHija.errors.tipo_cuenta }">
-                                        <option value="">-- Selecciona --</option>
-                                        <option value="FONDEADORA">Fondeadora</option>
-                                        <option value="RESULTADO">Resultado</option>
-                                        <option value="ORDEN">Orden</option>
-                                    </select>
-                                </div>
-                                <div v-if="formHija.errors.tipo_cuenta" class="error-message-premium">
-                                    {{ formHija.errors.tipo_cuenta }}
-                                </div>
-                            </div>
-
                             <!-- ============================================ -->
                             <!-- CHECKBOXES DEL MODAL EN LÍNEA -->
                             <!-- ============================================ -->
@@ -716,6 +708,32 @@
                                         </div>
                                         <span class="checkbox-label-modal">Cuenta fondeadora</span>
                                     </label>
+                                </div>
+                            </div>
+
+                            <!-- Cuenta de Resultados Padre (solo cuando NO es cuenta de resultados) -->
+                            <div class="form-group-premium full-width-modal" v-if="!formHija.es_cuenta_resultados">
+                                <label class="form-label-premium">
+                                    Cuenta de Resultados Padre <span class="required-star">*</span>
+                                </label>
+                                <div class="input-wrapper-premium input-with-icon">
+                                    <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                    </svg>
+                                    <select v-model="formHija.cuenta_resultados" 
+                                            @change="clearErrorHija('cuenta_resultados')"
+                                            class="form-input-premium"
+                                            :class="{ 'error': formHija.errors.cuenta_resultados }">
+                                        <option value="">-- Selecciona una cuenta de resultados --</option>
+                                        <option v-for="cuenta in cuentasResultados" 
+                                                :key="cuenta.id_cuenta" 
+                                                :value="cuenta.id_cuenta">
+                                            {{ cuenta.nombre_cuenta }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div v-if="formHija.errors.cuenta_resultados" class="error-message-premium">
+                                    {{ formHija.errors.cuenta_resultados }}
                                 </div>
                             </div>
 
@@ -777,6 +795,10 @@ const props = defineProps({
     cuentasMadre: {
         type: Array,
         default: () => []
+    },
+    cuentasResultados: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -785,6 +807,7 @@ const props = defineProps({
 // ============================================
 const alertRef = ref(null);
 const cuentasMadre = ref([]);
+const cuentasResultados = ref([]);
 const cargandoCuentasMadre = ref(false);
 const verificandoCodigo = ref(false);
 const codigoExiste = ref(false);
@@ -799,7 +822,7 @@ const codigoExisteHija = ref(false);
 let timeoutVerificarHija = null;
 
 // ============================================
-// FORMULARIO PRINCIPAL (SIN SALDO INICIAL)
+// FORMULARIO PRINCIPAL
 // ============================================
 const form = useForm({
     id_empresa: props.cuenta.id_empresa || '',
@@ -807,15 +830,15 @@ const form = useForm({
     nombre_cuenta: props.cuenta.nombre_cuenta || '',
     descripcion: props.cuenta.descripcion || '',
     Naturaleza: props.cuenta.Naturaleza || '',
-    tipo_cuenta: props.cuenta.tipo_cuenta || '',
     id_cuenta_madre: props.cuenta.id_cuenta_madre || null,
     es_cuenta_resultados: props.cuenta.es_cuenta_resultados || false,
     fondeo_c: props.cuenta.fondeo_c || false,
-    nivel: props.cuenta.nivel || ''
+    nivel: props.cuenta.nivel || '',
+    cuenta_resultados: props.cuenta.cuenta_resultados || null,
 });
 
 // ============================================
-// FORMULARIO HIJA (SIN SALDO INICIAL)
+// FORMULARIO HIJA
 // ============================================
 const formHija = useForm({
     id_empresa: form.id_empresa,
@@ -823,11 +846,11 @@ const formHija = useForm({
     nombre_cuenta: '',
     descripcion: '',
     Naturaleza: '',
-    tipo_cuenta: '',
     id_cuenta_madre: props.cuenta.id_cuenta,
     es_cuenta_resultados: false,
     fondeo_c: false,
-    nivel: (parseInt(form.nivel) || 0) + 1
+    nivel: (parseInt(form.nivel) || 0) + 1,
+    cuenta_resultados: null,
 });
 
 // ============================================
@@ -847,11 +870,15 @@ const isFormValid = computed(() => {
     if (!form.codigo_cuenta || form.codigo_cuenta.trim() === '') return false;
     if (!form.nombre_cuenta || form.nombre_cuenta.trim() === '') return false;
     if (!form.Naturaleza || form.Naturaleza.trim() === '') return false;
-    if (!form.tipo_cuenta || form.tipo_cuenta.trim() === '') return false;
     if (!form.nivel || form.nivel.toString().trim() === '') return false;
     
     if (form.nivel > 1) {
         if (!form.id_cuenta_madre || form.id_cuenta_madre.toString().trim() === '') return false;
+    }
+    
+    // 🔥 Si NO es cuenta de resultados, debe tener cuenta_resultados
+    if (!form.es_cuenta_resultados) {
+        if (!form.cuenta_resultados || form.cuenta_resultados.toString().trim() === '') return false;
     }
     
     if (codigoExiste.value && form.codigo_cuenta !== codigoOriginal.value) return false;
@@ -864,9 +891,14 @@ const isFormHijaValid = computed(() => {
     if (!formHija.codigo_cuenta || formHija.codigo_cuenta.trim() === '') return false;
     if (!formHija.nombre_cuenta || formHija.nombre_cuenta.trim() === '') return false;
     if (!formHija.Naturaleza || formHija.Naturaleza.trim() === '') return false;
-    if (!formHija.tipo_cuenta || formHija.tipo_cuenta.trim() === '') return false;
     if (!formHija.id_cuenta_madre || formHija.id_cuenta_madre.toString().trim() === '') return false;
     if (!formHija.nivel || formHija.nivel.toString().trim() === '') return false;
+    
+    // 🔥 Si NO es cuenta de resultados, debe tener cuenta_resultados
+    if (!formHija.es_cuenta_resultados) {
+        if (!formHija.cuenta_resultados || formHija.cuenta_resultados.toString().trim() === '') return false;
+    }
+    
     if (codigoExisteHija.value) return false;
     return true;
 });
@@ -886,9 +918,12 @@ const isComplete = computed(() => {
 });
 
 const progressPercentage = computed(() => {
-    const fields = ['id_empresa', 'codigo_cuenta', 'nombre_cuenta', 'Naturaleza', 'tipo_cuenta', 'nivel'];
+    const fields = ['id_empresa', 'codigo_cuenta', 'nombre_cuenta', 'Naturaleza', 'nivel'];
     if (form.nivel > 1) {
         fields.push('id_cuenta_madre');
+    }
+    if (!form.es_cuenta_resultados) {
+        fields.push('cuenta_resultados');
     }
     const total = fields.length;
     const filled = fields.filter(f => {
@@ -905,7 +940,7 @@ const statusClass = computed(() => {
 });
 
 // ============================================
-// FUNCIONES PRINCIPALES
+// FUNCIONES
 // ============================================
 const clearError = (field) => {
     if (form.errors[field]) delete form.errors[field];
@@ -913,6 +948,18 @@ const clearError = (field) => {
 
 const clearErrorHija = (field) => {
     if (formHija.errors[field]) delete formHija.errors[field];
+};
+
+const toggleCuentaResultados = () => {
+    form.es_cuenta_resultados = !form.es_cuenta_resultados;
+    if (form.es_cuenta_resultados) {
+        form.cuenta_resultados = null;
+    }
+};
+
+const getCuentaResultadosNombre = (id) => {
+    const cuenta = cuentasResultados.value.find(c => c.id_cuenta === id);
+    return cuenta ? cuenta.display : 'No seleccionada';
 };
 
 // ============================================
@@ -1047,6 +1094,33 @@ const cargarCuentasMadre = async () => {
 };
 
 // ============================================
+// CARGAR CUENTAS DE RESULTADOS
+// ============================================
+const cargarCuentasResultados = async () => {
+    if (!form.id_empresa) {
+        cuentasResultados.value = props.cuentasResultados || [];
+        return;
+    }
+
+    try {
+        const response = await axios.get('/cuentas/get-cuentas-resultados', {
+            params: {
+                empresa_id: form.id_empresa
+            }
+        });
+        
+        if (response.data.success) {
+            cuentasResultados.value = response.data.data;
+        } else {
+            cuentasResultados.value = [];
+        }
+    } catch (error) {
+        console.error('Error al cargar cuentas de resultados:', error);
+        cuentasResultados.value = [];
+    }
+};
+
+// ============================================
 // MODAL HIJA
 // ============================================
 const abrirModalCrearHija = () => {
@@ -1057,9 +1131,9 @@ const abrirModalCrearHija = () => {
     formHija.nombre_cuenta = '';
     formHija.descripcion = '';
     formHija.Naturaleza = '';
-    formHija.tipo_cuenta = '';
     formHija.es_cuenta_resultados = false;
     formHija.fondeo_c = false;
+    formHija.cuenta_resultados = null;
     formHija.clearErrors();
     codigoExisteHija.value = false;
     
@@ -1320,9 +1394,9 @@ const submit = () => {
             'codigo_cuenta': 'Código de cuenta',
             'nombre_cuenta': 'Nombre de cuenta',
             'Naturaleza': 'Naturaleza',
-            'tipo_cuenta': 'Tipo de cuenta',
             'nivel': 'Nivel',
-            'id_cuenta_madre': 'Cuenta madre (para nivel > 1)'
+            'id_cuenta_madre': 'Cuenta madre (para nivel > 1)',
+            'cuenta_resultados': 'Cuenta de resultados padre'
         };
         
         let faltante = '';
@@ -1386,6 +1460,7 @@ watch(() => form.id_empresa, (newVal, oldVal) => {
             form.id_cuenta_madre = null;
             cargarCuentasMadre();
         }
+        cargarCuentasResultados();
     }
 });
 
@@ -1404,9 +1479,14 @@ watch(() => form.nivel, (newVal, oldVal) => {
 onMounted(() => {
     codigoOriginal.value = props.cuenta.codigo_cuenta || '';
     cuentasMadre.value = props.cuentasMadre || [];
+    cuentasResultados.value = props.cuentasResultados || [];
     
     if (form.nivel > 1 && form.id_empresa) {
         cargarCuentasMadre();
+    }
+    
+    if (form.id_empresa) {
+        cargarCuentasResultados();
     }
 });
 </script>

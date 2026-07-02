@@ -98,7 +98,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cuentas/{cuenta}/cambiar-estado', [CuentaController::class, 'cambiarEstado'])->name('cuentas.cambiar-estado');
     Route::get('/cuentas/inactivas', [CuentaController::class, 'inactivas'])->name('cuentas.inactivas');
     Route::post('/cuentas/{id}/restaurar', [CuentaController::class, 'restaurar'])->name('cuentas.restaurar');
+    // En routes/web.php agregar:
+    Route::get('/cuentas/get-cuentas-resultados', [CuentaController::class, 'getCuentasResultados'])
+        ->name('cuentas.get-cuentas-resultados');
     Route::resource('cuentas', CuentaController::class);
+    
 });
 
 // ✅ EMPRESAS - PRIMERO LAS RUTAS PERSONALIZADAS, LUEGO EL RESOURCE
