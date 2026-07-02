@@ -465,16 +465,9 @@
                                                     ${{ formatNumber(totalBaseCalculado) }}
                                                 </span>
                                             </div>
-                                            <div class="desglose-item-premium" style="border-right: none;">
-                                                <span class="desglose-label-premium" style="color: #94a3b8;">IVA</span>
-                                                <span class="desglose-value-premium" style="color: #94a3b8; font-size: 0.8rem;">
-                                                    (Informativo)
-                                                </span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
-
                                 <!-- Saldo de fondeadora - SOLO PARA EGRESO (ya se muestra arriba, pero lo mantenemos como refuerzo) -->
                                 <div v-if="esEgreso && mostrarSaldoFondeadora" class="saldo-box-premium" :class="saldoSuficiente ? 'saldo-ok-premium' : 'saldo-error-premium'">
                                     <span class="saldo-icon-premium">{{ saldoSuficiente ? '✓' : '✗' }}</span>
