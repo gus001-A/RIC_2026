@@ -35,7 +35,7 @@
                                     <svg class="view-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
                                     </svg>
-                                    Pólizas
+                                    Polizas
                                 </button>
                                 <button 
                                     class="view-toggle-btn" 
@@ -113,18 +113,7 @@
                         <!-- Separador -->
                         <div class="filtros-separator"></div>
 
-                        <!-- Checkbox TODOS -->
-                        <div class="fecha-item checkbox-todos-item">
-                            <label class="checkbox-todos-label">
-                                <input 
-                                    type="checkbox" 
-                                    v-model="mostrarTodos"
-                                    @change="aplicarFiltros"
-                                    class="checkbox-todos-input"
-                                />
-                                <span class="checkbox-todos-text">Mostrar todos</span>
-                            </label>
-                        </div>
+ 
 
                         <!-- Separador -->
                         <div class="filtros-separator"></div>
@@ -198,17 +187,17 @@
                                     storage-key="columnas_visibles"
                                 />
 
-                                <!-- NUEVA PÓLIZA -->
+                                <!-- NUEVA POLIZA -->
                                 <Link 
                                     v-if="permisos?.puede_crear" 
                                     :href="route('movimientos.create')" 
                                     class="btn-nueva-poliza"
                                 >
                                     <PlusOutlined />
-                                    Nueva Póliza
+                                    Nueva Poliza
                                 </Link>
                                 
-                                <!-- NÓMINA -->
+                                <!-- NOMINA -->
                                 <Link 
                                     v-if="permisos?.puede_crear" 
                                     :href="route('movimientos.nomina.create')" 
@@ -217,7 +206,7 @@
                                     <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
-                                    Nómina
+                                    Nomina
                                 </Link>
                             </div>
                         </div>
@@ -249,7 +238,7 @@
                                         <span v-if="record.referencia_adicional" class="referencia-extra-ultra">
                                             {{ record.referencia_adicional }}
                                         </span>
-                                        <span v-if="record.es_fiscal" class="fiscal-icon" title="Póliza Fiscal">
+                                        <span v-if="record.es_fiscal" class="fiscal-icon" title="Poliza Fiscal">
                                             <FilePdfOutlined style="font-size: 12px; color: #10b981;" />
                                         </span>
                                         <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
@@ -260,7 +249,7 @@
                                     </Link>
                                 </template>
 
-                                <!-- TIPO PÓLIZA -->
+                                <!-- TIPO POLIZA -->
                                 <template v-if="column.key === 'tipo_poliza'">
                                     <span class="tipo-badge" :class="getTipoClass(record.tipo_poliza)">
                                         {{ record.tipo_poliza || '—' }}
@@ -428,7 +417,7 @@
                     <div v-if="(!movimientos.data || movimientos.data.length === 0) && !loading" class="text-center py-12">
                         <div class="text-6xl mb-4">📭</div>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay movimientos</h3>
-                        <p class="text-gray-500">Comienza creando tu primera póliza.</p>
+                        <p class="text-gray-500">Comienza creando tu primera poliza.</p>
                     </div>
 
                     <!-- FILTROS INFERIOR -->
@@ -689,7 +678,7 @@ const modalLiquidacion = ref(null);
 const movimientoSeleccionado = ref(null);
 const empresaSeleccionada = ref(props.empresa_seleccionada || null);
 
-// ✅ FUNCIÓN PARA OBTENER FECHA LOCAL CORRECTA
+// FUNCION PARA OBTENER FECHA LOCAL CORRECTA
 const obtenerFechaLocal = () => {
     const hoy = new Date();
     const year = hoy.getFullYear();
@@ -709,13 +698,9 @@ let timeoutId = null;
 // CUENTAS FONDEADORAS PARA EL MODAL
 // ============================================
 const cuentasFondeadorasDisponibles = computed(() => {
-    // Si vienen desde props, usarlas
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         return props.cuentas_fondeadoras;
     }
-    
-    // Si no, intentar obtenerlas de la sesión o hacer una petición
-    // Por ahora, devolvemos un array vacío
     return [];
 });
 
@@ -738,7 +723,7 @@ const getColumnasDisponibles = () => {
         return [
             { key: 'referencia', title: 'Referencia', required: true, visibleByDefault: true },
             { key: 'tipo_poliza', title: 'Tipo', required: true, visibleByDefault: true },
-            { key: 'fecha_poliza', title: 'Fecha Póliza', required: false, visibleByDefault: true },
+            { key: 'fecha_poliza', title: 'Fecha Poliza', required: false, visibleByDefault: true },
             { key: 'estatus', title: 'Estatus', required: false, visibleByDefault: true },
             { key: 'persona', title: 'Persona', required: true, visibleByDefault: true },
             { key: 'cuenta', title: 'Cuenta Origen', required: true, visibleByDefault: true },
@@ -750,7 +735,7 @@ const getColumnasDisponibles = () => {
     } else {
         return [
             { key: 'referencia', title: 'Referencia', required: true, visibleByDefault: true },
-            { key: 'fecha_poliza', title: 'Fecha Póliza', required: false, visibleByDefault: true },
+            { key: 'fecha_poliza', title: 'Fecha Poliza', required: false, visibleByDefault: true },
             { key: 'estatus', title: 'Estatus', required: false, visibleByDefault: true },
             { key: 'persona', title: 'Persona', required: true, visibleByDefault: true },
             { key: 'cuenta', title: 'Cuenta', required: false, visibleByDefault: true },
@@ -766,7 +751,7 @@ const columnasDisponibles = computed(() => getColumnasDisponibles());
 
 const columnasNormal = [
     { title: 'Referencia', key: 'referencia', width: '180px', fixed: 'left' },
-    { title: 'Fecha Póliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
+    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
     { title: 'Persona', key: 'persona', width: '180px' },
     { title: 'Cuenta', key: 'cuenta', width: '180px' },
@@ -779,7 +764,7 @@ const columnasNormal = [
 const columnasTraspasos = [
     { title: 'Referencia', key: 'referencia', width: '180px', fixed: 'left' },
     { title: 'Tipo', key: 'tipo_poliza', width: '100px', align: 'center' },
-    { title: 'Fecha Póliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
+    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
     { title: 'Persona', key: 'persona', width: '180px' },
     { title: 'Cuenta Origen', key: 'cuenta', width: '180px' },
@@ -849,6 +834,8 @@ const saldoNeto = computed(() => {
 // ============================================
 // FILTROS
 // ============================================
+const hoy = obtenerFechaLocal();
+
 const filtros = ref({
     fecha_desde: props.filtros?.fecha_desde || '',
     fecha_hasta: props.filtros?.fecha_hasta || '',
@@ -862,10 +849,11 @@ const filtros = ref({
     sort_by: props.filtros?.sort_by || 'fecha_poliza',
     sort_order: props.filtros?.sort_order || 'desc',
     vista: vistaActual.value,
-    mostrar_todos: props.filtros?.mostrar_todos || false,
-    solo_fiscales: props.filtros?.solo_fiscales || false
+    mostrar_todos: false,
+    solo_fiscales: false
 });
 
+// ✅ SINCRONIZAR CHECKBOXES CON PROPS PERO POR DEFECTO EN FALSE
 watch(mostrarTodos, (val) => { filtros.value.mostrar_todos = val; });
 watch(soloFiscales, (val) => { filtros.value.solo_fiscales = val; });
 
@@ -901,6 +889,7 @@ const aplicarFiltros = () => {
 };
 
 const limpiarFiltros = () => {
+    // ✅ SOLO LIMPIAR FILTROS, NO APLICAR FECHA DE HOY
     filtros.value = {
         fecha_desde: '',
         fecha_hasta: '',
@@ -923,12 +912,12 @@ const limpiarFiltros = () => {
 };
 
 const limpiarFechas = () => {
+    // ✅ SOLO LIMPIAR FECHAS, MANTENER EL RESTO DE FILTROS
     filtros.value.fecha_desde = '';
     filtros.value.fecha_hasta = '';
     aplicarFiltros();
 };
 
-// ✅ SET FECHA HOY CORREGIDO
 const setFechaHoy = () => {
     const hoy = obtenerFechaLocal();
     filtros.value.fecha_desde = hoy;
@@ -1082,7 +1071,7 @@ const mostrarModal = (type, title, message, duration = 4000) => {
 
 const accionAbonar = (record) => {
     if (record.saldo_pendiente <= 0) {
-        mostrarModal('warning', 'Ya liquidado', 'Esta póliza ya está completamente liquidada.');
+        mostrarModal('warning', 'Ya liquidado', 'Esta poliza ya está completamente liquidada.');
         return;
     }
     router.get(route('movimientos.abono', record.id_movimiento));
@@ -1090,14 +1079,10 @@ const accionAbonar = (record) => {
 
 const accionLiquidar = (record) => {
     if (record.saldo_pendiente <= 0) {
-        mostrarModal('warning', 'Ya liquidado', 'Esta póliza ya está completamente liquidada.');
+        mostrarModal('warning', 'Ya liquidado', 'Esta poliza ya está completamente liquidada.');
         return;
     }
-    
-    // Guardar el movimiento seleccionado
     movimientoSeleccionado.value = record;
-    
-    // Abrir el modal de liquidación
     if (modalLiquidacion.value) {
         modalLiquidacion.value.open();
     } else {
@@ -1106,10 +1091,7 @@ const accionLiquidar = (record) => {
 };
 
 const onLiquidado = (data) => {
-    // Mostrar mensaje de éxito
-    mostrarModal('success', '¡Liquidación exitosa!', data.message || 'La póliza ha sido liquidada completamente.');
-    
-    // Recargar la página para actualizar los datos
+    mostrarModal('success', 'Liquidación exitosa', data.message || 'La poliza ha sido liquidada completamente.');
     setTimeout(() => {
         window.location.reload();
     }, 1500);
@@ -1122,9 +1104,9 @@ const verPdf = (record) => {
     if (record.es_fiscal && record.tiene_pdf_fiscal && record.pdf_url) {
         window.open(record.pdf_url, '_blank');
     } else if (record.es_fiscal && !record.tiene_pdf_fiscal) {
-        mostrarModal('info', 'PDF no disponible', 'Esta póliza fiscal no tiene un PDF asociado.');
+        mostrarModal('info', 'PDF no disponible', 'Esta poliza fiscal no tiene un PDF asociado.');
     } else {
-        mostrarModal('info', 'Sin PDF Fiscal', 'Esta póliza no es fiscal.');
+        mostrarModal('info', 'Sin PDF Fiscal', 'Esta poliza no es fiscal.');
     }
 };
 
@@ -1167,14 +1149,16 @@ const exportarPdf = () => {
 };
 
 // ============================================
-// LIFECYCLE
+// LIFECYCLE - CORREGIDO
 // ============================================
 onMounted(() => {
+    // Inicializar columnas
     if (columnasActivas.value.length === 0) {
         const defaultKeys = getColumnasDisponibles().filter(col => col.visibleByDefault !== false).map(col => col.key);
         columnasActivas.value = defaultKeys;
     }
     
+    // Cargar empresa seleccionada
     if (!empresaSeleccionada.value) {
         const empresaGuardada = localStorage.getItem('empresa_movimientos');
         if (empresaGuardada && props.empresas?.some(e => e.id == parseInt(empresaGuardada))) {
@@ -1184,11 +1168,40 @@ onMounted(() => {
         }
     }
     
-    if (props.filtros?.mostrar_todos) mostrarTodos.value = true;
-    if (props.filtros?.solo_fiscales) soloFiscales.value = true;
+    // ✅ SOLO SETEAR LA FECHA DE HOY POR DEFECTO
+    // NO ACTIVAR FILTROS ADICIONALES (mostrar_todos, solo_fiscales, etc.)
+    if (empresaSeleccionada.value) {
+        const hoy = obtenerFechaLocal();
+        
+        // ✅ SI NO HAY FECHAS EN FILTROS, USAR HOY
+        if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
+            filtros.value.fecha_desde = hoy;
+            filtros.value.fecha_hasta = hoy;
+        }
+        
+        // ✅ SOLO APLICAR FILTROS SI HAY EMPRESA SELECCIONADA
+        aplicarFiltros();
+    }
     
-    if (empresaSeleccionada.value && (!props.movimientos?.data || props.movimientos.data.length === 0)) {
-        cambiarEmpresa();
+    // ✅ PROCESAR FLASH MESSAGES
+    if (props.flash && Object.keys(props.flash).length > 0) {
+        nextTick(() => {
+            const tipoMap = {
+                success: { type: 'success', title: 'Exito' },
+                error: { type: 'error', title: 'Error' },
+                updated: { type: 'success', title: 'Actualizado' },
+                created: { type: 'success', title: 'Creado' },
+                deleted: { type: 'success', title: 'Eliminado' },
+                info: { type: 'info', title: 'Informacion' },
+                warning: { type: 'warning', title: 'Advertencia' }
+            };
+            for (const [key, message] of Object.entries(props.flash)) {
+                if (message && tipoMap[key]) {
+                    mostrarModal(tipoMap[key].type, tipoMap[key].title, message);
+                    break;
+                }
+            }
+        });
     }
 });
 </script>
@@ -1518,7 +1531,7 @@ onMounted(() => {
     gap: 6px;
 }
 
-/* --- BOTONES DE ACCIÓN --- */
+/* --- BOTONES DE ACCION --- */
 .btn-nueva-poliza {
     display: inline-flex;
     align-items: center;

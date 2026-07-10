@@ -221,6 +221,7 @@ class EmpresaController extends Controller
 
     /**
      * Crear todas las cuentas contables para una empresa
+     * ⚠️ MODIFICADO: Naturaleza = null, en_uso = false para todas las cuentas
      */
     private function crearCuentasContables($empresa)
     {
@@ -239,8 +240,9 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $claveEmpresa,
             'nombre_cuenta' => $nombreEmpresa,
             'descripcion' => 'DESCRIPCION DE LA CUENTA PRINCIPAL PARA LA EMPRESA ' . $nombreEmpresa,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'id_cuenta_madre' => null,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 0,
@@ -284,10 +286,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoActivos,
             'nombre_cuenta' => 'ACTIVOS',
             'descripcion' => 'CUENTA DE ACTIVOS PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $cuentaPrincipalId,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 1,
@@ -313,10 +315,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoCirculante,
             'nombre_cuenta' => 'ACTIVO CIRCULANTE',
             'descripcion' => 'CUENTA DE ACTIVO CIRCULANTE PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $activos->id_cuenta,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 2,
@@ -355,10 +357,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => 'DEUDORA',
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'FONDEADORA',
                 'id_cuenta_madre' => $activoCirculante->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => false,
                 'saldo_inicial' => 0,
                 'nivel' => 3,
@@ -386,10 +388,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoFijo,
             'nombre_cuenta' => 'ACTIVO FIJO',
             'descripcion' => 'CUENTA DE ACTIVO FIJO PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $activos->id_cuenta,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 2,
@@ -408,15 +410,15 @@ class EmpresaController extends Controller
         // 6. CUENTAS DE ACTIVO FIJO (NIVEL 3)
         // ============================================
         $cuentasFijo = [
-            ['codigo' => 'TR', 'nombre' => 'TERRENOS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'ED', 'nombre' => 'EDIFICIOS Y CONSTRUCCIONES', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'EC', 'nombre' => 'DEPRECIACION DE EDIFICIOS Y CONSTRUCCIONES', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'ME', 'nombre' => 'MAQUINARIA Y EQUIPO', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'DY', 'nombre' => 'DEPRECIACION DE MAQUINARIA Y EQUIPO', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'EO', 'nombre' => 'EQUIPO DE OFICINA', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'DO', 'nombre' => 'DEPRECIACION DE EQUIPO DE OFICINA', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'ER', 'nombre' => 'EQUIPO DE TRANSPORTE', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'DT', 'nombre' => 'DEPRECIACION DE EQUIPO DE TRANSPORTE', 'naturaleza' => 'ACREEDORA'],
+            ['codigo' => 'TR', 'nombre' => 'TERRENOS'],
+            ['codigo' => 'ED', 'nombre' => 'EDIFICIOS Y CONSTRUCCIONES'],
+            ['codigo' => 'EC', 'nombre' => 'DEPRECIACION DE EDIFICIOS Y CONSTRUCCIONES'],
+            ['codigo' => 'ME', 'nombre' => 'MAQUINARIA Y EQUIPO'],
+            ['codigo' => 'DY', 'nombre' => 'DEPRECIACION DE MAQUINARIA Y EQUIPO'],
+            ['codigo' => 'EO', 'nombre' => 'EQUIPO DE OFICINA'],
+            ['codigo' => 'DO', 'nombre' => 'DEPRECIACION DE EQUIPO DE OFICINA'],
+            ['codigo' => 'ER', 'nombre' => 'EQUIPO DE TRANSPORTE'],
+            ['codigo' => 'DT', 'nombre' => 'DEPRECIACION DE EQUIPO DE TRANSPORTE'],
         ];
 
         foreach ($cuentasFijo as $cuenta) {
@@ -428,10 +430,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => $cuenta['naturaleza'],
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'FONDEADORA',
                 'id_cuenta_madre' => $activoFijo->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => false,
                 'saldo_inicial' => 0,
                 'nivel' => 3,
@@ -459,10 +461,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoDiferido,
             'nombre_cuenta' => 'ACTIVO DIFERIDO',
             'descripcion' => 'CUENTA DE ACTIVO DIFERIDO PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $activos->id_cuenta,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 2,
@@ -481,10 +483,10 @@ class EmpresaController extends Controller
         // 8. CUENTAS DE ACTIVO DIFERIDO (NIVEL 3)
         // ============================================
         $cuentasDiferido = [
-            ['codigo' => 'GO', 'nombre' => 'GASTOS DE ORGANIZACION', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'AG', 'nombre' => 'AMORTIZACION DE GASTOS DE ORGANIZACION', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'AN', 'nombre' => 'PAGOS POR ANTICIPADO', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'IN', 'nombre' => 'INVERSIONES EN ACCIONES', 'naturaleza' => 'DEUDORA'],
+            ['codigo' => 'GO', 'nombre' => 'GASTOS DE ORGANIZACION'],
+            ['codigo' => 'AG', 'nombre' => 'AMORTIZACION DE GASTOS DE ORGANIZACION'],
+            ['codigo' => 'AN', 'nombre' => 'PAGOS POR ANTICIPADO'],
+            ['codigo' => 'IN', 'nombre' => 'INVERSIONES EN ACCIONES'],
         ];
 
         foreach ($cuentasDiferido as $cuenta) {
@@ -496,10 +498,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => $cuenta['naturaleza'],
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'FONDEADORA',
                 'id_cuenta_madre' => $activoDiferido->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => false,
                 'saldo_inicial' => 0,
                 'nivel' => 3,
@@ -527,10 +529,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoPasivos,
             'nombre_cuenta' => 'PASIVOS',
             'descripcion' => 'CUENTA DE PASIVOS PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $cuentaPrincipalId,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 1,
@@ -556,10 +558,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoPasivoFijo,
             'nombre_cuenta' => 'PASIVO FIJO',
             'descripcion' => 'CUENTA DE PASIVO FIJO PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $pasivos->id_cuenta,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 2,
@@ -591,10 +593,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => 'ACREEDORA',
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'FONDEADORA',
                 'id_cuenta_madre' => $pasivoFijo->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => false,
                 'saldo_inicial' => 0,
                 'nivel' => 3,
@@ -622,10 +624,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoPasivoDiferido,
             'nombre_cuenta' => 'PASIVO DIFERIDO',
             'descripcion' => 'CUENTA DE PASIVO DIFERIDO PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $pasivos->id_cuenta,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 2,
@@ -657,10 +659,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => 'ACREEDORA',
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'FONDEADORA',
                 'id_cuenta_madre' => $pasivoDiferido->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => false,
                 'saldo_inicial' => 0,
                 'nivel' => 3,
@@ -688,10 +690,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoCapital,
             'nombre_cuenta' => 'CAPITAL',
             'descripcion' => 'CUENTA DE CAPITAL PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'FONDEADORA',
             'id_cuenta_madre' => $cuentaPrincipalId,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => false,
             'saldo_inicial' => 0,
             'nivel' => 1,
@@ -727,10 +729,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => 'ACREEDORA',
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'FONDEADORA',
                 'id_cuenta_madre' => $capital->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => false,
                 'saldo_inicial' => 0,
                 'nivel' => 2,
@@ -758,10 +760,10 @@ class EmpresaController extends Controller
             'codigo_cuenta' => $codigoResultados,
             'nombre_cuenta' => 'RESULTADOS',
             'descripcion' => 'CUENTA DE RESULTADOS PARA LA EMPRESA ' . $nombreEmpresa,
-            'naturaleza' => null,
+            'Naturaleza' => null, // ❌ SIN NATURALEZA
             'tipo_cuenta' => 'RESULTADO',
             'id_cuenta_madre' => $cuentaPrincipalId,
-            'en_uso' => true,
+            'en_uso' => false, // ❌ INACTIVA POR DEFECTO
             'es_cuenta_resultados' => true,
             'saldo_inicial' => 0,
             'nivel' => 1,
@@ -780,22 +782,22 @@ class EmpresaController extends Controller
         // 17. CUENTAS DE RESULTADOS (NIVEL 2)
         // ============================================
         $cuentasResultados = [
-            ['codigo' => 'VT', 'nombre' => 'VENTAS TOTALES', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'DV', 'nombre' => 'DEVOLUCIONES SOBRE VENTAS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'RV', 'nombre' => 'REBAJAS SOBRE VENTAS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'FN', 'nombre' => 'PRODUCTOS FINANCIEROS', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'OP', 'nombre' => 'OTROS PRODUCTOS', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'VN', 'nombre' => 'COSTO DE VENTAS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'GA', 'nombre' => 'GASTOS DE ADMINISTRACION', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'GV', 'nombre' => 'GASTOS DE VENTAS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'GF', 'nombre' => 'GASTOS FINANCIEROS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'OG', 'nombre' => 'OTROS GASTOS', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'PR', 'nombre' => 'PERDIDA INFLACIONARIA', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'ID', 'nombre' => 'INTERESES DEDUCIBLES', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'GI', 'nombre' => 'GANANCIA INFLACIONARIA', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'AM', 'nombre' => 'PERDIDAS POR AMORTIZAR', 'naturaleza' => 'DEUDORA'],
-            ['codigo' => 'VC', 'nombre' => 'INGRESOS VARIACION CAMBIARIA', 'naturaleza' => 'ACREEDORA'],
-            ['codigo' => 'GC', 'nombre' => 'GASTOS VARIACION CAMBIARIA', 'naturaleza' => 'DEUDORA'],
+            ['codigo' => 'VT', 'nombre' => 'VENTAS TOTALES'],
+            ['codigo' => 'DV', 'nombre' => 'DEVOLUCIONES SOBRE VENTAS'],
+            ['codigo' => 'RV', 'nombre' => 'REBAJAS SOBRE VENTAS'],
+            ['codigo' => 'FN', 'nombre' => 'PRODUCTOS FINANCIEROS'],
+            ['codigo' => 'OP', 'nombre' => 'OTROS PRODUCTOS'],
+            ['codigo' => 'VN', 'nombre' => 'COSTO DE VENTAS'],
+            ['codigo' => 'GA', 'nombre' => 'GASTOS DE ADMINISTRACION'],
+            ['codigo' => 'GV', 'nombre' => 'GASTOS DE VENTAS'],
+            ['codigo' => 'GF', 'nombre' => 'GASTOS FINANCIEROS'],
+            ['codigo' => 'OG', 'nombre' => 'OTROS GASTOS'],
+            ['codigo' => 'PR', 'nombre' => 'PERDIDA INFLACIONARIA'],
+            ['codigo' => 'ID', 'nombre' => 'INTERESES DEDUCIBLES'],
+            ['codigo' => 'GI', 'nombre' => 'GANANCIA INFLACIONARIA'],
+            ['codigo' => 'AM', 'nombre' => 'PERDIDAS POR AMORTIZAR'],
+            ['codigo' => 'VC', 'nombre' => 'INGRESOS VARIACION CAMBIARIA'],
+            ['codigo' => 'GC', 'nombre' => 'GASTOS VARIACION CAMBIARIA'],
         ];
 
         foreach ($cuentasResultados as $cuenta) {
@@ -807,10 +809,10 @@ class EmpresaController extends Controller
                 'codigo_cuenta' => $codigo,
                 'nombre_cuenta' => $cuenta['nombre'],
                 'descripcion' => 'CUENTA DE ' . $cuenta['nombre'] . ' PARA LA EMPRESA ' . $nombreEmpresa,
-                'naturaleza' => $cuenta['naturaleza'],
+                'Naturaleza' => null, // ❌ SIN NATURALEZA
                 'tipo_cuenta' => 'RESULTADO',
                 'id_cuenta_madre' => $resultados->id_cuenta,
-                'en_uso' => true,
+                'en_uso' => false, // ❌ INACTIVA POR DEFECTO
                 'es_cuenta_resultados' => true,
                 'saldo_inicial' => 0,
                 'nivel' => 2,

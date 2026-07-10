@@ -301,7 +301,7 @@
                             </a-table>
                         </div>
 
-                        <!-- TOTALES FONDEADORAS (SIN CUENTAS ACTIVAS) -->
+                        <!-- TOTALES FONDEADORAS -->
                         <div class="totales-fondeadoras-wrapper">
                             <div class="totales-fondeadoras-container">
                                 <div class="total-item-fondeadora">
@@ -340,7 +340,7 @@
         <a-modal
             v-model:open="modalResultadosVisible"
             title="Cuentas de Resultados"
-            width="750px"
+            width="850px"
             :footer="null"
             class="modal-resultados-premium"
         >
@@ -358,13 +358,14 @@
                 <div class="resultado-selector-wrapper">
                     <div class="resultado-selector-label">
                         <span class="resultado-selector-title">Tipo de Resultado</span>
-                        <span class="resultado-selector-subtitle">Filtrar cuentas por tipo de poliza</span>
+                        <span class="resultado-selector-subtitle">Filtrar cuentas por tipo de póliza</span>
                     </div>
                     <div class="resultado-selector-buttons">
                         <button 
                             class="resultado-btn"
                             :class="{ active: tipoResultado === 'todas' }"
                             @click="tipoResultado = 'todas'; filtrarCuentasResultados()"
+                            :disabled="loadingResultados"
                         >
                             Todas las cuentas
                         </button>
@@ -372,6 +373,7 @@
                             class="resultado-btn fiscal"
                             :class="{ active: tipoResultado === 'fiscales' }"
                             @click="tipoResultado = 'fiscales'; filtrarCuentasResultados()"
+                            :disabled="loadingResultados"
                         >
                             <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -382,6 +384,7 @@
                             class="resultado-btn no-fiscal"
                             :class="{ active: tipoResultado === 'no_fiscales' }"
                             @click="tipoResultado = 'no_fiscales'; filtrarCuentasResultados()"
+                            :disabled="loadingResultados"
                         >
                             No Fiscales
                         </button>
@@ -399,6 +402,10 @@
                         <span v-if="tipoResultado === 'no_fiscales'" class="resultado-filter-badge no-fiscal">
                             Filtro: No Fiscales
                         </span>
+                        <span v-if="loadingResultados" class="resultado-loading">
+                            <span class="spinner-border-sm" role="status"></span>
+                            Cargando...
+                        </span>
                     </div>
                 </div>
 
@@ -408,6 +415,7 @@
                         :columns="columnasResultados"
                         :data-source="cuentasResultadosFiltradas"
                         :pagination="false"
+                        :loading="loadingResultados"
                         row-key="id_cuenta"
                         class="reporte-table-ultra"
                         size="middle"
@@ -431,6 +439,10 @@
                                 <span class="monto-text-ultra" :class="(record.saldo || 0) >= 0 ? 'ingreso' : 'egreso'">
                                     ${{ formatNumber(record.saldo || 0) }}
                                 </span>
+                            </template>
+                            <template v-if="column.key === 'fiscal'">
+                                <span v-if="record.es_fiscal" class="fiscal-badge-small">FISCAL</span>
+                                <span v-else class="no-fiscal-badge-small">NO FISCAL</span>
                             </template>
                         </template>
                     </a-table>
@@ -534,9 +546,14 @@
                                     ${{ formatNumber(record.monto) }}
                                 </span>
                             </template>
+                            <template v-if="column.key === 'categoria'">
+                                <span class="categoria-badge" :class="record.categoria === 'FISCAL' ? 'fiscal' : 'no-fiscal'">
+                                    {{ record.categoria || 'NO FISCAL' }}
+                                </span>
+                            </template>
                             <template v-if="column.key === 'acciones'">
                                 <a-button size="small" type="primary" @click="verPoliza(record.id_poliza)">
-                                    Ver Poliza
+                                    Ver Póliza
                                 </a-button>
                             </template>
                         </template>
@@ -753,19 +770,25 @@ const columnasFondeadoras = [
 ];
 
 // ============================================
-// COLUMNAS RESULTADOS (SIN COLUMNA HIJAS)
+// COLUMNAS RESULTADOS
 // ============================================
 const columnasResultados = [
     {
         title: 'Nombre de la Cuenta',
         key: 'nombre',
-        width: '60%'
+        width: '55%'
     },
     {
         title: 'Saldo',
         key: 'saldo',
-        width: '40%',
+        width: '25%',
         align: 'right'
+    },
+    {
+        title: 'Tipo',
+        key: 'fiscal',
+        width: '20%',
+        align: 'center'
     }
 ];
 
@@ -803,6 +826,12 @@ const columnasDetalle = [
         key: 'monto',
         width: '140px',
         align: 'right'
+    },
+    {
+        title: 'Categoría',
+        key: 'categoria',
+        width: '120px',
+        align: 'center'
     },
     {
         title: 'Acciones',
@@ -961,19 +990,111 @@ const cambiarEmpresa = () => {
 };
 
 // ============================================
-// FILTRAR CUENTAS DE RESULTADOS
+// FILTRAR CUENTAS DE RESULTADOS - CON LLAMADA AL BACKEND
 // ============================================
-const filtrarCuentasResultados = () => {
-    if (tipoResultado.value === 'todas') {
-        cuentasResultadosFiltradas.value = cuentasResultados.value;
-    } else if (tipoResultado.value === 'fiscales') {
-        cuentasResultadosFiltradas.value = cuentasResultados.value.filter(cuenta => {
-            return cuenta.es_fiscal === true;
+const filtrarCuentasResultados = async () => {
+    if (!empresaSeleccionada.value) return;
+    
+    loadingResultados.value = true;
+    
+    try {
+        const params = {
+            empresa_id: empresaSeleccionada.value,
+            vista: vistaActual.value,
+            fecha_desde: filtros.value.fecha_desde,
+            fecha_hasta: filtros.value.fecha_hasta,
+            solo_fiscales: tipoResultado.value === 'fiscales'
+        };
+
+        const response = await axios.get(route('reportes.movimientos'), { params });
+
+        if (response.data.success) {
+            cuentasResultados.value = response.data.cuentas_resultados || [];
+            
+            // Marcar cuentas fiscales
+            cuentasResultados.value = cuentasResultados.value.map(cuenta => {
+                if (cuenta.hijas && cuenta.hijas.length > 0) {
+                    cuenta.es_fiscal = cuenta.hijas.some(hija => hija.es_fiscal === true);
+                } else {
+                    cuenta.es_fiscal = tipoResultado.value === 'fiscales';
+                }
+                return cuenta;
+            });
+            
+            cuentasResultadosFiltradas.value = cuentasResultados.value;
+        } else {
+            throw new Error(response.data.message || 'Error al cargar las cuentas de resultados');
+        }
+    } catch (error) {
+        console.error('Error al filtrar cuentas de resultados:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.response?.data?.message || error.message || 'Error al filtrar las cuentas',
+            confirmButtonColor: '#dc2626'
         });
-    } else if (tipoResultado.value === 'no_fiscales') {
-        cuentasResultadosFiltradas.value = cuentasResultados.value.filter(cuenta => {
-            return cuenta.es_fiscal === false;
+    } finally {
+        loadingResultados.value = false;
+    }
+};
+
+// ============================================
+// ABRIR MODAL DE RESULTADOS
+// ============================================
+const abrirModalCuentasResultados = async () => {
+    if (!empresaSeleccionada.value) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin empresa',
+            text: 'Selecciona una empresa primero',
+            confirmButtonColor: '#667eea'
         });
+        return;
+    }
+
+    modalResultadosVisible.value = true;
+    loadingResultados.value = true;
+    tipoResultado.value = 'todas';
+
+    try {
+        const params = {
+            empresa_id: empresaSeleccionada.value,
+            vista: vistaActual.value,
+            fecha_desde: filtros.value.fecha_desde,
+            fecha_hasta: filtros.value.fecha_hasta,
+            solo_fiscales: false
+        };
+
+        const response = await axios.get(route('reportes.movimientos'), { params });
+
+        if (response.data.success) {
+            cuentasResultados.value = response.data.cuentas_resultados || [];
+            
+            cuentasResultados.value = cuentasResultados.value.map(cuenta => {
+                if (cuenta.hijas && cuenta.hijas.length > 0) {
+                    cuenta.es_fiscal = cuenta.hijas.some(hija => hija.es_fiscal === true);
+                } else {
+                    cuenta.es_fiscal = false;
+                }
+                return cuenta;
+            });
+            
+            cuentasResultadosFiltradas.value = cuentasResultados.value;
+        } else {
+            throw new Error(response.data.message || 'Error al cargar las cuentas de resultados');
+        }
+    } catch (error) {
+        console.error('Error al cargar cuentas de resultados:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.response?.data?.message || error.message || 'Error al cargar las cuentas de resultados',
+            confirmButtonColor: '#dc2626'
+        });
+        cuentasResultados.value = [];
+        cuentasResultadosFiltradas.value = [];
+    } finally {
+        loadingResultados.value = false;
     }
 };
 
@@ -1007,20 +1128,6 @@ const cargarReporte = async () => {
         if (response.data.success) {
             reporteData.value = response.data.data || [];
             reporteFondeadoras.value = response.data.fondeadoras || [];
-            cuentasResultados.value = response.data.cuentas_resultados || [];
-            
-            // Marcar cuentas fiscales
-            cuentasResultados.value = cuentasResultados.value.map(cuenta => {
-                if (cuenta.hijas && cuenta.hijas.length > 0) {
-                    cuenta.es_fiscal = cuenta.hijas.some(hija => hija.es_fiscal === true);
-                } else {
-                    cuenta.es_fiscal = false;
-                }
-                return cuenta;
-            });
-            
-            tipoResultado.value = 'todas';
-            filtrarCuentasResultados();
             cargado.value = true;
         } else {
             throw new Error(response.data.message || 'Error al cargar el reporte');
@@ -1113,65 +1220,6 @@ const onRowClickResultados = (record) => {
 };
 
 // ============================================
-// ABRIR MODAL DE RESULTADOS
-// ============================================
-const abrirModalCuentasResultados = async () => {
-    if (!empresaSeleccionada.value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin empresa',
-            text: 'Selecciona una empresa primero',
-            confirmButtonColor: '#667eea'
-        });
-        return;
-    }
-
-    modalResultadosVisible.value = true;
-    loadingResultados.value = true;
-
-    try {
-        const params = {
-            empresa_id: empresaSeleccionada.value,
-            vista: vistaActual.value,
-            fecha_desde: filtros.value.fecha_desde,
-            fecha_hasta: filtros.value.fecha_hasta
-        };
-
-        const response = await axios.get(route('reportes.movimientos'), { params });
-
-        if (response.data.success) {
-            cuentasResultados.value = response.data.cuentas_resultados || [];
-            
-            cuentasResultados.value = cuentasResultados.value.map(cuenta => {
-                if (cuenta.hijas && cuenta.hijas.length > 0) {
-                    cuenta.es_fiscal = cuenta.hijas.some(hija => hija.es_fiscal === true);
-                } else {
-                    cuenta.es_fiscal = false;
-                }
-                return cuenta;
-            });
-            
-            tipoResultado.value = 'todas';
-            filtrarCuentasResultados();
-        } else {
-            throw new Error(response.data.message || 'Error al cargar las cuentas de resultados');
-        }
-    } catch (error) {
-        console.error('Error al cargar cuentas de resultados:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response?.data?.message || error.message || 'Error al cargar las cuentas de resultados',
-            confirmButtonColor: '#dc2626'
-        });
-        cuentasResultados.value = [];
-        cuentasResultadosFiltradas.value = [];
-    } finally {
-        loadingResultados.value = false;
-    }
-};
-
-// ============================================
 // VER POLIZA
 // ============================================
 const verPoliza = (idPoliza) => {
@@ -1206,6 +1254,10 @@ const exportarExcel = () => {
 // LIFECYCLE
 // ============================================
 onMounted(() => {
+    const hoy = obtenerFechaLocal();
+    filtros.value.fecha_desde = hoy;
+    filtros.value.fecha_hasta = hoy;
+    
     if (!empresaSeleccionada.value) {
         const empresaGuardada = localStorage.getItem('empresa_reportes');
         if (empresaGuardada && props.empresas?.some(e => e.id == parseInt(empresaGuardada))) {
@@ -1707,6 +1759,58 @@ onMounted(() => {
     color: #94a3b8;
 }
 
+/* ===== BADGES DE CATEGORÍA ===== */
+.categoria-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.categoria-badge.fiscal {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.categoria-badge.no-fiscal {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.fiscal-badge-small {
+    display: inline-block;
+    padding: 1px 8px;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.no-fiscal-badge-small {
+    display: inline-block;
+    padding: 1px 8px;
+    background: #f3f4f6;
+    color: #374151;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.subtotal-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
 /* ===== FILTROS INFERIOR ===== */
 .filtros-inferior-tabla {
     margin-top: 16px;
@@ -1943,10 +2047,15 @@ onMounted(() => {
     transition: all 0.3s ease;
 }
 
-.resultado-btn:hover {
+.resultado-btn:hover:not(:disabled) {
     border-color: #667eea;
     color: #1a3a5c;
     transform: translateY(-1px);
+}
+
+.resultado-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .resultado-btn.active {
@@ -2010,6 +2119,28 @@ onMounted(() => {
     color: #374151;
 }
 
+.resultado-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.spinner-border-sm {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .fiscal-badge-text {
     font-size: 14px;
     font-weight: 600;
@@ -2020,29 +2151,6 @@ onMounted(() => {
     font-size: 14px;
     font-weight: 600;
     color: #374151;
-}
-
-/* ===== BADGE FISCAL PEQUEÑO ===== */
-.fiscal-badge-small {
-    display: inline-block;
-    padding: 1px 8px;
-    background: #d1fae5;
-    color: #065f46;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 600;
-    margin-left: 8px;
-}
-
-.subtotal-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    background: #eff6ff;
-    color: #1e40af;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    margin-left: 8px;
 }
 
 /* ===== TOTALES RESULTADOS ===== */

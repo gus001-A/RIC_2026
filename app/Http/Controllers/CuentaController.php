@@ -69,17 +69,25 @@ class CuentaController extends Controller
                 ->exists();
                 
             if ($tieneAcceso) {
+                // 🔥 STATS: solo cuentas activas
                 $stats = [
-                    'total' => Cuenta::where('id_empresa', $empresaId)->count(),
+                    'total' => Cuenta::where('id_empresa', $empresaId)
+                        ->where('en_uso', true)
+                        ->count(),
                     'deudoras' => Cuenta::where('id_empresa', $empresaId)
+                        ->where('en_uso', true)
                         ->where('Naturaleza', 'DEUDORA')
                         ->count(),
                     'acreedoras' => Cuenta::where('id_empresa', $empresaId)
+                        ->where('en_uso', true)
                         ->where('Naturaleza', 'ACREEDORA')
                         ->count(),
                 ];
 
-                $query = Cuenta::where('id_empresa', $empresaId);
+                // 🔥 QUERY: solo cuentas activas, ordenadas por ID
+                $query = Cuenta::where('id_empresa', $empresaId)
+                    ->where('en_uso', true)
+                    ->orderBy('id_cuenta', 'asc');
 
                 if ($request->filled('codigo_cuenta')) {
                     $query->where('codigo_cuenta', 'LIKE', '%' . $request->codigo_cuenta . '%');
@@ -96,9 +104,6 @@ class CuentaController extends Controller
                 if ($request->filled('tipo_cuenta')) {
                     $query->where('tipo_cuenta', $request->tipo_cuenta);
                 }
-
-                $query->orderBy('nivel')
-                    ->orderBy('codigo_cuenta');
 
                 $cuentas = $query->paginate(100);
 
@@ -177,6 +182,7 @@ class CuentaController extends Controller
 
     /**
      * Get cuentas for DataTable (Server Side)
+     * 🔥 MODIFICADO: solo muestra cuentas activas (en_uso = true)
      */
     public function getCuentas(Request $request)
     {
@@ -219,7 +225,9 @@ class CuentaController extends Controller
             ]);
         }
 
-        $query = Cuenta::where('id_empresa', $empresa_id);
+        // 🔥 QUERY: solo cuentas activas
+        $query = Cuenta::where('id_empresa', $empresa_id)
+            ->where('en_uso', true);
 
         $search = $request->input('search.value');
         if ($search) {
@@ -296,6 +304,7 @@ class CuentaController extends Controller
 
     /**
      * Obtener cuentas madre para el select
+     * 🔥 MODIFICADO: solo cuentas activas
      */
     public function getCuentasMadre(Request $request)
     {
@@ -353,9 +362,10 @@ class CuentaController extends Controller
 
         $nivelMadre = $nivel - 1;
         
+        // 🔥 QUERY: solo cuentas activas
         $query = Cuenta::where('id_empresa', $empresaId)
             ->where('nivel', $nivelMadre)
-            ->where('en_uso', 1)
+            ->where('en_uso', true)
             ->orderBy('codigo_cuenta');
 
         $cuentas = $query->get();
@@ -391,6 +401,7 @@ class CuentaController extends Controller
 
     /**
      * Obtener cuentas de resultados para el select
+     * 🔥 MODIFICADO: solo cuentas activas
      */
     public function getCuentasResultados(Request $request)
     {
@@ -435,9 +446,10 @@ class CuentaController extends Controller
             ], 403);
         }
 
+        // 🔥 QUERY: solo cuentas activas y de resultados
         $query = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', 1)
-            ->where('es_cuenta_resultados', 1)
+            ->where('en_uso', true)
+            ->where('es_cuenta_resultados', true)
             ->orderBy('codigo_cuenta');
 
         $cuentas = $query->get();
@@ -707,6 +719,7 @@ class CuentaController extends Controller
                 ->where('activo', true)
                 ->get();
             
+            // 🔥 Cuentas madre: solo activas
             $cuentasMadre = Cuenta::where('id_empresa', $cuenta->id_empresa)
                 ->where('id_cuenta', '!=', $id)
                 ->where('nivel', '<', $cuenta->nivel)
@@ -723,7 +736,7 @@ class CuentaController extends Controller
                     ];
                 });
             
-            // 🔥 Obtener cuentas de resultados disponibles
+            // 🔥 Cuentas de resultados: solo activas
             $cuentasResultados = Cuenta::where('id_empresa', $cuenta->id_empresa)
                 ->where('en_uso', true)
                 ->where('es_cuenta_resultados', true)
@@ -848,7 +861,8 @@ class CuentaController extends Controller
     }
 
     /**
-     * Eliminación lógica - Desactivar cuenta (cambia en_uso a false)
+     * 🔥 Eliminación lógica - Desactivar cuenta (cambia en_uso a false)
+     * MODIFICADO: Permite desactivar aunque tenga hijas
      */
     public function destroy(string $id)
     {
@@ -879,17 +893,14 @@ class CuentaController extends Controller
                     ->with('warning', 'La cuenta ya está inactiva');
             }
 
+
+            $nombreCuenta = $cuenta->nombre_cuenta;
             $hijasCount = $cuenta->cuentasHijas()->count();
             
-            if ($hijasCount > 0) {
-                return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
-                    ->with('error', 'No se puede desactivar la cuenta porque tiene ' . $hijasCount . ' cuenta(s) hija(s) asociadas');
-            }
-
+            // Desactivar la cuenta
             $cuenta->update(['en_uso' => false]);
 
-            return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
-                ->with('success', 'Cuenta desactivada exitosamente');
+            return redirect()->route('cuentas.index', ['empresa_id' => $empresaId]);
 
         } catch (ModelNotFoundException $e) {
             return redirect()->route('cuentas.index')
@@ -1018,8 +1029,7 @@ class CuentaController extends Controller
 
             $cuenta->update(['en_uso' => true]);
 
-            return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
-                ->with('success', 'Cuenta restaurada exitosamente');
+            return redirect()->route('cuentas.index', ['empresa_id' => $empresaId]);
 
         } catch (ModelNotFoundException $e) {
             return redirect()->route('cuentas.index')
@@ -1032,6 +1042,7 @@ class CuentaController extends Controller
 
     /**
      * Activar/Desactivar cuenta (Toggle)
+     * 🔥 MODIFICADO: Permite desactivar aunque tenga hijas
      */
     public function toggleActive(Request $request, string $id)
     {
@@ -1057,22 +1068,30 @@ class CuentaController extends Controller
                     ->with('error', 'No tienes acceso a esta cuenta');
             }
             
-            if ($cuenta->en_uso) {
-                $hijasCount = $cuenta->cuentasHijas()->count();
-                
-                if ($hijasCount > 0) {
-                    return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
-                        ->with('error', 'No se puede desactivar la cuenta porque tiene ' . $hijasCount . ' cuenta(s) hija(s) asociadas');
-                }
-            }
+            // 🔥 ELIMINADO: Ya no se bloquea si tiene hijas
+            // if ($cuenta->en_uso) {
+            //     $hijasCount = $cuenta->cuentasHijas()->count();
+            //     if ($hijasCount > 0) {
+            //         return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
+            //             ->with('error', 'No se puede desactivar la cuenta porque tiene ' . $hijasCount . ' cuenta(s) hija(s) asociadas');
+            //     }
+            // }
             
             $nuevoEstado = !$cuenta->en_uso;
             $cuenta->update(['en_uso' => $nuevoEstado]);
             
             $estadoTexto = $nuevoEstado ? 'activada' : 'desactivada';
+            $mensaje = 'Cuenta ' . $estadoTexto . ' exitosamente';
+            
+            if (!$nuevoEstado) {
+                $hijasCount = $cuenta->cuentasHijas()->count();
+                if ($hijasCount > 0) {
+                    $mensaje .= '. La cuenta tiene ' . $hijasCount . ' cuenta(s) hija(s).';
+                }
+            }
             
             return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
-                ->with('success', 'Cuenta ' . $estadoTexto . ' exitosamente');
+                ->with('success', $mensaje);
                 
         } catch (ModelNotFoundException $e) {
             return redirect()->route('cuentas.index')
@@ -1086,6 +1105,7 @@ class CuentaController extends Controller
 
     /**
      * Cambiar estado de la cuenta (activar/desactivar)
+     * 🔥 MODIFICADO: Permite desactivar aunque tenga hijas
      */
     public function cambiarEstado(Request $request, string $id)
     {
@@ -1110,11 +1130,22 @@ class CuentaController extends Controller
                     ->with('error', 'No tienes acceso a esta cuenta');
             }
             
-            $cuenta->en_uso = !$cuenta->en_uso;
+            $nuevoEstado = !$cuenta->en_uso;
+            $cuenta->en_uso = $nuevoEstado;
             $cuenta->save();
 
+            $estadoTexto = $nuevoEstado ? 'activada' : 'desactivada';
+            $mensaje = 'Cuenta ' . $estadoTexto . ' exitosamente';
+            
+            if (!$nuevoEstado) {
+                $hijasCount = $cuenta->cuentasHijas()->count();
+                if ($hijasCount > 0) {
+                    $mensaje .= '. La cuenta tiene ' . $hijasCount . ' cuenta(s) hija(s).';
+                }
+            }
+
             return redirect()->route('cuentas.index', ['empresa_id' => $cuenta->id_empresa])
-                ->with('success', 'Estado de la cuenta actualizado exitosamente.');
+                ->with('success', $mensaje);
 
         } catch (ModelNotFoundException $e) {
             return redirect()->route('cuentas.index')

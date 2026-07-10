@@ -624,4 +624,9 @@ class Poliza extends Model
     {
         return str_pad($this->folio, 4, '0', STR_PAD_LEFT);
     }
+    // Relación con archivos adjuntos
+    public function archivos()
+    {
+        return $this->hasMany(PolizaArchivo::class, 'id_poliza');
+    }
 }

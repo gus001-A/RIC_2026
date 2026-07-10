@@ -26,8 +26,7 @@
                             </select>
                         </div>
                         <div class="empresa-selector-actions">
-                            
-                            <!-- ✅ VER INACTIVAS - solo admin, auditor, super -->
+                            <!-- VER INACTIVAS - solo admin, auditor, super -->
                             <a-button 
                                 v-if="permisos?.puede_editar_cuentas"
                                 size="middle" 
@@ -77,12 +76,12 @@
                             sticky
                         >
                             <template #bodyCell="{ column, record }">
-                                <!-- # - Mostrar ID real de la BD -->
+                                <!-- ID -->
                                 <template v-if="column.key === '#'">
                                     <span class="text-gray-400 font-mono text-sm">{{ record.id_cuenta }}</span>
                                 </template>
 
-                                <!-- CÓDIGO -->
+                                <!-- CODIGO -->
                                 <template v-if="column.key === 'codigo_cuenta'">
                                     <div class="clave-cell-ultra">
                                         <span class="clave-text-ultra">{{ record.codigo_cuenta }}</span>
@@ -92,7 +91,6 @@
                                 <!-- CUENTA - Click para editar (solo admin, auditor, super) -->
                                 <template v-if="column.key === 'nombre_cuenta'">
                                     <div class="nombre-cell-ultra">
-                                        <!-- ✅ Si puede editar, muestra enlace para editar -->
                                         <Link 
                                             v-if="permisos?.puede_editar_cuentas"
                                             :href="route('cuentas.edit', record.id_cuenta)"
@@ -101,14 +99,13 @@
                                             <span class="nombre-link-icon">✎</span>
                                             {{ record.nombre_cuenta }}
                                         </Link>
-                                        <!-- Si no puede editar, solo muestra el nombre -->
                                         <span v-else class="nombre-text-ultra">
                                             {{ record.nombre_cuenta }}
                                         </span>
                                     </div>
                                 </template>
 
-                                <!-- NIVEL (JERARQUÍA COMPLETA) -->
+                                <!-- NIVEL (JERARQUIA COMPLETA) -->
                                 <template v-if="column.key === 'nivel'">
                                     <div class="nivel-cell-ultra">
                                         <span class="nivel-badge" :class="getNivelClass(record.nivel_texto)">
@@ -117,7 +114,7 @@
                                     </div>
                                 </template>
 
-                                <!-- ÍNDICE -->
+                                <!-- INDICE -->
                                 <template v-if="column.key === 'indice'">
                                     <div class="indice-cell-ultra">
                                         <span class="indice-text-ultra">{{ record.indice }}</span>
@@ -149,11 +146,11 @@
                                     </div>
                                 </template>
 
-                                <!-- 🟢 FONDEADORA -->
+                                <!-- FONDEADORA -->
                                 <template v-if="column.key === 'fondeadora'">
                                     <div class="fondeadora-cell-ultra">
                                         <span class="fondeadora-badge" :class="record.fondeo_c == 1 ? 'fondeadora-si' : 'fondeadora-no'">
-                                            {{ record.fondeo_c == 1 ? ' Sí' : ' No' }}
+                                            {{ record.fondeo_c == 1 ? 'Si' : 'No' }}
                                         </span>
                                     </div>
                                 </template>
@@ -163,13 +160,13 @@
                             <template #footer>
                                 <div class="filtros-ultra">
                                     <div class="filtros-grid-ultra">
-                                        <!-- Filtro Código -->
+                                        <!-- Filtro Codigo -->
                                         <div class="filtro-item-ultra">
-                                            <InputLabel>Código</InputLabel>
+                                            <InputLabel>Codigo</InputLabel>
                                             <TextInput 
                                                 v-model="filtros.codigo_cuenta"
                                                 @input="aplicarFiltros"
-                                                placeholder="Código..."
+                                                placeholder="Codigo..."
                                                 square
                                             />
                                         </div>
@@ -240,7 +237,7 @@
                                             </a-select>
                                         </div>
 
-                                        <!-- Botón Limpiar -->
+                                        <!-- Boton Limpiar -->
                                         <div class="filtro-item-ultra filtro-actions">
                                             <InputLabel>Acciones</InputLabel>
                                             <a-button 
@@ -271,7 +268,7 @@
                         </a-table>
                     </div>
 
-                    <!-- Paginación -->
+                    <!-- Paginacion -->
                     <div class="pagination-ultra">
                         <span class="pagination-info-ultra">
                             Mostrando <span class="pagination-highlight-ultra">{{ cuentas.from || 0 }}</span> a 
@@ -293,7 +290,7 @@
             </div>
         </div>
 
-        <!-- MODAL CUENTAS INACTIVAS -->
+        <!-- MODAL CUENTAS INACTIVAS - SIN EMOJIS, SIN NATURALEZA Y SIN FONDEADORA -->
         <a-modal
             v-model:open="modalInactivasVisible"
             title="Cuentas Inactivas"
@@ -305,7 +302,7 @@
         >
             <div class="modal-inactivas-content">
                 <div class="modal-inactivas-header">
-                    <span class="modal-inactivas-title">📋 Listado de Cuentas Inactivas</span>
+                    <span class="modal-inactivas-title">Listado de Cuentas Inactivas</span>
                     <span class="modal-inactivas-count">{{ cuentasInactivas.length }} cuentas</span>
                 </div>
 
@@ -322,12 +319,12 @@
                         sticky
                     >
                         <template #bodyCell="{ column, record }">
-                            <!-- # -->
+                            <!-- ID -->
                             <template v-if="column.key === '#'">
                                 <span class="text-gray-400 font-mono text-sm">{{ record.id_cuenta }}</span>
                             </template>
 
-                            <!-- CÓDIGO -->
+                            <!-- CODIGO -->
                             <template v-if="column.key === 'codigo_cuenta'">
                                 <div class="clave-cell-ultra">
                                     <span class="clave-text-ultra inactivo-text">{{ record.codigo_cuenta }}</span>
@@ -350,7 +347,7 @@
                                 </div>
                             </template>
 
-                            <!-- ÍNDICE -->
+                            <!-- INDICE -->
                             <template v-if="column.key === 'indice'">
                                 <div class="indice-cell-ultra">
                                     <span class="indice-text-ultra inactivo-text">{{ record.indice }}</span>
@@ -369,24 +366,6 @@
                                 <div class="fondo-cell-ultra">
                                     <span class="fondo-badge" :class="getFondoClass(record.tipo_cuenta)">
                                         {{ record.tipo_cuenta || '—' }}
-                                    </span>
-                                </div>
-                            </template>
-
-                            <!-- NATURALEZA -->
-                            <template v-if="column.key === 'naturaleza'">
-                                <div class="naturaleza-cell-ultra">
-                                    <span class="naturaleza-badge" :class="record.Naturaleza === 'DEUDORA' ? 'deudora' : 'acreedora'">
-                                        {{ record.Naturaleza === 'DEUDORA' ? 'Deudora' : record.Naturaleza === 'ACREEDORA' ? 'Acreedora' : '—' }}
-                                    </span>
-                                </div>
-                            </template>
-
-                            <!-- 🟢 FONDEADORA en inactivas -->
-                            <template v-if="column.key === 'fondeadora'">
-                                <div class="fondeadora-cell-ultra">
-                                    <span class="fondeadora-badge" :class="record.fondeo_c == 1 ? 'fondeadora-si' : 'fondeadora-no'">
-                                        {{ record.fondeo_c == 1 ? '✅ Sí' : '❌ No' }}
                                     </span>
                                 </div>
                             </template>
@@ -455,7 +434,7 @@ import {
 } from 'ant-design-vue';
 
 // ============================================
-// ✅ PERMISOS DESDE EL BACKEND
+// PERMISOS DESDE EL BACKEND
 // ============================================
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
@@ -499,7 +478,7 @@ const modalInactivasVisible = ref(false);
 const cuentasInactivas = ref(props.cuentas_inactivas || []);
 
 // ============================================
-// 🟢 COLUMNAS DE LA TABLA PRINCIPAL (CON FONDEADORA)
+// COLUMNAS DE LA TABLA PRINCIPAL (CON FONDEADORA Y NATURALEZA)
 // ============================================
 const columns = [
     {
@@ -510,7 +489,7 @@ const columns = [
         fixed: 'left'
     },
     {
-        title: 'Código',
+        title: 'Codigo',
         key: 'codigo_cuenta',
         width: '130px',
         fixed: 'left'
@@ -521,13 +500,13 @@ const columns = [
         width: '320px'
     },
     {
-        title: 'Nivel Jerárquico',
+        title: 'Nivel Jerarquico',
         key: 'nivel',
         width: '150px',
         align: 'center'
     },
     {
-        title: 'Índice',
+        title: 'Indice',
         key: 'indice',
         width: '180px'
     },
@@ -557,7 +536,7 @@ const columns = [
 ];
 
 // ============================================
-// 🟢 COLUMNAS DEL MODAL DE INACTIVAS (CON FONDEADORA)
+// COLUMNAS DEL MODAL DE INACTIVAS (SIN NATURALEZA Y SIN FONDEADORA)
 // ============================================
 const columnsInactivas = [
     {
@@ -568,7 +547,7 @@ const columnsInactivas = [
         fixed: 'left'
     },
     {
-        title: 'Código',
+        title: 'Codigo',
         key: 'codigo_cuenta',
         width: '130px',
         fixed: 'left'
@@ -579,13 +558,13 @@ const columnsInactivas = [
         width: '320px'
     },
     {
-        title: 'Nivel Jerárquico',
+        title: 'Nivel Jerarquico',
         key: 'nivel',
         width: '150px',
         align: 'center'
     },
     {
-        title: 'Índice',
+        title: 'Indice',
         key: 'indice',
         width: '180px'
     },
@@ -597,18 +576,6 @@ const columnsInactivas = [
     {
         title: 'Tipo',
         key: 'tipo_cuenta',
-        width: '100px',
-        align: 'center'
-    },
-    {
-        title: 'Naturaleza',
-        key: 'naturaleza',
-        width: '100px',
-        align: 'center'
-    },
-    {
-        title: 'Fondeadora',
-        key: 'fondeadora',
         width: '100px',
         align: 'center'
     },
@@ -722,7 +689,8 @@ const abrirModalInactivas = async () => {
                 empresa_id: empresaSeleccionada.value
             }
         });
-        cuentasInactivas.value = response.data.data || [];
+        // Ordenar por ID ascendente
+        cuentasInactivas.value = (response.data.data || []).sort((a, b) => a.id_cuenta - b.id_cuenta);
     } catch (error) {
         console.error('Error al cargar cuentas inactivas:', error);
         mostrarModal('error', 'Error', 'No se pudieron cargar las cuentas inactivas');
@@ -740,7 +708,6 @@ const cerrarModalInactivas = () => {
 // RESTAURAR CUENTA (solo admin, auditor, super)
 // ============================================
 const confirmarRestaurar = (cuenta) => {
-    // ✅ Verificar permiso antes de restaurar
     if (!permisos.value?.puede_editar_cuentas) {
         Swal.fire({
             icon: 'error',
@@ -752,7 +719,7 @@ const confirmarRestaurar = (cuenta) => {
     }
 
     Swal.fire({
-        title: '¿Restaurar cuenta?',
+        title: 'Restaurar cuenta',
         html: `
             <div class="text-center">
                 <div class="flex justify-center mb-3">
@@ -763,17 +730,17 @@ const confirmarRestaurar = (cuenta) => {
                     </div>
                 </div>
                 <p class="font-medium text-gray-800 text-lg">${cuenta.nombre_cuenta}</p>
-                <p class="text-sm text-gray-500">Código: <strong>${cuenta.codigo_cuenta}</strong></p>
+                <p class="text-sm text-gray-500">Codigo: <strong>${cuenta.codigo_cuenta}</strong></p>
                 <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p class="text-sm text-green-700 font-medium">✅ La cuenta volverá a estar <strong>activa</strong></p>
-                    <p class="text-xs text-green-600 mt-1">Aparecerá nuevamente en el listado principal</p>
+                    <p class="text-sm text-green-700 font-medium">La cuenta volvera a estar activa</p>
+                    <p class="text-xs text-green-600 mt-1">Aparecera nuevamente en el listado principal</p>
                 </div>
             </div>
         `,
         icon: 'success',
         iconColor: '#10b981',
         showCancelButton: true,
-        confirmButtonText: 'Sí, restaurar',
+        confirmButtonText: 'Si, restaurar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#10b981',
         cancelButtonColor: '#64748b',
@@ -792,7 +759,7 @@ const confirmarRestaurar = (cuenta) => {
                 preserveScroll: true,
                 onSuccess: () => {
                     Swal.fire({
-                        title: '¡Restaurada!',
+                        title: 'Restaurada',
                         html: `
                             <div class="text-center">
                                 <div class="flex justify-center mb-3">
@@ -817,7 +784,7 @@ const confirmarRestaurar = (cuenta) => {
                     });
                 },
                 onError: (errors) => {
-                    const errorMsg = errors?.error || 'Ocurrió un error al restaurar la cuenta';
+                    const errorMsg = errors?.error || 'Ocurrio un error al restaurar la cuenta';
                     Swal.fire({
                         title: 'Error',
                         text: errorMsg,
@@ -902,7 +869,7 @@ const getFondoClass = (tipo) => {
 };
 
 // ============================================
-// FUNCIONES DE ACCIÓN
+// FUNCIONES DE ACCION
 // ============================================
 const mostrarModal = (type, title, message, duration = 4000, onConfirm = null) => {
     if (modalAlert.value && modalAlert.value.show) {
@@ -919,12 +886,12 @@ const mostrarModal = (type, title, message, duration = 4000, onConfirm = null) =
 const procesarFlash = () => {
     if (!props.flash) return;
     const tipoMap = {
-        success: { type: 'success', title: '¡Éxito!' },
+        success: { type: 'success', title: 'Exito' },
         error: { type: 'error', title: 'Error' },
-        updated: { type: 'success', title: '¡Cuenta actualizada!' },
-        created: { type: 'success', title: '¡Cuenta creada!' },
-        deleted: { type: 'success', title: '¡Cuenta eliminada!' },
-        info: { type: 'info', title: 'Información' },
+        updated: { type: 'success', title: 'Cuenta actualizada' },
+        created: { type: 'success', title: 'Cuenta creada' },
+        deleted: { type: 'success', title: 'Cuenta eliminada' },
+        info: { type: 'info', title: 'Informacion' },
         warning: { type: 'warning', title: 'Advertencia' }
     };
     for (const [key, message] of Object.entries(props.flash)) {
@@ -1510,7 +1477,7 @@ onMounted(() => {
     color: #991b1b;
 }
 
-/* ===== 🟢 FONDEADORA ===== */
+/* ===== FONDEADORA ===== */
 .fondeadora-cell-ultra {
     display: flex;
     align-items: center;
@@ -1695,7 +1662,7 @@ onMounted(() => {
     font-weight: 600;
 }
 
-/* ===== PAGINACIÓN ===== */
+/* ===== PAGINACION ===== */
 .pagination-ultra {
     display: flex;
     flex-direction: column;

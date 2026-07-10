@@ -24,7 +24,6 @@ class Cuenta extends Model
         'es_cuenta_resultados',
         'saldo_inicial',
         'nivel',
-        // ✅ CAMPOS DEL SISTEMA ANTIGUO - ESTOS SON LOS QUE FALTAN
         'indice_c',
         'clave_c',
         'madre_c',
@@ -62,7 +61,23 @@ class Cuenta extends Model
     }
 
     /**
-     * ✅ Obtener nombre completo (código + nombre)
+     * Cuenta de resultados padre a la que pertenece esta cuenta
+     */
+    public function cuentaResultadoPadre()
+    {
+        return $this->belongsTo(Cuenta::class, 'cuenta_resultados', 'id_cuenta');
+    }
+
+    /**
+     * Cuentas hijas que pertenecen a esta cuenta de resultados
+     */
+    public function cuentasHijasResultado()
+    {
+        return $this->hasMany(Cuenta::class, 'cuenta_resultados', 'id_cuenta');
+    }
+
+    /**
+     * Obtener nombre completo (código + nombre)
      */
     public function getNombreCompletoAttribute()
     {
@@ -70,17 +85,14 @@ class Cuenta extends Model
     }
 
     /**
-     * ✅ Obtener el nivel jerárquico usando indice_c si existe
-     * Si no existe indice_c, construirlo manualmente
+     * Obtener el nivel jerárquico usando indice_c si existe
      */
     public function getNivelJerarquicoAttribute()
     {
-        // ✅ PRIMERO: Si tiene indice_c, usarlo directamente
         if (!empty($this->indice_c)) {
             return $this->indice_c;
         }
         
-        // Si no tiene indice_c, construir manualmente
         $empresaId = $this->id_empresa;
         
         if ($this->nivel == 0) {
@@ -123,6 +135,72 @@ class Cuenta extends Model
         return $niveles[$this->nivel] ?? "Nivel {$this->nivel}";
     }
 
+    /**
+     * Verificar si la cuenta puede recibir un movimiento de débito (cargo)
+     */
+    public function puedeRecibirDebito()
+    {
+        // Si es cuenta de resultados, siempre puede recibir débitos
+        if ($this->es_cuenta_resultados) {
+            return true;
+        }
+        
+        // Si no tiene naturaleza definida, puede recibir ambos
+        if (is_null($this->Naturaleza)) {
+            return true;
+        }
+        
+        // Si es DEUDORA, solo recibe débitos (cargos)
+        return $this->Naturaleza === 'DEUDORA';
+    }
+
+    /**
+     * Verificar si la cuenta puede recibir un movimiento de crédito (abono)
+     */
+    public function puedeRecibirCredito()
+    {
+        // Si es cuenta de resultados, siempre puede recibir créditos
+        if ($this->es_cuenta_resultados) {
+            return true;
+        }
+        
+        // Si no tiene naturaleza definida, puede recibir ambos
+        if (is_null($this->Naturaleza)) {
+            return true;
+        }
+        
+        // Si es ACREEDORA, solo recibe créditos (abonos)
+        return $this->Naturaleza === 'ACREEDORA';
+    }
+
+    /**
+     * Obtener el saldo de la cuenta incluyendo sus hijas si es cuenta de resultados padre
+     */
+    public function getSaldoTotal($fechaInicio = null, $fechaFin = null)
+    {
+        // Si es cuenta de resultados padre, sumar todas sus hijas
+        if ($this->es_cuenta_resultados && $this->tipo_cuenta === 'RESULTADO') {
+            $total = 0;
+            foreach ($this->cuentasHijasResultado as $hija) {
+                $total += $hija->getSaldoPeriodo($fechaInicio, $fechaFin);
+            }
+            return $total;
+        }
+        
+        // Si es cuenta hija de resultados, calcular su saldo individual
+        return $this->getSaldoPeriodo($fechaInicio, $fechaFin);
+    }
+
+    /**
+     * Obtener el saldo de la cuenta en un período
+     */
+    public function getSaldoPeriodo($fechaInicio = null, $fechaFin = null)
+    {
+        // Aquí iría la lógica para calcular el saldo basado en pólizas
+        // Por ahora retornamos el saldo_inicial
+        return $this->saldo_inicial ?? 0;
+    }
+
     // Scopes
     public function scopeEnUso($query)
     {
@@ -131,11 +209,54 @@ class Cuenta extends Model
 
     public function scopeDeudoras($query)
     {
-        return $query->where('naturaleza', 'DEUDORA');
+        return $query->where('Naturaleza', 'DEUDORA');
     }
 
     public function scopeAcreedoras($query)
     {
-        return $query->where('naturaleza', 'ACREEDORA');
+        return $query->where('Naturaleza', 'ACREEDORA');
+    }
+
+    /**
+     * Scope para obtener solo cuentas que pueden recibir débitos
+     */
+    public function scopePuedeRecibirDebito($query)
+    {
+        return $query->where(function($q) {
+            $q->where('es_cuenta_resultados', true)
+              ->orWhereNull('Naturaleza')
+              ->orWhere('Naturaleza', 'DEUDORA');
+        });
+    }
+
+    /**
+     * Scope para obtener solo cuentas que pueden recibir créditos
+     */
+    public function scopePuedeRecibirCredito($query)
+    {
+        return $query->where(function($q) {
+            $q->where('es_cuenta_resultados', true)
+              ->orWhereNull('Naturaleza')
+              ->orWhere('Naturaleza', 'ACREEDORA');
+        });
+    }
+
+    /**
+     * Scope para obtener cuentas de resultados (padres)
+     */
+    public function scopeCuentasResultadosPadre($query)
+    {
+        return $query->where('es_cuenta_resultados', true)
+                     ->where('tipo_cuenta', 'RESULTADO')
+                     ->where('en_uso', true);
+    }
+
+    /**
+     * Scope para obtener cuentas hijas de una cuenta de resultados
+     */
+    public function scopeHijasDeResultado($query, $cuentaResultadosId)
+    {
+        return $query->where('cuenta_resultados', $cuentaResultadosId)
+                     ->where('en_uso', true);
     }
 }

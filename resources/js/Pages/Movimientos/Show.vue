@@ -11,21 +11,19 @@
                     <div class="header-content">
                         <h2 class="header-title">Detalle de Póliza</h2>
                         <p class="header-subtitle">
-                            <span class="folio-badge">{{ movimiento.folio || '—' }}</span>
-                            <span class="header-divider">|</span>
                             <span class="tipo-badge" :class="getTipoClass(movimiento.tipo_poliza)">
                                 {{ getTipoTexto(movimiento.tipo_poliza) }}
                             </span>
                             <span v-if="movimiento.es_fiscal" class="fiscal-badge">FISCAL</span>
                             <span v-if="movimiento.tiene_doble_iva" class="doble-iva-badge-header">2 IVAs</span>
+                            <span v-if="movimiento.archivos_adjuntos && movimiento.archivos_adjuntos.length > 0" class="archivos-badge">
+                                📎 {{ movimiento.archivos_adjuntos.length }} archivo(s)
+                            </span>
                         </p>
                     </div>
                 </div>
                 <div class="header-right">
                     <div class="header-actions">
-                        <span class="status-badge" :class="getEstatusClass(movimiento.estatus)">
-                            {{ movimiento.estatus_texto || movimiento.estatus || '—' }}
-                        </span>
                         <span class="capturista-info" v-if="movimiento.usuario_nombre">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -42,10 +40,6 @@
                 <!-- ===== TARJETA DE RESUMEN ===== -->
                 <div class="summary-card">
                     <div class="summary-grid">
-                        <div class="summary-item highlight">
-                            <span class="summary-label">Folio</span>
-                            <span class="summary-value folio-principal">{{ movimiento.folio || '—' }}</span>
-                        </div>
                         <div class="summary-item">
                             <span class="summary-label">Tipo</span>
                             <span class="summary-value">{{ getTipoTexto(movimiento.tipo_poliza) }}</span>
@@ -76,11 +70,6 @@
                             <span class="summary-label">Total Abonado</span>
                             <span class="summary-value abonado-value">${{ formatNumber(movimiento.total_abonado) }}</span>
                         </div>
-
-                        <div class="summary-item" v-if="movimiento.referencia">
-                            <span class="summary-label">Referencia</span>
-                            <span class="summary-value">{{ movimiento.referencia }}</span>
-                        </div>
                     </div>
                 </div>
 
@@ -105,14 +94,6 @@
                         </div>
 
                         <div class="info-grid">
-                            <div class="info-item highlight">
-                                <span class="info-label">Folio</span>
-                                <span class="info-value folio-value">{{ movimiento.folio || '—' }}</span>
-                            </div>
-                            <div class="info-item" v-if="movimiento.referencia">
-                                <span class="info-label">Referencia</span>
-                                <span class="info-value">{{ movimiento.referencia }}</span>
-                            </div>
                             <div class="info-item">
                                 <span class="info-label">Tipo de Póliza</span>
                                 <span class="info-value">{{ getTipoTexto(movimiento.tipo_poliza) }}</span>
@@ -131,18 +112,6 @@
                             <div class="info-item">
                                 <span class="info-label">Categoría</span>
                                 <span class="info-value">{{ movimiento.categoria || '—' }}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Estatus</span>
-                                <span class="info-value">
-                                    <span class="estatus-badge" :class="getEstatusClass(movimiento.estatus)">
-                                        {{ movimiento.estatus_texto || movimiento.estatus || '—' }}
-                                    </span>
-                                </span>
-                            </div>
-                            <div class="info-item" v-if="movimiento.es_ingreso_egreso">
-                                <span class="info-label">Por Pagar</span>
-                                <span class="info-value">{{ movimiento.es_por_pagar ? 'Sí' : 'No' }}</span>
                             </div>
 
                             <div class="info-item" v-if="movimiento.es_traspaso">
@@ -171,11 +140,15 @@
                                 <span class="info-label">Marcador</span>
                                 <span class="info-value">{{ movimiento.marcador || '—' }}</span>
                             </div>
+                            <div class="info-item" v-if="movimiento.referencia">
+                                <span class="info-label">Referencia</span>
+                                <span class="info-value">{{ movimiento.referencia }}</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 2: MONTOS Y DESGLOSE DE IVA (CORREGIDO) -->
+                    <!-- SECCIÓN 2: MONTOS Y DESGLOSE DE IVA -->
                     <!-- ============================================================ -->
                     <div class="detail-section">
                         <div class="section-header">
@@ -214,9 +187,7 @@
                             </div>
                         </div>
 
-                        <!-- ============================================================ -->
-                        <!-- DOBLE IVA CORREGIDO: El total es la SUMA DE BASES, NO incluye IVA -->
-                        <!-- ============================================================ -->
+                        <!-- DOBLE IVA -->
                         <div v-if="movimiento.tiene_doble_iva" class="doble-iva-box">
                             <div class="doble-iva-header">
                                 <span class="doble-iva-title">📋 Desglose de Doble IVA</span>
@@ -365,7 +336,76 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 4: ABONOS (SOLO SI ES POR PAGAR) -->
+                    <!-- SECCIÓN 4: ARCHIVOS ADJUNTOS -->
+                    <!-- ============================================================ -->
+                    <div class="detail-section">
+                        <div class="section-header">
+                            <div class="section-icon purple">
+                                <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="section-title">Archivos Adjuntos</h3>
+                                <p class="section-subtitle">Documentos relacionados con la póliza</p>
+                            </div>
+                            <button 
+                                v-if="puedeSubirArchivos()" 
+                                class="btn-adjuntar"
+                                @click="abrirModalArchivos"
+                            >
+                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Adjuntar archivo
+                            </button>
+                        </div>
+
+                        <div v-if="movimiento.archivos_adjuntos && movimiento.archivos_adjuntos.length > 0" class="archivos-grid">
+                            <div v-for="archivo in movimiento.archivos_adjuntos" :key="archivo.id" class="archivo-card">
+                                <div class="archivo-icon" :class="getArchivoClase(archivo.tipo_archivo)">
+                                    <svg class="archivo-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path v-if="archivo.tipo_archivo === 'pdf'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                        <path v-else-if="archivo.tipo_archivo === 'image'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="archivo-info">
+                                    <span class="archivo-nombre">{{ archivo.nombre_original }}</span>
+                                    <span class="archivo-tamano">{{ formatFileSize(archivo.tamano) }}</span>
+                                    <span class="archivo-fecha">{{ formatFecha(archivo.created_at) }}</span>
+                                </div>
+                                <div class="archivo-actions">
+                                    <button 
+                                        class="archivo-btn ver"
+                                        @click="verArchivo(archivo)"
+                                        title="Ver archivo"
+                                    >
+                                        <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                    <button 
+                                        v-if="puedeSubirArchivos()" 
+                                        class="archivo-btn eliminar"
+                                        @click="eliminarArchivo(archivo)"
+                                        title="Eliminar archivo"
+                                    >
+                                        <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="no-archivos">
+                            <span>No hay archivos adjuntos</span>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- SECCIÓN 5: ABONOS (SOLO SI ES POR PAGAR) -->
                     <!-- ============================================================ -->
                     <div v-if="movimiento.es_por_pagar && movimiento.abonos && movimiento.abonos.length > 0" class="detail-section">
                         <div class="section-header">
@@ -416,7 +456,7 @@
                     </div>
 
                     <!-- ============================================================ -->
-                    <!-- SECCIÓN 5: NOTA (SI EXISTE) -->
+                    <!-- SECCIÓN 6: NOTA (SI EXISTE) -->
                     <!-- ============================================================ -->
                     <div v-if="movimiento.nota" class="detail-section">
                         <div class="section-header">
@@ -515,7 +555,7 @@
                                 <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                 </svg>
-                                PDF
+                                Imprimir
                             </button>
 
                             <button 
@@ -600,6 +640,115 @@
             </div>
         </div>
 
+        <!-- ============================================================ -->
+        <!-- MODAL PARA SUBIR ARCHIVOS -->
+        <!-- ============================================================ -->
+        <a-modal
+            v-model:open="modalArchivosVisible"
+            title="Adjuntar archivo"
+            width="550px"
+            :footer="null"
+            class="modal-archivos-premium"
+        >
+            <div class="modal-archivos-content">
+                <div class="modal-archivos-info">
+                    <p>Selecciona un archivo para adjuntar a esta póliza. Puedes subir <strong>PDFs</strong> o <strong>imágenes</strong> (JPG, PNG, GIF).</p>
+                </div>
+
+                <form @submit.prevent="subirArchivo">
+                    <div class="drop-zone" 
+                         :class="{ 'drop-zone-dragover': dragging }"
+                         @dragover.prevent="dragging = true"
+                         @dragleave.prevent="dragging = false"
+                         @drop.prevent="onDrop"
+                         @click="$refs.fileInput.click()"
+                    >
+                        <div class="drop-zone-content">
+                            <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            <span v-if="!archivoSeleccionado" class="drop-zone-text">
+                                Arrastra y suelta tu archivo aquí, o haz clic para seleccionarlo
+                            </span>
+                            <span v-else class="drop-zone-text archivo-seleccionado">
+                                <svg class="archivo-seleccionado-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ archivoSeleccionado.name }} ({{ formatFileSize(archivoSeleccionado.size) }})
+                            </span>
+                            <span class="drop-zone-hint">Formatos permitidos: PDF, JPG, PNG, GIF</span>
+                        </div>
+                        <input 
+                            type="file" 
+                            ref="fileInput" 
+                            @change="onFileSelect" 
+                            accept=".pdf,.jpg,.jpeg,.png,.gif,image/*"
+                            class="file-input-hidden"
+                        >
+                    </div>
+
+                    <div v-if="errorArchivo" class="error-archivo">
+                        <svg class="error-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ errorArchivo }}
+                    </div>
+
+                    <div class="modal-archivos-actions">
+                        <button type="button" class="btn-modal-cancel" @click="cerrarModalArchivos">
+                            Cancelar
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="btn-modal-submit" 
+                            :disabled="!archivoSeleccionado || subiendoArchivo"
+                        >
+                            <span v-if="subiendoArchivo" class="spinner-border-sm"></span>
+                            <span v-else>Subir archivo</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </a-modal>
+
+        <!-- ============================================================ -->
+        <!-- MODAL PARA PREVISUALIZAR ARCHIVO -->
+        <!-- ============================================================ -->
+        <a-modal
+            v-model:open="modalPreviewVisible"
+            :title="'Archivo: ' + (archivoPreview?.nombre_original || '')"
+            width="800px"
+            :footer="null"
+            class="modal-preview-premium"
+        >
+            <div class="preview-content">
+                <div v-if="archivoPreview?.tipo_archivo === 'image'" class="preview-image-wrapper">
+                    <img :src="archivoPreview.url" alt="Archivo adjunto" class="preview-image">
+                </div>
+                <div v-else-if="archivoPreview?.tipo_archivo === 'pdf'" class="preview-pdf-wrapper">
+                    <iframe :src="archivoPreview.url" class="preview-pdf" frameborder="0"></iframe>
+                </div>
+                <div v-else class="preview-other">
+                    <div class="preview-other-icon">
+                        <svg class="preview-other-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <p class="preview-other-text">Vista previa no disponible para este tipo de archivo</p>
+                    <a :href="archivoPreview.url" target="_blank" class="preview-other-link">Descargar archivo</a>
+                </div>
+            </div>
+            <div class="preview-footer">
+                <button class="btn-modal-cancel" @click="cerrarPreview">Cerrar</button>
+                <a :href="archivoPreview?.url" target="_blank" class="btn-modal-submit" download>
+                    <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar
+                </a>
+            </div>
+        </a-modal>
+
         <ModalAlert ref="alertRef" />
     </AppLayout>
 </template>
@@ -611,6 +760,9 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import ModalAlert from '@/Components/AlertModal.vue';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import {
+    Modal as AModal,
+} from 'ant-design-vue';
 
 // ============================================
 // PERMISOS
@@ -631,16 +783,15 @@ const props = defineProps({
 const alertRef = ref(null);
 
 const tituloPagina = computed(() => {
-    return `Póliza ${props.movimiento.folio || ''}`;
+    return `Detalle de Póliza`;
 });
 
 // ============================================
-// COMPUTED - CORREGIDO: Total factura = SUMA DE BASES (sin IVA)
+// COMPUTED - Total factura = SUMA DE BASES (sin IVA)
 // ============================================
 const calcularTotalDobleIva = computed(() => {
     const cero = Number(props.movimiento.monto_iva_cero) || 0;
     const dieciseisBase = Number(props.movimiento.monto_iva_dieciseis) || 0;
-    // Total factura = suma de bases (0% + 16%), NO incluye el IVA
     return cero + dieciseisBase;
 });
 
@@ -658,6 +809,18 @@ const puedeEditar = () => {
         return false;
     }
     
+    const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO'];
+    return !estatusNoEditables.includes(estatus);
+};
+
+// ============================================
+// FUNCIÓN PARA SUBIR ARCHIVOS
+// ============================================
+const puedeSubirArchivos = () => {
+    const estatus = props.movimiento.estatus;
+    if (permisos.value?.es_super_usuario) return true;
+    if (permisos.value?.es_auditor) return false;
+    if (permisos.value?.es_lector) return false;
     const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO'];
     return !estatusNoEditables.includes(estatus);
 };
@@ -696,6 +859,14 @@ const formatFechaHora = (fecha) => {
     });
 };
 
+const formatFileSize = (bytes) => {
+    if (!bytes) return '—';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const value = bytes / Math.pow(1024, i);
+    return `${value.toFixed(i > 0 ? 1 : 0)} ${sizes[i]}`;
+};
+
 // ============================================
 // CLASES Y ESTILOS
 // ============================================
@@ -715,19 +886,6 @@ const getTipoClass = (tipo) => {
         'TRASPASO': 'tipo-traspaso'
     };
     return map[tipo] || '';
-};
-
-const getEstatusClass = (estatus) => {
-    const classes = {
-        'CAPTURADO': 'capturado',
-        'REVISADO': 'revisado',
-        'AUTORIZADO': 'autorizado',
-        'ABONADO': 'abonado',
-        'LIQUIDADO': 'liquidado',
-        'PENDIENTE': 'pendiente',
-        'CERRADO': 'cerrado'
-    };
-    return classes[estatus] || 'pendiente';
 };
 
 const getCategoriaClass = (categoria) => {
@@ -779,6 +937,12 @@ const getPorcentajeIva = (id) => {
     return iva ? iva.porcentaje : 0;
 };
 
+const getArchivoClase = (tipo) => {
+    if (tipo === 'pdf') return 'archivo-pdf';
+    if (tipo === 'image') return 'archivo-image';
+    return 'archivo-other';
+};
+
 // ============================================
 // MODAL / ALERTAS
 // ============================================
@@ -794,6 +958,142 @@ const mostrarModal = (type, title, message) => {
             confirmButtonColor: '#1a3a5c',
             confirmButtonText: 'Aceptar'
         });
+    }
+};
+
+// ============================================
+// ACCIONES DE ARCHIVOS
+// ============================================
+const modalArchivosVisible = ref(false);
+const modalPreviewVisible = ref(false);
+const archivoSeleccionado = ref(null);
+const archivoPreview = ref(null);
+const subiendoArchivo = ref(false);
+const errorArchivo = ref('');
+const dragging = ref(false);
+
+const abrirModalArchivos = () => {
+    errorArchivo.value = '';
+    archivoSeleccionado.value = null;
+    modalArchivosVisible.value = true;
+};
+
+const cerrarModalArchivos = () => {
+    modalArchivosVisible.value = false;
+    archivoSeleccionado.value = null;
+    errorArchivo.value = '';
+    dragging.value = false;
+};
+
+const onDrop = (e) => {
+    dragging.value = false;
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        procesarArchivo(files[0]);
+    }
+};
+
+const onFileSelect = (e) => {
+    const files = e.target.files;
+    if (files.length > 0) {
+        procesarArchivo(files[0]);
+    }
+    e.target.value = '';
+};
+
+const procesarArchivo = (file) => {
+    const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const extensionesPermitidas = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    
+    const extension = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!tiposPermitidos.includes(file.type) && !extensionesPermitidas.includes(extension)) {
+        errorArchivo.value = 'Tipo de archivo no permitido. Solo PDF e imágenes (JPG, PNG, GIF).';
+        archivoSeleccionado.value = null;
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        errorArchivo.value = 'El archivo no debe exceder 10 MB.';
+        archivoSeleccionado.value = null;
+        return;
+    }
+    
+    errorArchivo.value = '';
+    archivoSeleccionado.value = file;
+};
+
+const subirArchivo = async () => {
+    if (!archivoSeleccionado.value) return;
+    
+    subiendoArchivo.value = true;
+    errorArchivo.value = '';
+    
+    const formData = new FormData();
+    formData.append('archivo', archivoSeleccionado.value);
+    formData.append('id_poliza', props.movimiento.id_poliza);
+    
+    try {
+        const response = await axios.post(
+            route('movimientos.archivos.subir', props.movimiento.id_poliza),
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        
+        if (response.data.success) {
+            mostrarModal('success', 'Éxito', 'Archivo subido correctamente');
+            cerrarModalArchivos();
+            
+            // Recargar la página para mostrar el nuevo archivo
+            router.reload({ only: ['movimiento'] });
+        } else {
+            throw new Error(response.data.message || 'Error al subir el archivo');
+        }
+    } catch (error) {
+        errorArchivo.value = error.response?.data?.message || error.message || 'Error al subir el archivo';
+        mostrarModal('error', 'Error', errorArchivo.value);
+    } finally {
+        subiendoArchivo.value = false;
+    }
+};
+
+const verArchivo = (archivo) => {
+    archivoPreview.value = archivo;
+    modalPreviewVisible.value = true;
+};
+
+const cerrarPreview = () => {
+    modalPreviewVisible.value = false;
+    archivoPreview.value = null;
+};
+
+const eliminarArchivo = async (archivo) => {
+    if (!archivo.id) return;
+    
+    const result = await Swal.fire({
+        title: '¿Eliminar archivo?',
+        text: `¿Estás seguro de que deseas eliminar "${archivo.nombre_original}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+    
+    if (!result.isConfirmed) return;
+    
+    try {
+        const response = await axios.delete(route('movimientos.archivos.eliminar', archivo.id));
+        
+        if (response.data.success) {
+            mostrarModal('success', 'Éxito', 'Archivo eliminado correctamente');
+            router.reload({ only: ['movimiento'] });
+        } else {
+            throw new Error(response.data.message || 'Error al eliminar el archivo');
+        }
+    } catch (error) {
+        mostrarModal('error', 'Error', error.response?.data?.message || error.message || 'Error al eliminar el archivo');
     }
 };
 
@@ -822,23 +1122,8 @@ const accionImprimir = () => {
         return;
     }
     
-    Swal.fire({
-        title: 'Generando PDF...',
-        text: 'Por favor espera un momento',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    const url = route('movimientos.export.pdf.poliza', props.movimiento.id);
+    const url = route('movimientos.imprimir', props.movimiento.id);
     window.open(url, '_blank');
-    
-    setTimeout(() => {
-        Swal.close();
-    }, 1500);
 };
 
 // ============================================
@@ -1069,16 +1354,6 @@ const accionEliminar = () => {
     flex-wrap: wrap;
 }
 
-.folio-badge {
-    display: inline-block;
-    padding: 2px 14px;
-    background: linear-gradient(135deg, #1a3a5c, #2c5282);
-    color: white;
-    border-radius: 4px;
-    font-weight: 700;
-    font-size: 0.85rem;
-}
-
 .tipo-badge {
     display: inline-block;
     padding: 2px 14px;
@@ -1124,8 +1399,14 @@ const accionEliminar = () => {
     text-transform: uppercase;
 }
 
-.header-divider {
-    color: #d1d5db;
+.archivos-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.7rem;
 }
 
 .header-right {
@@ -1141,37 +1422,16 @@ const accionEliminar = () => {
     flex-wrap: wrap;
 }
 
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 24px;
-    border-radius: 50px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-}
-
-.status-badge.capturado { background: #f3f4f6; color: #374151; }
-.status-badge.revisado { background: #dbeafe; color: #1e40af; }
-.status-badge.autorizado { background: #d1fae5; color: #065f46; }
-.status-badge.abonado { background: #fef3c7; color: #92400e; }
-.status-badge.liquidado { background: #e0e7ff; color: #3730a3; }
-.status-badge.pendiente { background: #fef3c7; color: #92400e; }
-.status-badge.cerrado { background: #e5e7eb; color: #4b5563; }
-
 .capturista-info {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 4px 14px;
-    background: rgba(255, 255, 255, 0.15);
+    background: #f1f5f9;
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: #475569;
     white-space: nowrap;
 }
 
@@ -1245,12 +1505,6 @@ const accionEliminar = () => {
 .summary-value.monto-principal.ingreso { color: #6ee7b7; }
 .summary-value.monto-principal.egreso { color: #fca5a5; }
 .summary-value.abonado-value { color: #93c5fd; }
-
-.folio-principal {
-    font-weight: 700 !important;
-    font-size: 1.2rem !important;
-    color: #ffffff !important;
-}
 
 /* ========== DETAIL CARD ========== */
 .detail-card {
@@ -1379,6 +1633,27 @@ const accionEliminar = () => {
 .btn-doc.xml { background: #3b82f6; }
 .btn-doc.xml:hover { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
 
+.btn-adjuntar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 18px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: auto;
+}
+
+.btn-adjuntar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
 .btn-icon-sm { width: 16px; height: 16px; }
 
 /* ========== GRIDS ========== */
@@ -1410,11 +1685,6 @@ const accionEliminar = () => {
     background: #f1f5f9;
     border-color: #e2e8f0;
     transform: translateY(-1px);
-}
-
-.info-item.highlight {
-    background: #eff6ff;
-    border-color: #bfdbfe;
 }
 
 .info-item.full-width { grid-column: 1 / -1; }
@@ -1455,12 +1725,6 @@ const accionEliminar = () => {
     background: #f1f5f9;
     padding: 4px 10px;
     border-radius: 4px;
-}
-
-.folio-value {
-    font-weight: 700 !important;
-    color: #1a3a5c !important;
-    font-size: 1.05rem !important;
 }
 
 .vencido-badge {
@@ -1516,7 +1780,7 @@ const accionEliminar = () => {
 .monto-value.egreso { color: #dc2626; }
 .monto-value.neutro { color: #94a3b8; }
 
-/* ========== DOBLE IVA CORREGIDO ========== */
+/* ========== DOBLE IVA ========== */
 .doble-iva-box {
     margin-top: 16px;
     background: linear-gradient(135deg, #fefce8, #fef3c7);
@@ -1657,26 +1921,397 @@ const accionEliminar = () => {
     margin-top: 2px;
 }
 
-/* ========== ESTATUS BADGE ========== */
-.estatus-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 14px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+/* ========== ARCHIVOS ========== */
+.archivos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
 }
 
-.estatus-badge.capturado { background: #f3f4f6; color: #374151; }
-.estatus-badge.revisado { background: #dbeafe; color: #1e40af; }
-.estatus-badge.autorizado { background: #d1fae5; color: #065f46; }
-.estatus-badge.abonado { background: #fef3c7; color: #92400e; }
-.estatus-badge.liquidado { background: #e0e7ff; color: #3730a3; }
-.estatus-badge.pendiente { background: #fef3c7; color: #92400e; }
-.estatus-badge.cerrado { background: #e5e7eb; color: #4b5563; }
+.archivo-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+}
+
+.archivo-card:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.archivo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.archivo-icon.archivo-pdf { background: #fee2e2; color: #dc2626; }
+.archivo-icon.archivo-image { background: #dbeafe; color: #2563eb; }
+.archivo-icon.archivo-other { background: #f3f4f6; color: #6b7280; }
+
+.archivo-svg {
+    width: 22px;
+    height: 22px;
+}
+
+.archivo-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.archivo-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archivo-tamano {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.archivo-fecha {
+    font-size: 0.65rem;
+    color: #cbd5e1;
+}
+
+.archivo-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.archivo-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.archivo-btn.ver {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.archivo-btn.ver:hover {
+    background: #bfdbfe;
+    transform: scale(1.1);
+}
+
+.archivo-btn.eliminar {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.archivo-btn.eliminar:hover {
+    background: #fecaca;
+    transform: scale(1.1);
+}
+
+.no-archivos {
+    padding: 24px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 2px dashed #e2e8f0;
+}
+
+/* ========== MODAL ARCHIVOS ========== */
+.modal-archivos-premium :deep(.ant-modal-header) {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+}
+
+.modal-archivos-premium :deep(.ant-modal-title) {
+    color: white;
+    font-weight: 700;
+}
+
+.modal-archivos-premium :deep(.ant-modal-close) {
+    color: white;
+}
+
+.modal-archivos-premium :deep(.ant-modal-close:hover) {
+    color: #fca5a5;
+}
+
+.modal-archivos-content {
+    padding: 8px 0;
+}
+
+.modal-archivos-info {
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.modal-archivos-info strong {
+    color: #0f172a;
+}
+
+.drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+}
+
+.drop-zone:hover {
+    border-color: #8b5cf6;
+    background: #f8f7ff;
+}
+
+.drop-zone-dragover {
+    border-color: #8b5cf6;
+    background: #ede9fe;
+    transform: scale(1.02);
+}
+
+.drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.drop-zone-icon {
+    width: 48px;
+    height: 48px;
+    color: #94a3b8;
+}
+
+.drop-zone-text {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.drop-zone-text.archivo-seleccionado {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.archivo-seleccionado-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.drop-zone-hint {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.file-input-hidden {
+    display: none;
+}
+
+.error-archivo {
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: #fee2e2;
+    border-radius: 6px;
+    color: #991b1b;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-icon-sm {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.modal-archivos-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn-modal-cancel {
+    padding: 8px 24px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-modal-submit {
+    padding: 8px 24px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-modal-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.spinner-border-sm {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.75s linear infinite;
+}
+
+/* ========== MODAL PREVIEW ========== */
+.modal-preview-premium :deep(.ant-modal-header) {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+}
+
+.modal-preview-premium :deep(.ant-modal-title) {
+    color: white;
+    font-weight: 700;
+}
+
+.modal-preview-premium :deep(.ant-modal-close) {
+    color: white;
+}
+
+.modal-preview-premium :deep(.ant-modal-close:hover) {
+    color: #fca5a5;
+}
+
+.preview-content {
+    min-height: 300px;
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.preview-image-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.preview-pdf-wrapper {
+    width: 100%;
+    height: 60vh;
+}
+
+.preview-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.preview-other {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 12px;
+}
+
+.preview-other-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: #f3f4f6;
+    border-radius: 50%;
+}
+
+.preview-other-svg {
+    width: 40px;
+    height: 40px;
+    color: #94a3b8;
+}
+
+.preview-other-text {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.preview-other-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.preview-other-link:hover {
+    background: #eff6ff;
+}
+
+.preview-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
 
 /* ========== NOTA ========== */
 .nota-content {
@@ -1986,12 +2621,13 @@ const accionEliminar = () => {
     .montos-grid { grid-template-columns: 1fr 1fr; }
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
     .doble-iva-grid { grid-template-columns: 1fr 1fr; }
+    .archivos-grid { grid-template-columns: 1fr; }
     .header-wrapper { flex-direction: column; align-items: flex-start; }
     .header-right { width: 100%; }
     .header-actions { width: 100%; flex-wrap: wrap; }
-    .status-badge { flex: 1; text-align: center; justify-content: center; }
     .badge-categoria, .badge-abonos { margin-left: 0; width: 100%; text-align: center; }
     .docs-actions { margin-left: 0; width: 100%; justify-content: flex-start; }
+    .btn-adjuntar { margin-left: 0; width: 100%; justify-content: center; }
     .section-header { flex-wrap: wrap; }
     .header-subtitle { flex-wrap: wrap; }
     .doble-iva-tag { margin-left: 0; width: 100%; text-align: center; }
@@ -2038,7 +2674,8 @@ const accionEliminar = () => {
 /* PRINT */
 /* ============================================================ */
 @media print {
-    .no-print, .btn-back, .btn-doc, .btn-action, .header-actions .status-badge {
+    .no-print, .btn-back, .btn-doc, .btn-action, .header-actions .status-badge,
+    .btn-adjuntar, .archivo-btn, .docs-actions {
         display: none !important;
     }
     body { background: white !important; }
@@ -2048,7 +2685,7 @@ const accionEliminar = () => {
     .summary-card { background: #1a3a5c !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 0 !important; padding: 16px !important; margin-bottom: 16px !important; }
     .summary-item { background: rgba(255,255,255,0.08) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .summary-item.highlight { background: rgba(255,255,255,0.15) !important; }
-    .section-icon, .badge-categoria, .badge-abonos, .estatus-badge, .tipo-badge, .fiscal-badge, .doble-iva-badge-header, .doble-iva-tag {
+    .section-icon, .badge-categoria, .badge-abonos, .tipo-badge, .fiscal-badge, .doble-iva-badge-header, .doble-iva-tag {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -2062,12 +2699,6 @@ const accionEliminar = () => {
     .tipo-badge.tipo-ingreso { background: #d1fae5 !important; color: #065f46 !important; }
     .tipo-badge.tipo-egreso { background: #fee2e2 !important; color: #991b1b !important; }
     .tipo-badge.tipo-traspaso { background: #e0e7ff !important; color: #3730a3 !important; }
-    .status-badge.capturado { background: #f3f4f6 !important; color: #374151 !important; }
-    .status-badge.revisado { background: #dbeafe !important; color: #1e40af !important; }
-    .status-badge.autorizado { background: #d1fae5 !important; color: #065f46 !important; }
-    .status-badge.abonado { background: #fef3c7 !important; color: #92400e !important; }
-    .status-badge.liquidado { background: #e0e7ff !important; color: #3730a3 !important; }
-    .status-badge.cerrado { background: #e5e7eb !important; color: #4b5563 !important; }
     .monto-card.total-card { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .doble-iva-box { background: #fefce8 !important; border-color: #fcd34d !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .doble-iva-badge { background: #92400e !important; color: white !important; }
@@ -2082,5 +2713,12 @@ const accionEliminar = () => {
     .reviewed-icon { background: #d1fae5 !important; }
     .authorized-icon { background: #e0e7ff !important; }
     .rejected-icon { background: #fee2e2 !important; }
+}
+
+/* ============================================================ */
+/* ANIMACIONES */
+/* ============================================================ */
+@keyframes spinner {
+    to { transform: rotate(360deg); }
 }
 </style>

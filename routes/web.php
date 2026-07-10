@@ -72,7 +72,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/movimientos/{id}/detalle', [MovimientoController::class, 'getDetallePoliza'])->name('movimientos.detalle');
     Route::get('/movimientos/{id}/estadisticas', [MovimientoController::class, 'getEstadisticasPoliza'])->name('movimientos.estadisticas');
     Route::get('/movimientos/{id}/historial', [MovimientoController::class, 'getHistorialPoliza'])->name('movimientos.historial');
+    Route::get('/movimientos/{id}/imprimir', [MovimientoController::class, 'imprimirPoliza'])
+    ->name('movimientos.imprimir');
+    Route::post('/movimientos/{id}/archivos', [MovimientoController::class, 'subirArchivo'])
+    ->name('movimientos.archivos.subir');
 
+    Route::get('/movimientos/archivos/{id}', [MovimientoController::class, 'verArchivo'])
+        ->name('movimientos.archivos.ver');
+    Route::delete('/movimientos/archivos/{id}', [MovimientoController::class, 'eliminarArchivo'])
+        ->name('movimientos.archivos.eliminar');
     // ============================================
     // 🟢 RESOURCE - DEBE IR AL FINAL
     // ============================================

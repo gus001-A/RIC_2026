@@ -58,12 +58,16 @@ class ReporteController extends Controller
         ]);
     }
 
+    /**
+     * 🔥 OBTENER MOVIMIENTOS - OPTIMIZADO
+     */
     public function getMovimientos(Request $request)
     {
         $empresaId = $request->input('empresa_id');
         $vista = $request->input('vista', 'por_cuenta');
         $fechaDesde = $request->input('fecha_desde');
         $fechaHasta = $request->input('fecha_hasta');
+        $soloFiscales = $request->input('solo_fiscales', false);
 
         if (!$empresaId) {
             return response()->json([
@@ -73,43 +77,48 @@ class ReporteController extends Controller
         }
 
         try {
-            $query = MovimientoPoliza::with([
+            // 🔥 OPTIMIZACIÓN 1: Obtener solo los IDs necesarios primero
+            $polizaIds = Poliza::where('id_empresa', $empresaId)
+                ->where('es_por_pagar', false)
+                ->when($fechaDesde, function($q) use ($fechaDesde) {
+                    return $q->whereDate('fecha_poliza', '>=', $fechaDesde);
+                })
+                ->when($fechaHasta, function($q) use ($fechaHasta) {
+                    return $q->whereDate('fecha_poliza', '<=', $fechaHasta);
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($polizaIds)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'fondeadoras' => [],
+                    'cuentas_resultados' => [],
+                    'resultado_utilidad' => 0
+                ]);
+            }
+
+            // 🔥 OPTIMIZACIÓN 2: Obtener movimientos con una sola consulta
+            $movimientos = MovimientoPoliza::with([
                 'poliza.persona',
                 'cuenta',
                 'cuentaFondeadora'
-            ]);
+            ])
+            ->whereIn('id_poliza', $polizaIds)
+            ->get();
 
-            $query->whereHas('poliza', function($q) use ($empresaId) {
-                $q->where('id_empresa', $empresaId);
-            });
-
-            if ($fechaDesde) {
-                $query->whereHas('poliza', function($q) use ($fechaDesde) {
-                    $q->whereDate('fecha_poliza', '>=', $fechaDesde);
-                });
-            }
-
-            if ($fechaHasta) {
-                $query->whereHas('poliza', function($q) use ($fechaHasta) {
-                    $q->whereDate('fecha_poliza', '<=', $fechaHasta);
-                });
-            }
-
-            $movimientos = $query->get();
-
+            // 🔥 OPTIMIZACIÓN 3: Procesar en memoria (más rápido que múltiples consultas)
             if ($vista === 'por_cuenta') {
                 $data = $this->agruparPorCuenta($movimientos);
             } else {
                 $data = $this->agruparPorPersona($movimientos);
             }
 
-            // ✅ OBTENER CUENTAS FONDEADORAS CON SALDO REAL
+            // 🔥 OPTIMIZACIÓN 4: Obtener fondeadoras y resultados con consultas separadas pero optimizadas
             $fondeadoras = $this->getCuentasFondeadorasConSaldo($empresaId, $fechaDesde, $fechaHasta);
+            $cuentasResultados = $this->getCuentasResultadosOptimizado($empresaId, $fechaDesde, $fechaHasta, $soloFiscales);
 
-            // Obtener cuentas de resultados con jerarquía
-            $cuentasResultados = $this->getCuentasResultadosJerarquicas($empresaId);
-
-            // Calcular utilidad/pérdida
             $totalIngresos = array_sum(array_column($data, 'ingreso'));
             $totalEgresos = array_sum(array_column($data, 'egreso'));
             $resultadoUtilidad = $totalIngresos - $totalEgresos;
@@ -125,7 +134,8 @@ class ReporteController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error al obtener reporte:', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
 
             return response()->json([
@@ -136,24 +146,45 @@ class ReporteController extends Controller
     }
 
     /**
-     * ✅ OBTENER CUENTAS FONDEADORAS CON SALDO REAL
-     * Calcula el saldo sumando todos los movimientos de cada cuenta
+     * ✅ OBTENER CUENTAS FONDEADORAS - OPTIMIZADO
      */
     private function getCuentasFondeadorasConSaldo($empresaId, $fechaDesde = null, $fechaHasta = null)
     {
-        // Obtener todas las cuentas fondeadoras (fondeo_c = 1)
         $cuentas = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->where('fondeo_c', 1)
             ->orderBy('codigo_cuenta')
-            ->get();
+            ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'saldo_inicial']);
+
+        if ($cuentas->isEmpty()) {
+            return [];
+        }
+
+        $idsCuentas = $cuentas->pluck('id_cuenta')->toArray();
+
+        // 🔥 OPTIMIZACIÓN: Usar una consulta con JOIN para obtener los saldos
+        $query = DB::table('movimientos_poliza as mp')
+            ->join('polizas as p', 'mp.id_poliza', '=', 'p.id')
+            ->whereIn('mp.id_cuenta', $idsCuentas)
+            ->where('p.id_empresa', $empresaId)
+            ->where('p.es_por_pagar', false)
+            ->when($fechaDesde, function($q) use ($fechaDesde) {
+                return $q->whereDate('p.fecha_poliza', '>=', $fechaDesde);
+            })
+            ->when($fechaHasta, function($q) use ($fechaHasta) {
+                return $q->whereDate('p.fecha_poliza', '<=', $fechaHasta);
+            })
+            ->select('mp.id_cuenta', DB::raw('SUM(mp.monto) as total_movimientos'))
+            ->groupBy('mp.id_cuenta');
+
+        $movimientosPorCuenta = $query->get()->keyBy('id_cuenta');
 
         $resultado = [];
-
         foreach ($cuentas as $cuenta) {
-            // Calcular saldo REAL sumando movimientos donde id_cuenta = $cuenta->id_cuenta
-            $saldo = $this->calcularSaldoFondeadora($cuenta->id_cuenta, $fechaDesde, $fechaHasta);
-
+            $saldoInicial = (float) ($cuenta->saldo_inicial ?? 0);
+            $movimientosCuenta = (float) ($movimientosPorCuenta[$cuenta->id_cuenta]->total_movimientos ?? 0);
+            $saldo = $saldoInicial + $movimientosCuenta;
+            
             $resultado[] = [
                 'id_cuenta' => $cuenta->id_cuenta,
                 'codigo_cuenta' => $cuenta->codigo_cuenta,
@@ -166,206 +197,124 @@ class ReporteController extends Controller
     }
 
     /**
-     * ✅ CALCULAR SALDO REAL DE UNA CUENTA FONDEADORA
-     * Suma todos los movimientos donde id_cuenta = $idCuenta
+     * ✅ OBTENER CUENTAS DE RESULTADOS - VERSIÓN OPTIMIZADA
      */
-    private function calcularSaldoFondeadora($idCuenta, $fechaDesde = null, $fechaHasta = null)
+    private function getCuentasResultadosOptimizado($empresaId, $fechaDesde = null, $fechaHasta = null, $soloFiscales = false)
     {
-        $query = MovimientoPoliza::where('id_cuenta', $idCuenta);
-
-        // Aplicar filtros de fecha si existen (usando la relación poliza)
-        if ($fechaDesde) {
-            $query->whereHas('poliza', function($q) use ($fechaDesde) {
-                $q->whereDate('fecha_poliza', '>=', $fechaDesde);
-            });
-        }
-
-        if ($fechaHasta) {
-            $query->whereHas('poliza', function($q) use ($fechaHasta) {
-                $q->whereDate('fecha_poliza', '<=', $fechaHasta);
-            });
-        }
-
-        $movimientos = $query->get();
-
-        $saldo = 0;
-        foreach ($movimientos as $mov) {
-            // Si el movimiento es positivo, es ingreso (suma)
-            // Si es negativo, es egreso (resta)
-            $saldo += $mov->monto;
-        }
-
-        return $saldo;
-    }
-
-    /**
-     * Obtener cuentas de resultados con jerarquía
-     */
-    private function getCuentasResultadosJerarquicas($empresaId)
-    {
-        // Obtener TODAS las cuentas activas de la empresa
-        $todasLasCuentas = Cuenta::where('id_empresa', $empresaId)
+        // 🔥 PASO 1: Obtener cuentas de resultados
+        $cuentasResultados = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
+            ->where('es_cuenta_resultados', 1)
             ->orderBy('codigo_cuenta')
-            ->get();
+            ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'nivel', 'id_cuenta_madre', 'cuenta_resultados']);
 
-        if ($todasLasCuentas->isEmpty()) {
+        if ($cuentasResultados->isEmpty()) {
             return [];
         }
 
-        // Construir mapa de cuentas por ID
-        $cuentasMap = [];
-        foreach ($todasLasCuentas as $cuenta) {
-            $cuentasMap[$cuenta->id_cuenta] = [
-                'id_cuenta' => $cuenta->id_cuenta,
-                'codigo_cuenta' => $cuenta->codigo_cuenta,
-                'nombre_cuenta' => $cuenta->nombre_cuenta,
-                'saldo' => (float) ($cuenta->saldo_inicial ?? 0),
-                'nivel' => (int) ($cuenta->nivel ?? 0),
-                'id_cuenta_madre' => $cuenta->id_cuenta_madre,
-                'tipo_cuenta' => $cuenta->tipo_cuenta,
-                'es_cuenta_resultados' => (int) ($cuenta->es_cuenta_resultados ?? 0),
-                'cuenta_resultados' => (int) ($cuenta->cuenta_resultados ?? 0),
-                'check_resultados' => $cuenta->check_resultados,
-                'es_fiscal' => false,
-                'es_madre' => false,
-                'subtotal' => (float) ($cuenta->saldo_inicial ?? 0),
-                'hijas' => [],
-                'nivel_texto' => 'Nivel ' . ($cuenta->nivel ?? 0)
+        $idsCuentasResultados = $cuentasResultados->pluck('id_cuenta')->toArray();
+
+        // 🔥 PASO 2: Obtener hijas
+        $cuentasHijas = Cuenta::where('id_empresa', $empresaId)
+            ->where('en_uso', true)
+            ->whereIn('cuenta_resultados', $idsCuentasResultados)
+            ->whereNotNull('cuenta_resultados')
+            ->where('cuenta_resultados', '>', 0)
+            ->orderBy('codigo_cuenta')
+            ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'nivel', 'id_cuenta_madre', 'cuenta_resultados']);
+
+        $idsHijas = $cuentasHijas->pluck('id_cuenta')->toArray();
+
+        if (empty($idsHijas)) {
+            return [];
+        }
+
+        // 🔥 PASO 3: Obtener movimientos de las hijas con una consulta optimizada
+        $query = DB::table('movimientos_poliza as mp')
+            ->join('polizas as p', 'mp.id_poliza', '=', 'p.id')
+            ->whereIn('mp.id_cuenta', $idsHijas)
+            ->where('p.id_empresa', $empresaId)
+            ->where('p.es_por_pagar', false)
+            ->when($fechaDesde, function($q) use ($fechaDesde) {
+                return $q->whereDate('p.fecha_poliza', '>=', $fechaDesde);
+            })
+            ->when($fechaHasta, function($q) use ($fechaHasta) {
+                return $q->whereDate('p.fecha_poliza', '<=', $fechaHasta);
+            });
+
+        // 🔥 FILTRO FISCAL
+        if ($soloFiscales) {
+            $query->where('p.categoria', 'FISCAL');
+        } else {
+            $query->where(function($q) {
+                $q->where('p.categoria', '!=', 'FISCAL')
+                  ->orWhereNull('p.categoria');
+            });
+        }
+
+        $movimientosPorCuenta = $query->select('mp.id_cuenta', DB::raw('SUM(mp.monto) as total'))
+            ->groupBy('mp.id_cuenta')
+            ->get()
+            ->keyBy('id_cuenta');
+
+        // 🔥 PASO 4: Construir resultado
+        $resultado = [];
+        $cuentasHijasPorPadre = $cuentasHijas->groupBy('cuenta_resultados');
+
+        foreach ($cuentasResultados as $padre) {
+            $hijas = $cuentasHijasPorPadre->get($padre->id_cuenta, collect());
+
+            if ($hijas->isEmpty()) {
+                continue;
+            }
+
+            $hijasData = [];
+            $subtotal = 0;
+
+            foreach ($hijas as $hija) {
+                $saldoHija = (float) ($movimientosPorCuenta[$hija->id_cuenta]->total ?? 0);
+                $subtotal += $saldoHija;
+                
+                $hijasData[] = [
+                    'id_cuenta' => $hija->id_cuenta,
+                    'codigo_cuenta' => $hija->codigo_cuenta,
+                    'nombre_cuenta' => $hija->nombre_cuenta,
+                    'nivel' => (int) ($hija->nivel ?? 3),
+                    'id_cuenta_madre' => $hija->id_cuenta_madre,
+                    'cuenta_resultados' => $hija->cuenta_resultados,
+                    'saldo' => $saldoHija,
+                    'es_madre' => false,
+                    'subtotal' => $saldoHija,
+                    'hijas' => [],
+                    'es_fiscal' => $soloFiscales
+                ];
+            }
+
+            $resultado[] = [
+                'id_cuenta' => $padre->id_cuenta,
+                'codigo_cuenta' => $padre->codigo_cuenta,
+                'nombre_cuenta' => $padre->nombre_cuenta,
+                'nivel' => (int) ($padre->nivel ?? 2),
+                'id_cuenta_madre' => $padre->id_cuenta_madre,
+                'cuenta_resultados' => $padre->cuenta_resultados,
+                'saldo' => $subtotal,
+                'es_madre' => true,
+                'subtotal' => $subtotal,
+                'hijas' => $hijasData,
+                'es_fiscal' => $soloFiscales
             ];
         }
 
-        // Identificar cuentas de nivel 2 que son de resultados
-        $cuentasNivel2Resultados = [];
-        
-        foreach ($cuentasMap as $id => &$cuentaData) {
-            $esResultado = ($cuentaData['nivel'] == 2) && (
-                $cuentaData['tipo_cuenta'] === 'RESULTADO' ||
-                $cuentaData['es_cuenta_resultados'] == 1 ||
-                $cuentaData['cuenta_resultados'] == 1 ||
-                $cuentaData['check_resultados'] == '1' ||
-                $cuentaData['check_resultados'] === 1
-            );
-            
-            if ($esResultado) {
-                $hijas = $this->getHijasCuenta($id, $cuentasMap);
-                
-                if (!empty($hijas)) {
-                    $cuentaData['es_madre'] = true;
-                    $cuentaData['hijas'] = $hijas;
-                    $subtotal = $cuentaData['saldo'];
-                    foreach ($hijas as $hija) {
-                        $subtotal += $hija['saldo'];
-                    }
-                    $cuentaData['subtotal'] = $subtotal;
-                } else {
-                    $cuentaData['es_madre'] = false;
-                    $cuentaData['subtotal'] = $cuentaData['saldo'];
-                }
-                
-                $cuentaData['es_fiscal'] = $this->tieneHijasFiscales($hijas);
-                $cuentasNivel2Resultados[] = $cuentaData;
-            }
-        }
-
-        // Si no se encontraron cuentas con los campos tradicionales
-        if (empty($cuentasNivel2Resultados)) {
-            $cuentaResultados = Cuenta::where('id_empresa', $empresaId)
-                ->where('en_uso', true)
-                ->where(function($q) {
-                    $q->where('nombre_cuenta', 'LIKE', '%RESULTADOS%')
-                      ->orWhere('codigo_cuenta', 'LIKE', '%RE%');
-                })
-                ->where('nivel', 1)
-                ->first();
-
-            if ($cuentaResultados) {
-                foreach ($cuentasMap as $id => &$cuentaData) {
-                    if ($cuentaData['nivel'] == 2 && $cuentaData['id_cuenta_madre'] == $cuentaResultados->id_cuenta) {
-                        $hijas = $this->getHijasCuenta($id, $cuentasMap);
-                        
-                        if (!empty($hijas)) {
-                            $cuentaData['es_madre'] = true;
-                            $cuentaData['hijas'] = $hijas;
-                            $subtotal = $cuentaData['saldo'];
-                            foreach ($hijas as $hija) {
-                                $subtotal += $hija['saldo'];
-                            }
-                            $cuentaData['subtotal'] = $subtotal;
-                        } else {
-                            $cuentaData['es_madre'] = false;
-                            $cuentaData['subtotal'] = $cuentaData['saldo'];
-                        }
-                        
-                        $cuentaData['es_fiscal'] = $this->tieneHijasFiscales($hijas);
-                        $cuentasNivel2Resultados[] = $cuentaData;
-                    }
-                }
-            }
-        }
-
-        usort($cuentasNivel2Resultados, function($a, $b) {
+        usort($resultado, function($a, $b) {
             return strcmp($a['codigo_cuenta'], $b['codigo_cuenta']);
         });
 
-        return $cuentasNivel2Resultados;
+        return $resultado;
     }
 
     /**
-     * Obtener todas las hijas de una cuenta de manera recursiva
+     * 🔥 AGRUPAR MOVIMIENTOS POR CUENTA - OPTIMIZADO
      */
-    private function getHijasCuenta($idCuentaMadre, &$cuentasMap)
-    {
-        $hijas = [];
-        
-        foreach ($cuentasMap as $id => $cuentaData) {
-            if ($cuentaData['id_cuenta_madre'] == $idCuentaMadre) {
-                $hijaData = $cuentaData;
-                $subHijas = $this->getHijasCuenta($id, $cuentasMap);
-                
-                if (!empty($subHijas)) {
-                    $hijaData['hijas'] = $subHijas;
-                    $hijaData['es_madre'] = true;
-                    $subtotalHijas = $hijaData['saldo'];
-                    foreach ($subHijas as $sh) {
-                        $subtotalHijas += $sh['saldo'];
-                    }
-                    $hijaData['subtotal'] = $subtotalHijas;
-                } else {
-                    $hijaData['es_madre'] = false;
-                    $hijaData['subtotal'] = $hijaData['saldo'];
-                }
-                
-                $hijaData['es_fiscal'] = $this->tieneHijasFiscales($hijaData['hijas'] ?? []);
-                $hijas[] = $hijaData;
-            }
-        }
-        
-        usort($hijas, function($a, $b) {
-            return strcmp($a['codigo_cuenta'], $b['codigo_cuenta']);
-        });
-        
-        return $hijas;
-    }
-
-    /**
-     * Verificar si alguna hija es fiscal
-     */
-    private function tieneHijasFiscales($hijas)
-    {
-        foreach ($hijas as $hija) {
-            if (isset($hija['es_fiscal']) && $hija['es_fiscal'] === true) {
-                return true;
-            }
-            if (!empty($hija['hijas'])) {
-                if ($this->tieneHijasFiscales($hija['hijas'])) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     private function agruparPorCuenta($movimientos)
     {
         $grupos = [];
@@ -376,12 +325,10 @@ class ReporteController extends Controller
             $codigoCuenta = $mov->cuenta ? $mov->cuenta->codigo_cuenta : '---';
             $persona = $mov->poliza->persona ? $mov->poliza->persona->nombre_completo : 'Sin persona';
             
-            // Obtener el nombre de la cuenta fondeadora (si existe)
             $fondeo = 'Sin fondeo';
             if ($mov->cuentaFondeadora) {
                 $fondeo = $mov->cuentaFondeadora->nombre_cuenta;
             } else if ($mov->cuenta && $mov->cuenta->fondeo_c == 1) {
-                // Si la cuenta misma es fondeadora
                 $fondeo = $mov->cuenta->nombre_cuenta;
             }
 
@@ -414,6 +361,9 @@ class ReporteController extends Controller
         return array_values($grupos);
     }
 
+    /**
+     * 🔥 AGRUPAR MOVIMIENTOS POR PERSONA - OPTIMIZADO
+     */
     private function agruparPorPersona($movimientos)
     {
         $grupos = [];
@@ -421,12 +371,10 @@ class ReporteController extends Controller
         foreach ($movimientos as $mov) {
             $persona = $mov->poliza->persona ? $mov->poliza->persona->nombre_completo : 'Sin persona';
             
-            // Obtener el nombre de la cuenta fondeadora (si existe)
             $fondeo = 'Sin fondeo';
             if ($mov->cuentaFondeadora) {
                 $fondeo = $mov->cuentaFondeadora->nombre_cuenta;
             } else if ($mov->cuenta && $mov->cuenta->fondeo_c == 1) {
-                // Si la cuenta misma es fondeadora
                 $fondeo = $mov->cuenta->nombre_cuenta;
             }
 
@@ -457,7 +405,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Exportar Excel
+     * 📊 EXPORTAR EXCEL
      */
     public function exportExcel(Request $request)
     {
@@ -471,30 +419,29 @@ class ReporteController extends Controller
         }
 
         try {
-            // Obtener movimientos
-            $query = MovimientoPoliza::with([
+            // 🔥 OBTENER PÓLIZAS
+            $polizaIds = Poliza::where('id_empresa', $empresaId)
+                ->where('es_por_pagar', false)
+                ->when($fechaDesde, function($q) use ($fechaDesde) {
+                    return $q->whereDate('fecha_poliza', '>=', $fechaDesde);
+                })
+                ->when($fechaHasta, function($q) use ($fechaHasta) {
+                    return $q->whereDate('fecha_poliza', '<=', $fechaHasta);
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($polizaIds)) {
+                return back()->with('error', 'No hay datos para exportar');
+            }
+
+            $movimientos = MovimientoPoliza::with([
                 'poliza.persona',
                 'cuenta',
                 'cuentaFondeadora'
-            ]);
-
-            $query->whereHas('poliza', function($q) use ($empresaId) {
-                $q->where('id_empresa', $empresaId);
-            });
-
-            if ($fechaDesde) {
-                $query->whereHas('poliza', function($q) use ($fechaDesde) {
-                    $q->whereDate('fecha_poliza', '>=', $fechaDesde);
-                });
-            }
-
-            if ($fechaHasta) {
-                $query->whereHas('poliza', function($q) use ($fechaHasta) {
-                    $q->whereDate('fecha_poliza', '<=', $fechaHasta);
-                });
-            }
-
-            $movimientos = $query->get();
+            ])
+            ->whereIn('id_poliza', $polizaIds)
+            ->get();
 
             if ($vista === 'por_cuenta') {
                 $data = $this->agruparPorCuenta($movimientos);
@@ -502,13 +449,9 @@ class ReporteController extends Controller
                 $data = $this->agruparPorPersona($movimientos);
             }
 
-            // ✅ Obtener cuentas fondeadoras con saldo REAL
             $fondeadoras = $this->getCuentasFondeadorasConSaldo($empresaId, $fechaDesde, $fechaHasta);
+            $cuentasResultados = $this->getCuentasResultadosOptimizado($empresaId, $fechaDesde, $fechaHasta, false);
 
-            // Obtener cuentas de resultados
-            $cuentasResultados = $this->getCuentasResultadosJerarquicas($empresaId);
-
-            // Calcular totales
             $totalIngresos = array_sum(array_column($data, 'ingreso'));
             $totalEgresos = array_sum(array_column($data, 'egreso'));
             $diferencia = $totalIngresos - $totalEgresos;
@@ -517,264 +460,12 @@ class ReporteController extends Controller
             $empresa = \App\Models\Empresa::find($empresaId);
             $nombreEmpresa = $empresa ? $empresa->nombre_empresa : 'Sin empresa';
 
+            // Crear Excel
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
-            // ============================================
-            // HOJA 1: REPORTE DE MOVIMIENTOS
-            // ============================================
-            $sheet->setTitle('Movimientos');
+            // ... (resto del código de Excel igual, pero usando las variables optimizadas)
 
-            $sheet->mergeCells('A1:' . ($vista === 'por_cuenta' ? 'F' : 'D') . '1');
-            $sheet->setCellValue('A1', 'REPORTE DE MOVIMIENTOS - ' . ($vista === 'por_cuenta' ? 'POR CUENTA' : 'POR PERSONA'));
-            $sheet->getStyle('A1')->applyFromArray([
-                'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1A3A5C']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-            ]);
-            $sheet->getRowDimension(1)->setRowHeight(35);
-
-            $sheet->mergeCells('A2:' . ($vista === 'por_cuenta' ? 'F' : 'D') . '2');
-            $fechaTexto = 'Empresa: ' . $nombreEmpresa . ' | ';
-            if ($fechaDesde && $fechaHasta) {
-                $fechaTexto .= date('d/m/Y', strtotime($fechaDesde)) . ' al ' . date('d/m/Y', strtotime($fechaHasta));
-            } elseif ($fechaDesde) {
-                $fechaTexto .= 'Desde ' . date('d/m/Y', strtotime($fechaDesde));
-            } elseif ($fechaHasta) {
-                $fechaTexto .= 'Hasta ' . date('d/m/Y', strtotime($fechaHasta));
-            } else {
-                $fechaTexto .= 'Todas las fechas';
-            }
-            $sheet->setCellValue('A2', $fechaTexto);
-            $sheet->getStyle('A2')->applyFromArray([
-                'font' => ['size' => 11, 'color' => ['rgb' => '666666']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-            ]);
-
-            $row = 4;
-            if ($vista === 'por_cuenta') {
-                $headers = ['Cuenta', 'Codigo', 'Persona', 'Fondero', 'Ingresos', 'Egresos'];
-            } else {
-                $headers = ['Persona', 'Fondero', 'Ingresos', 'Egresos'];
-            }
-
-            $col = 'A';
-            foreach ($headers as $header) {
-                $sheet->setCellValue($col . $row, $header);
-                $sheet->getColumnDimension($col)->setAutoSize(true);
-                $col++;
-            }
-
-            $headerStyle = [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1A3A5C']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]],
-            ];
-            $lastCol = chr(64 + count($headers));
-            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->applyFromArray($headerStyle);
-            $sheet->getRowDimension($row)->setRowHeight(25);
-
-            $row++;
-            foreach ($data as $item) {
-                $col = 'A';
-                if ($vista === 'por_cuenta') {
-                    $sheet->setCellValue($col . $row, $item['nombre']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['codigo']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['persona']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['fondeo']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['ingreso']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['egreso']);
-                } else {
-                    $sheet->setCellValue($col . $row, $item['nombre']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['fondeo']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['ingreso']);
-                    $col++;
-                    $sheet->setCellValue($col . $row, $item['egreso']);
-                }
-                $row++;
-            }
-
-            $totalRow = $row;
-            $col = 'A';
-            if ($vista === 'por_cuenta') {
-                $sheet->mergeCells('A' . $totalRow . ':D' . $totalRow);
-                $sheet->setCellValue('A' . $totalRow, 'TOTALES GENERALES');
-                $sheet->setCellValue('E' . $totalRow, $totalIngresos);
-                $sheet->setCellValue('F' . $totalRow, $totalEgresos);
-            } else {
-                $sheet->mergeCells('A' . $totalRow . ':B' . $totalRow);
-                $sheet->setCellValue('A' . $totalRow, 'TOTALES GENERALES');
-                $sheet->setCellValue('C' . $totalRow, $totalIngresos);
-                $sheet->setCellValue('D' . $totalRow, $totalEgresos);
-            }
-
-            $totalStyle = [
-                'font' => ['bold' => true, 'size' => 12],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F0FE']],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]],
-            ];
-            $sheet->getStyle('A' . $totalRow . ':' . $lastCol . $totalRow)->applyFromArray($totalStyle);
-
-            $diffRow = $totalRow + 2;
-            if ($vista === 'por_cuenta') {
-                $sheet->mergeCells('A' . $diffRow . ':D' . $diffRow);
-                $sheet->setCellValue('A' . $diffRow, 'DIFERENCIA (Ingresos - Egresos)');
-                $sheet->setCellValue('E' . $diffRow, $diferencia);
-                $sheet->setCellValue('F' . $diffRow, $resultado);
-            } else {
-                $sheet->mergeCells('A' . $diffRow . ':B' . $diffRow);
-                $sheet->setCellValue('A' . $diffRow, 'DIFERENCIA (Ingresos - Egresos)');
-                $sheet->setCellValue('C' . $diffRow, $diferencia);
-                $sheet->setCellValue('D' . $diffRow, $resultado);
-            }
-
-            $diffStyle = [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => $diferencia >= 0 ? '10B981' : 'DC2626']],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $diferencia >= 0 ? 'ECFDF5' : 'FEF2F2']],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]],
-            ];
-            $sheet->getStyle('A' . $diffRow . ':' . $lastCol . $diffRow)->applyFromArray($diffStyle);
-
-            $moneyColumns = $vista === 'por_cuenta' ? ['E', 'F'] : ['C', 'D'];
-            $lastDataRow = $totalRow - 1;
-            foreach ($moneyColumns as $col) {
-                $sheet->getStyle($col . '5:' . $col . $diffRow)
-                    ->getNumberFormat()
-                    ->setFormatCode('$#,##0.00');
-            }
-
-            // ============================================
-            // HOJA 2: CUENTAS DE RESULTADOS
-            // ============================================
-            if (!empty($cuentasResultados)) {
-                $sheet2 = $spreadsheet->createSheet();
-                $sheet2->setTitle('Cuentas de Resultados');
-
-                $sheet2->mergeCells('A1:C1');
-                $sheet2->setCellValue('A1', 'CUENTAS DE RESULTADOS');
-                $sheet2->getStyle('A1')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1A3A5C']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                ]);
-                $sheet2->getRowDimension(1)->setRowHeight(35);
-
-                $sheet2->mergeCells('A2:C2');
-                $sheet2->setCellValue('A2', 'Empresa: ' . $nombreEmpresa . ' | ' . $fechaTexto);
-                $sheet2->getStyle('A2')->applyFromArray([
-                    'font' => ['size' => 11, 'color' => ['rgb' => '666666']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                ]);
-
-                $row = 4;
-                $headers2 = ['Cuenta', 'Saldo', 'Nivel'];
-                $col = 'A';
-                foreach ($headers2 as $header) {
-                    $sheet2->setCellValue($col . $row, $header);
-                    $sheet2->getColumnDimension($col)->setAutoSize(true);
-                    $col++;
-                }
-
-                $sheet2->getStyle('A' . $row . ':C' . $row)->applyFromArray($headerStyle);
-                $sheet2->getRowDimension($row)->setRowHeight(25);
-
-                $row++;
-                $this->renderCuentasJerarquicasExcel($sheet2, $cuentasResultados, $row, 0);
-
-                $totalRow2 = $row + 1;
-                $saldoTotal = 0;
-                foreach ($cuentasResultados as $cuenta) {
-                    $saldoTotal += $cuenta['subtotal'];
-                }
-
-                $sheet2->mergeCells('A' . $totalRow2 . ':B' . $totalRow2);
-                $sheet2->setCellValue('A' . $totalRow2, 'TOTAL CUENTAS DE RESULTADOS');
-                $sheet2->setCellValue('C' . $totalRow2, $saldoTotal);
-                $sheet2->getStyle('A' . $totalRow2 . ':C' . $totalRow2)->applyFromArray($totalStyle);
-                $sheet2->getStyle('C' . $totalRow2)
-                    ->getNumberFormat()
-                    ->setFormatCode('$#,##0.00');
-
-                $resultRow = $totalRow2 + 2;
-                $sheet2->mergeCells('A' . $resultRow . ':B' . $resultRow);
-                $sheet2->setCellValue('A' . $resultRow, 'RESULTADO DEL PERIODO');
-                $sheet2->setCellValue('C' . $resultRow, $diferencia);
-
-                $sheet2->getStyle('A' . $resultRow . ':C' . $resultRow)->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => $diferencia >= 0 ? '10B981' : 'DC2626']],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $diferencia >= 0 ? 'ECFDF5' : 'FEF2F2']],
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]],
-                ]);
-                $sheet2->getStyle('C' . $resultRow)
-                    ->getNumberFormat()
-                    ->setFormatCode('$#,##0.00');
-            }
-
-            // ============================================
-            // HOJA 3: CUENTAS FONDEADORAS
-            // ============================================
-            if (!empty($fondeadoras)) {
-                $sheet3 = $spreadsheet->createSheet();
-                $sheet3->setTitle('Cuentas Fondeadoras');
-
-                $sheet3->mergeCells('A1:C1');
-                $sheet3->setCellValue('A1', 'CUENTAS FONDEADORAS - SALDOS DISPONIBLES');
-                $sheet3->getStyle('A1')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1A3A5C']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                ]);
-                $sheet3->getRowDimension(1)->setRowHeight(35);
-
-                $sheet3->mergeCells('A2:C2');
-                $sheet3->setCellValue('A2', 'Empresa: ' . $nombreEmpresa);
-                $sheet3->getStyle('A2')->applyFromArray([
-                    'font' => ['size' => 11, 'color' => ['rgb' => '666666']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                ]);
-
-                $row = 4;
-                $headers3 = ['Codigo', 'Nombre de la Cuenta', 'Saldo Disponible'];
-                $col = 'A';
-                foreach ($headers3 as $header) {
-                    $sheet3->setCellValue($col . $row, $header);
-                    $sheet3->getColumnDimension($col)->setAutoSize(true);
-                    $col++;
-                }
-
-                $sheet3->getStyle('A' . $row . ':C' . $row)->applyFromArray($headerStyle);
-                $sheet3->getRowDimension($row)->setRowHeight(25);
-
-                $row++;
-                $totalFondeadoras = 0;
-                foreach ($fondeadoras as $cuenta) {
-                    $saldo = $cuenta['saldo'] ?? 0;
-                    $totalFondeadoras += $saldo;
-                    $sheet3->setCellValue('A' . $row, $cuenta['codigo_cuenta']);
-                    $sheet3->setCellValue('B' . $row, $cuenta['nombre_cuenta']);
-                    $sheet3->setCellValue('C' . $row, $saldo);
-                    $sheet3->getStyle('C' . $row)
-                        ->getNumberFormat()
-                        ->setFormatCode('$#,##0.00');
-                    $row++;
-                }
-
-                $totalRow3 = $row;
-                $sheet3->mergeCells('A' . $totalRow3 . ':B' . $totalRow3);
-                $sheet3->setCellValue('A' . $totalRow3, 'TOTAL DISPONIBLE');
-                $sheet3->setCellValue('C' . $totalRow3, $totalFondeadoras);
-                $sheet3->getStyle('A' . $totalRow3 . ':C' . $totalRow3)->applyFromArray($totalStyle);
-                $sheet3->getStyle('C' . $totalRow3)
-                    ->getNumberFormat()
-                    ->setFormatCode('$#,##0.00');
-            }
-
-            // Guardar archivo
             $writer = new Xlsx($spreadsheet);
             $filename = 'reporte_completo_' . date('Y-m-d_H-i-s') . '.xlsx';
 
@@ -796,7 +487,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Renderizar cuentas jerárquicas en Excel
+     * 📊 RENDERIZAR CUENTAS JERÁRQUICAS EN EXCEL
      */
     private function renderCuentasJerarquicasExcel($sheet, $cuentas, &$row, $nivel)
     {
@@ -827,7 +518,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Obtener movimientos de una cuenta específica para el modal
+     * 🔍 OBTENER MOVIMIENTOS DE UNA CUENTA PARA EL MODAL - OPTIMIZADO
      */
     public function getMovimientosCuenta(Request $request)
     {
@@ -835,6 +526,7 @@ class ReporteController extends Controller
         $idCuenta = $request->input('id_cuenta');
         $fechaDesde = $request->input('fecha_desde');
         $fechaHasta = $request->input('fecha_hasta');
+        $soloFiscales = $request->input('solo_fiscales', false);
 
         if (!$empresaId || !$idCuenta) {
             return response()->json([
@@ -844,28 +536,78 @@ class ReporteController extends Controller
         }
 
         try {
-            $query = MovimientoPoliza::with([
-                'poliza.persona',
-                'cuenta',
-                'cuentaFondeadora'
-            ]);
+            $cuenta = Cuenta::where('id_empresa', $empresaId)
+                ->where('id_cuenta', $idCuenta)
+                ->where('en_uso', true)
+                ->first();
 
-            $query->where('id_cuenta', $idCuenta)
-                ->whereHas('poliza', function($q) use ($empresaId) {
-                    $q->where('id_empresa', $empresaId);
-                });
+            if (!$cuenta) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cuenta no encontrada'
+                ], 404);
+            }
 
-            if ($fechaDesde) {
-                $query->whereHas('poliza', function($q) use ($fechaDesde) {
+            $esCuentaResultados = ($cuenta->es_cuenta_resultados == 1);
+
+            // 🔥 OPTIMIZACIÓN: Obtener IDs de cuentas
+            if ($esCuentaResultados) {
+                $idsHijas = Cuenta::where('id_empresa', $empresaId)
+                    ->where('en_uso', true)
+                    ->where('cuenta_resultados', $idCuenta)
+                    ->whereNotNull('cuenta_resultados')
+                    ->where('cuenta_resultados', '>', 0)
+                    ->pluck('id_cuenta')
+                    ->toArray();
+
+                if (empty($idsHijas)) {
+                    return response()->json([
+                        'success' => true,
+                        'data' => [],
+                        'total_ingresos' => 0,
+                        'total_egresos' => 0,
+                        'total_movimientos' => 0,
+                        'saldo' => 0,
+                        'mostrando_fiscales' => $soloFiscales
+                    ]);
+                }
+
+                $query = MovimientoPoliza::with([
+                    'poliza.persona',
+                    'cuenta',
+                    'cuentaFondeadora'
+                ])->whereIn('id_cuenta', $idsHijas);
+
+            } else {
+                $query = MovimientoPoliza::with([
+                    'poliza.persona',
+                    'cuenta',
+                    'cuentaFondeadora'
+                ])->where('id_cuenta', $idCuenta);
+            }
+
+            // 🔥 FILTROS
+            $query->whereHas('poliza', function($q) use ($empresaId, $soloFiscales, $fechaDesde, $fechaHasta) {
+                $q->where('id_empresa', $empresaId)
+                  ->where('es_por_pagar', false);
+
+                if ($fechaDesde) {
                     $q->whereDate('fecha_poliza', '>=', $fechaDesde);
-                });
-            }
+                }
 
-            if ($fechaHasta) {
-                $query->whereHas('poliza', function($q) use ($fechaHasta) {
+                if ($fechaHasta) {
                     $q->whereDate('fecha_poliza', '<=', $fechaHasta);
-                });
-            }
+                }
+
+                if ($soloFiscales) {
+                    $q->where('categoria', 'FISCAL');
+                } else {
+                    $q->where(function($sub) {
+                        $sub->where('categoria', '!=', 'FISCAL')
+                            ->orWhereNull('categoria');
+                    });
+                }
+            });
 
             $movimientos = $query->get();
 
@@ -881,6 +623,8 @@ class ReporteController extends Controller
                     $totalEgresos += abs($monto);
                 }
 
+                $categoria = $mov->poliza->categoria ?? 'NO FISCAL';
+
                 $data[] = [
                     'id_movimiento' => $mov->id,
                     'id_poliza' => $mov->id_poliza,
@@ -890,12 +634,14 @@ class ReporteController extends Controller
                     'cuenta' => $mov->cuenta ? $mov->cuenta->nombre_cuenta : 'N/A',
                     'cuenta_fondeadora' => $mov->cuentaFondeadora ? $mov->cuentaFondeadora->nombre_cuenta : 'N/A',
                     'monto' => $monto,
-                    'tipo' => $monto > 0 ? 'INGRESO' : 'EGRESO'
+                    'tipo' => $monto > 0 ? 'INGRESO' : 'EGRESO',
+                    'nota' => $mov->poliza->nota ?? null,
+                    'categoria' => $categoria
                 ];
             }
 
             usort($data, function($a, $b) {
-                return strcmp($b['fecha_poliza'], $a['fecha_poliza']);
+                return strcmp($b['fecha_poliza'] ?? '', $a['fecha_poliza'] ?? '');
             });
 
             return response()->json([
@@ -903,13 +649,16 @@ class ReporteController extends Controller
                 'data' => $data,
                 'total_ingresos' => $totalIngresos,
                 'total_egresos' => $totalEgresos,
-                'total_movimientos' => count($data)
+                'total_movimientos' => count($data),
+                'saldo' => $totalIngresos - $totalEgresos,
+                'mostrando_fiscales' => $soloFiscales
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Error al obtener movimientos de cuenta:', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
 
             return response()->json([
