@@ -9,184 +9,201 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log; 
+
 
 class CuentaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
-    {
-        // ✅ Verificar permiso para ver cuentas
-        if (!Gate::allows('ver-cuentas')) {
-            return redirect()->route('dashboard')
-                ->with('error', 'No tienes permiso para ver cuentas');
-        }
-
-        $user = auth()->user();
-        
-        if (!$user) {
-            return redirect()->route('login');
-        }
-        
-        $userId = $user->id_usuario;
-        
-        // Obtener empresas del usuario
-        $empresaIds = DB::table('empresas_usuarios')
-            ->where('id_usuario', $userId)
-            ->pluck('id_empresa')
-            ->toArray();
-        
-        if (!empty($empresaIds)) {
-            $empresas = Empresa::whereIn('id', $empresaIds)
-                ->where('activo', true)
-                ->get();
-        } else {
-            $empresas = collect();
-        }
-        
-        $empresaId = $request->input('empresa_id');
-        
-        if (!$empresaId && $empresas->count() > 0) {
-            $empresaId = $empresas->first()->id;
-        }
-
-        $cuentasData = [
-            'data' => [],
-            'from' => 0,
-            'to' => 0,
-            'total' => 0,
-            'links' => []
-        ];
-        
-        $stats = null;
-        $filtros = $request->only(['codigo_cuenta', 'nombre_cuenta', 'nivel', 'Naturaleza', 'tipo_cuenta']);
-
-        if ($empresaId) {
-            $tieneAcceso = DB::table('empresas_usuarios')
-                ->where('id_empresa', $empresaId)
-                ->where('id_usuario', $userId)
-                ->exists();
-                
-            if ($tieneAcceso) {
-                // 🔥 STATS: solo cuentas activas
-                $stats = [
-                    'total' => Cuenta::where('id_empresa', $empresaId)
-                        ->where('en_uso', true)
-                        ->count(),
-                    'deudoras' => Cuenta::where('id_empresa', $empresaId)
-                        ->where('en_uso', true)
-                        ->where('Naturaleza', 'DEUDORA')
-                        ->count(),
-                    'acreedoras' => Cuenta::where('id_empresa', $empresaId)
-                        ->where('en_uso', true)
-                        ->where('Naturaleza', 'ACREEDORA')
-                        ->count(),
-                ];
-
-                // 🔥 QUERY: solo cuentas activas, ordenadas por ID
-                $query = Cuenta::where('id_empresa', $empresaId)
-                    ->where('en_uso', true)
-                    ->orderBy('id_cuenta', 'asc');
-
-                if ($request->filled('codigo_cuenta')) {
-                    $query->where('codigo_cuenta', 'LIKE', '%' . $request->codigo_cuenta . '%');
-                }
-                if ($request->filled('nombre_cuenta')) {
-                    $query->where('nombre_cuenta', 'LIKE', '%' . $request->nombre_cuenta . '%');
-                }
-                if ($request->filled('nivel')) {
-                    $query->where('nivel', $request->nivel);
-                }
-                if ($request->filled('Naturaleza')) {
-                    $query->where('Naturaleza', $request->Naturaleza);
-                }
-                if ($request->filled('tipo_cuenta')) {
-                    $query->where('tipo_cuenta', $request->tipo_cuenta);
-                }
-
-                $cuentas = $query->paginate(100);
-
-                $cuentasData = [
-                    'data' => $cuentas->items(),
-                    'from' => $cuentas->firstItem(),
-                    'to' => $cuentas->lastItem(),
-                    'total' => $cuentas->total(),
-                    'links' => $cuentas->linkCollection()->toArray(),
-                ];
-
-                $startIndex = $cuentas->firstItem() ?? 0;
-                $cuentasData['data'] = collect($cuentasData['data'])->map(function($cuenta, $index) use ($startIndex) {
-                    $jerarquia = $cuenta->nivel_jerarquico;
-                    
-                    $nombreMadre = 'SIN MADRE';
-                    if ($cuenta->id_cuenta_madre) {
-                        $madre = Cuenta::find($cuenta->id_cuenta_madre);
-                        if ($madre) {
-                            $nombreMadre = $madre->nombre_cuenta;
-                        }
-                    }
-                    
-                    return [
-                        'id_cuenta' => $cuenta->id_cuenta,
-                        'row_number' => $startIndex + $index,
-                        'codigo_cuenta' => $cuenta->codigo_cuenta,
-                        'nombre_cuenta' => $cuenta->nombre_cuenta,
-                        'nivel' => $cuenta->nivel,
-                        'nivel_texto' => $cuenta->nivel_texto,
-                        'nivel_jerarquico' => $jerarquia,
-                        'indice' => $cuenta->codigo_cuenta . ' - ' . $cuenta->nombre_cuenta,
-                        'cuenta_madre' => $nombreMadre,
-                        'tipo_cuenta' => $cuenta->tipo_cuenta,
-                        'Naturaleza' => $cuenta->Naturaleza,
-                        'en_uso' => $cuenta->en_uso,
-                        'descripcion' => $cuenta->descripcion,
-                        'es_cuenta_resultados' => $cuenta->es_cuenta_resultados,
-                        'saldo_inicial' => $cuenta->saldo_inicial,
-                        'indice_c' => $cuenta->indice_c,
-                        'fondeo_c' => $cuenta->fondeo_c ?? 0,
-                        'cuenta_resultados' => $cuenta->cuenta_resultados ?? 0,
-                    ];
-                })->toArray();
-            }
-        }
-
-        // ✅ RECOPILAR FLASH MESSAGES
-        $flash = [];
-        $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
-        foreach ($flashTypes as $type) {
-            if (session()->has($type)) {
-                $flash[$type] = session($type);
-            }
-        }
-
-        return Inertia::render('Cuentas/Index', [
-            'empresas' => $empresas,
-            'empresa_seleccionada' => $empresaId,
-            'cuentas' => $cuentasData,
-            'stats' => $stats,
-            'filtros' => $filtros,
-            'datatable_url' => route('cuentas.datatable'),
-            'flash' => $flash,
-        ]);
+   /**
+ * Display a listing of the resource.
+ */
+public function index(Request $request)
+{
+    if (!Gate::allows('ver-cuentas')) {
+        return redirect()->route('dashboard')
+            ->with('error', 'No tienes permiso para ver cuentas');
     }
 
-    /**
-     * Get nivel texto
-     */
+    $user = auth()->user();
+    
+    if (!$user) {
+        return redirect()->route('login');
+    }
+    
+    $userId = $user->id_usuario;
+    
+    $empresaIds = DB::table('empresas_usuarios')
+        ->where('id_usuario', $userId)
+        ->pluck('id_empresa')
+        ->toArray();
+    
+    if (!empty($empresaIds)) {
+        $empresas = Empresa::whereIn('id', $empresaIds)
+            ->where('activo', true)
+            ->get();
+    } else {
+        $empresas = collect();
+    }
+    
+    // 🔥 INTENTAR OBTENER EMPRESA DE: 1) Request, 2) Sesión, 3) LocalStorage (vía request)
+    $empresaId = $request->input('empresa_id');
+    
+    // Si no viene en la request, intentar desde la sesión
+    if (!$empresaId) {
+        $empresaId = session('empresa_seleccionada');
+    }
+    
+    // Si aún no hay, usar la primera empresa disponible
+    if (!$empresaId && $empresas->count() > 0) {
+        $empresaId = $empresas->first()->id;
+    }
+    
+    // Validar que el usuario tenga acceso a la empresa
+    if ($empresaId) {
+        $tieneAcceso = DB::table('empresas_usuarios')
+            ->where('id_empresa', $empresaId)
+            ->where('id_usuario', $userId)
+            ->exists();
+            
+        if (!$tieneAcceso) {
+            $empresaId = null;
+            // Si no tiene acceso, intentar usar la primera disponible
+            if ($empresas->count() > 0) {
+                $empresaId = $empresas->first()->id;
+            }
+        }
+    }
+    
+    // 🔥 GUARDAR EN SESIÓN para persistir entre requests
+    if ($empresaId) {
+        session(['empresa_seleccionada' => $empresaId]);
+    }
+
+    $cuentasData = [
+        'data' => [],
+        'from' => 0,
+        'to' => 0,
+        'total' => 0,
+        'links' => []
+    ];
+    
+    $stats = null;
+    $filtros = $request->only(['codigo_cuenta', 'nombre_cuenta', 'nivel', 'Naturaleza', 'tipo_cuenta']);
+
+    if ($empresaId) {
+        $tieneAcceso = DB::table('empresas_usuarios')
+            ->where('id_empresa', $empresaId)
+            ->where('id_usuario', $userId)
+            ->exists();
+            
+        if ($tieneAcceso) {
+            $stats = [
+                'total' => Cuenta::where('id_empresa', $empresaId)
+                    ->where('en_uso', true)
+                    ->count(),
+                'deudoras' => Cuenta::where('id_empresa', $empresaId)
+                    ->where('en_uso', true)
+                    ->where('Naturaleza', 'DEUDORA')
+                    ->count(),
+                'acreedoras' => Cuenta::where('id_empresa', $empresaId)
+                    ->where('en_uso', true)
+                    ->where('Naturaleza', 'ACREEDORA')
+                    ->count(),
+            ];
+
+            $query = Cuenta::where('id_empresa', $empresaId)
+                ->where('en_uso', true)
+                ->orderBy('id_cuenta', 'asc');
+
+            if ($request->filled('codigo_cuenta')) {
+                $query->where('codigo_cuenta', 'LIKE', '%' . $request->codigo_cuenta . '%');
+            }
+            if ($request->filled('nombre_cuenta')) {
+                $query->where('nombre_cuenta', 'LIKE', '%' . $request->nombre_cuenta . '%');
+            }
+            if ($request->filled('nivel')) {
+                $query->where('nivel', $request->nivel);
+            }
+            if ($request->filled('Naturaleza')) {
+                $query->where('Naturaleza', $request->Naturaleza);
+            }
+            if ($request->filled('tipo_cuenta')) {
+                $query->where('tipo_cuenta', $request->tipo_cuenta);
+            }
+
+            $cuentas = $query->paginate(100);
+
+            $cuentasData = [
+                'data' => $cuentas->items(),
+                'from' => $cuentas->firstItem(),
+                'to' => $cuentas->lastItem(),
+                'total' => $cuentas->total(),
+                'links' => $cuentas->linkCollection()->toArray(),
+            ];
+
+            $startIndex = $cuentas->firstItem() ?? 0;
+            $cuentasData['data'] = collect($cuentasData['data'])->map(function($cuenta, $index) use ($startIndex) {
+                $jerarquia = $cuenta->nivel_jerarquico;
+                
+                $nombreMadre = 'SIN MADRE';
+                if ($cuenta->id_cuenta_madre) {
+                    $madre = Cuenta::find($cuenta->id_cuenta_madre);
+                    if ($madre) {
+                        $nombreMadre = $madre->nombre_cuenta;
+                    }
+                }
+                
+                return [
+                    'id_cuenta' => $cuenta->id_cuenta,
+                    'row_number' => $startIndex + $index,
+                    'codigo_cuenta' => $cuenta->codigo_cuenta,
+                    'nombre_cuenta' => $cuenta->nombre_cuenta,
+                    'nivel' => $cuenta->nivel,
+                    'nivel_texto' => $cuenta->nivel_texto,
+                    'nivel_jerarquico' => $jerarquia,
+                    'indice' => $cuenta->codigo_cuenta . ' - ' . $cuenta->nombre_cuenta,
+                    'cuenta_madre' => $nombreMadre,
+                    'tipo_cuenta' => $cuenta->tipo_cuenta,
+                    'Naturaleza' => $cuenta->Naturaleza,
+                    'en_uso' => $cuenta->en_uso,
+                    'descripcion' => $cuenta->descripcion,
+                    'es_cuenta_resultados' => $cuenta->es_cuenta_resultados,
+                    'saldo_inicial' => $cuenta->saldo_inicial,
+                    'indice_c' => $cuenta->indice_c,
+                    'fondeo_c' => $cuenta->fondeo_c ?? 0,
+                    'cuenta_resultados' => $cuenta->cuenta_resultados ?? 0,
+                ];
+            })->toArray();
+        }
+    }
+
+    $flash = [];
+    $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
+    foreach ($flashTypes as $type) {
+        if (session()->has($type)) {
+            $flash[$type] = session($type);
+        }
+    }
+
+    return Inertia::render('Cuentas/Index', [
+        'empresas' => $empresas,
+        'empresa_seleccionada' => $empresaId,
+        'cuentas' => $cuentasData,
+        'stats' => $stats,
+        'filtros' => $filtros,
+        'datatable_url' => route('cuentas.datatable'),
+        'flash' => $flash,
+    ]);
+}
+
     private function getNivelTexto($nivel)
     {
         $niveles = ['', 'Primer Nivel', 'Segundo Nivel', 'Tercer Nivel', 'Cuarto Nivel', 'Quinto Nivel'];
         return $niveles[$nivel] ?? "Nivel {$nivel}";
     }
 
-    /**
-     * Get cuentas for DataTable (Server Side)
-     * 🔥 MODIFICADO: solo muestra cuentas activas (en_uso = true)
-     */
     public function getCuentas(Request $request)
     {
-        // ✅ Verificar permiso para ver cuentas (datatable)
         if (!Gate::allows('ver-cuentas')) {
             return response()->json([
                 'draw' => intval($request->draw),
@@ -225,7 +242,6 @@ class CuentaController extends Controller
             ]);
         }
 
-        // 🔥 QUERY: solo cuentas activas
         $query = Cuenta::where('id_empresa', $empresa_id)
             ->where('en_uso', true);
 
@@ -302,13 +318,8 @@ class CuentaController extends Controller
         ]);
     }
 
-    /**
-     * Obtener cuentas madre para el select
-     * 🔥 MODIFICADO: solo cuentas activas
-     */
     public function getCuentasMadre(Request $request)
     {
-        // ✅ Verificar permiso para ver cuentas (necesario para crear/editar)
         if (!Gate::allows('ver-cuentas')) {
             return response()->json([
                 'success' => false,
@@ -362,7 +373,6 @@ class CuentaController extends Controller
 
         $nivelMadre = $nivel - 1;
         
-        // 🔥 QUERY: solo cuentas activas
         $query = Cuenta::where('id_empresa', $empresaId)
             ->where('nivel', $nivelMadre)
             ->where('en_uso', true)
@@ -399,13 +409,8 @@ class CuentaController extends Controller
         ]);
     }
 
-    /**
-     * Obtener cuentas de resultados para el select
-     * 🔥 MODIFICADO: solo cuentas activas
-     */
     public function getCuentasResultados(Request $request)
     {
-        // ✅ Verificar permiso para ver cuentas
         if (!Gate::allows('ver-cuentas')) {
             return response()->json([
                 'success' => false,
@@ -446,7 +451,6 @@ class CuentaController extends Controller
             ], 403);
         }
 
-        // 🔥 QUERY: solo cuentas activas y de resultados
         $query = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->where('es_cuenta_resultados', true)
@@ -473,11 +477,26 @@ class CuentaController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Verificar si un código de cuenta ya existe
      */
+    public function verificarCodigo(Request $request)
+    {
+        $empresaId = $request->input('empresa_id');
+        $codigo = $request->input('codigo');
+        
+        if (!$empresaId || !$codigo) {
+            return response()->json(['exists' => false]);
+        }
+        
+        $exists = Cuenta::where('id_empresa', $empresaId)
+            ->where('codigo_cuenta', $codigo)
+            ->exists();
+            
+        return response()->json(['exists' => $exists]);
+    }
+
     public function create()
     {
-        // ✅ Verificar permiso para crear cuentas
         if (!Gate::allows('crear-cuentas')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para crear cuentas');
@@ -500,7 +519,6 @@ class CuentaController extends Controller
             ->where('activo', true)
             ->get();
         
-        // ✅ RECOPILAR FLASH MESSAGES
         $flash = [];
         $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
         foreach ($flashTypes as $type) {
@@ -514,10 +532,6 @@ class CuentaController extends Controller
             'flash' => $flash,
         ]);
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         // ✅ Verificar permiso para crear cuentas
@@ -527,6 +541,21 @@ class CuentaController extends Controller
         }
 
         try {
+            // 🔥 PRIMERO: Normalizar los datos antes de la validación
+            $data = $request->all();
+            
+            // 🔥 Convertir cuenta_resultados a null si es vacío o array
+            if (isset($data['cuenta_resultados'])) {
+                if (is_array($data['cuenta_resultados']) && empty($data['cuenta_resultados'])) {
+                    $data['cuenta_resultados'] = null;
+                } elseif (is_string($data['cuenta_resultados']) && trim($data['cuenta_resultados']) === '') {
+                    $data['cuenta_resultados'] = null;
+                }
+            }
+            
+            // 🔥 Actualizar el request con los datos normalizados
+            $request->merge($data);
+
             $validated = $request->validate([
                 'id_empresa' => 'required|exists:empresas,id',
                 'codigo_cuenta' => [
@@ -562,35 +591,47 @@ class CuentaController extends Controller
                     ->withInput();
             }
 
+            // ✅ Valores por defecto
             $validated['saldo_inicial'] = $validated['saldo_inicial'] ?? 0;
             $validated['en_uso'] = $validated['en_uso'] ?? true;
             $validated['es_cuenta_resultados'] = $validated['es_cuenta_resultados'] ?? false;
             $validated['fondeo_c'] = $validated['fondeo_c'] ?? false;
 
-            // 🔥 Si NO es cuenta de resultados, debe tener cuenta_resultados (padre de resultados)
-            if (!$validated['es_cuenta_resultados']) {
+            // 🔥 LÓGICA CORREGIDA:
+            if ($validated['es_cuenta_resultados'] || $validated['fondeo_c']) {
+                $validated['cuenta_resultados'] = null;
+            } else {
+                // 🔥 Asegurar que cuenta_resultados sea un valor válido
+                $cuentaResultadosValue = $validated['cuenta_resultados'] ?? null;
+                
+                if (is_array($cuentaResultadosValue) && empty($cuentaResultadosValue)) {
+                    $cuentaResultadosValue = null;
+                } elseif (is_string($cuentaResultadosValue) && trim($cuentaResultadosValue) === '') {
+                    $cuentaResultadosValue = null;
+                }
+                
+                $validated['cuenta_resultados'] = $cuentaResultadosValue;
+                
                 if (empty($validated['cuenta_resultados'])) {
                     return redirect()->back()
                         ->with('error', 'Debes seleccionar una cuenta de resultados a la que pertenece esta cuenta')
                         ->withInput();
                 }
                 
-                // Verificar que la cuenta seleccionada realmente es de resultados
                 $cuentaResultados = Cuenta::find($validated['cuenta_resultados']);
                 if (!$cuentaResultados || !$cuentaResultados->es_cuenta_resultados) {
                     return redirect()->back()
                         ->with('error', 'La cuenta seleccionada no es una cuenta de resultados válida')
                         ->withInput();
                 }
-            } else {
-                // Si es cuenta de resultados, no tiene padre de resultados
-                $validated['cuenta_resultados'] = null;
             }
 
+            // ✅ Si es nivel 1, no tiene cuenta madre
             if ($validated['nivel'] == 1) {
                 $validated['id_cuenta_madre'] = null;
             }
 
+            // ✅ Verificar cuenta madre
             if ($validated['id_cuenta_madre']) {
                 $madre = Cuenta::find($validated['id_cuenta_madre']);
                 if (!$madre) {
@@ -603,8 +644,14 @@ class CuentaController extends Controller
                         ->with('error', 'La cuenta madre debe ser de nivel ' . ($validated['nivel'] - 1))
                         ->withInput();
                 }
+                if ($madre->id_empresa != $validated['id_empresa']) {
+                    return redirect()->back()
+                        ->with('error', 'La cuenta madre no pertenece a la misma empresa')
+                        ->withInput();
+                }
             }
 
+            // ✅ Buscar cuenta madre automática si no se seleccionó
             if ($validated['nivel'] > 1 && !$validated['id_cuenta_madre']) {
                 $madreAuto = Cuenta::where('id_empresa', $validated['id_empresa'])
                     ->where('nivel', $validated['nivel'] - 1)
@@ -617,28 +664,33 @@ class CuentaController extends Controller
                 }
             }
 
+            // ✅ Crear la cuenta
             $cuenta = Cuenta::create($validated);
             
             return redirect()->route('cuentas.index', ['empresa_id' => $validated['id_empresa']])
                 ->with('success', 'Cuenta "' . $cuenta->nombre_cuenta . '" creada exitosamente.');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            // 🔥 CORREGIDO: Manejar correctamente los errores de validación
+            $errors = $e->errors();
+            $errorMessages = [];
+            
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = $field . ': ' . implode(', ', $messages);
+            }
+            
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
                 ->withInput();
+            
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Error al crear la cuenta: ' . $e->getMessage())
                 ->withInput();
         }
     }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        // ✅ Verificar permiso para ver cuentas
         if (!Gate::allows('ver-cuentas')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para ver cuentas');
@@ -647,7 +699,6 @@ class CuentaController extends Controller
         try {
             $cuenta = Cuenta::with(['empresa', 'cuentaMadre', 'cuentasHijas'])->findOrFail($id);
             
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
             $user = auth()->user();
             $tieneAcceso = DB::table('empresas_usuarios')
                 ->where('id_empresa', $cuenta->id_empresa)
@@ -659,7 +710,6 @@ class CuentaController extends Controller
                     ->with('error', 'No tienes acceso a esta cuenta');
             }
             
-            // ✅ RECOPILAR FLASH MESSAGES
             $flash = [];
             $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
             foreach ($flashTypes as $type) {
@@ -682,12 +732,8 @@ class CuentaController extends Controller
         }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
-        // ✅ Verificar permiso para editar cuentas
         if (!Gate::allows('crear-cuentas')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para editar cuentas');
@@ -697,7 +743,6 @@ class CuentaController extends Controller
             $user = auth()->user();
             $cuenta = Cuenta::with('cuentaMadre')->findOrFail($id);
             
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
             $tieneAcceso = DB::table('empresas_usuarios')
                 ->where('id_empresa', $cuenta->id_empresa)
                 ->where('id_usuario', $user->id_usuario)
@@ -719,7 +764,6 @@ class CuentaController extends Controller
                 ->where('activo', true)
                 ->get();
             
-            // 🔥 Cuentas madre: solo activas
             $cuentasMadre = Cuenta::where('id_empresa', $cuenta->id_empresa)
                 ->where('id_cuenta', '!=', $id)
                 ->where('nivel', '<', $cuenta->nivel)
@@ -736,7 +780,6 @@ class CuentaController extends Controller
                     ];
                 });
             
-            // 🔥 Cuentas de resultados: solo activas
             $cuentasResultados = Cuenta::where('id_empresa', $cuenta->id_empresa)
                 ->where('en_uso', true)
                 ->where('es_cuenta_resultados', true)
@@ -753,7 +796,6 @@ class CuentaController extends Controller
                     ];
                 });
             
-            // ✅ RECOPILAR FLASH MESSAGES
             $flash = [];
             $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
             foreach ($flashTypes as $type) {
@@ -779,94 +821,166 @@ class CuentaController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        // ✅ Verificar permiso para editar cuentas
-        if (!Gate::allows('crear-cuentas')) {
-            return redirect()->route('cuentas.index')
-                ->with('error', 'No tienes permiso para editar cuentas');
+  public function update(Request $request, string $id)
+{
+    if (!Gate::allows('crear-cuentas')) {
+        return redirect()->route('cuentas.index')
+            ->with('error', 'No tienes permiso para editar cuentas');
+    }
+
+    try {
+        $cuenta = Cuenta::findOrFail($id);
+        
+        $user = auth()->user();
+        $tieneAcceso = DB::table('empresas_usuarios')
+            ->where('id_empresa', $cuenta->id_empresa)
+            ->where('id_usuario', $user->id_usuario)
+            ->exists();
+            
+        if (!$tieneAcceso) {
+            return redirect()->back()
+                ->with('error', 'No tienes acceso a esta cuenta')
+                ->withInput();
         }
 
-        try {
-            $cuenta = Cuenta::findOrFail($id);
-            
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
-            $user = auth()->user();
-            $tieneAcceso = DB::table('empresas_usuarios')
-                ->where('id_empresa', $cuenta->id_empresa)
-                ->where('id_usuario', $user->id_usuario)
-                ->exists();
-                
-            if (!$tieneAcceso) {
-                return redirect()->back()
-                    ->with('error', 'No tienes acceso a esta cuenta')
-                    ->withInput();
+        // 🔥 PRIMERO: Normalizar los datos antes de la validación
+        $data = $request->all();
+        
+        if (isset($data['cuenta_resultados'])) {
+            if (is_array($data['cuenta_resultados']) && empty($data['cuenta_resultados'])) {
+                $data['cuenta_resultados'] = null;
+            } elseif (is_string($data['cuenta_resultados']) && trim($data['cuenta_resultados']) === '') {
+                $data['cuenta_resultados'] = null;
             }
+        }
+        
+        $request->merge($data);
 
-            $validated = $request->validate([
-                'codigo_cuenta' => 'required|string|max:50',
-                'nombre_cuenta' => 'required|string|max:255',
-                'descripcion' => 'nullable|string',
-                'Naturaleza' => 'required|in:DEUDORA,ACREEDORA',
-                'id_cuenta_madre' => 'nullable|exists:cuentas,id_cuenta',
-                'en_uso' => 'nullable|boolean',
-                'es_cuenta_resultados' => 'nullable|boolean',
-                'fondeo_c' => 'nullable|boolean',
-                'saldo_inicial' => 'nullable|numeric',
-                'nivel' => 'required|integer|min:0|max:5',
-                'cuenta_resultados' => 'nullable|exists:cuentas,id_cuenta',
-            ]);
+        $validated = $request->validate([
+            'codigo_cuenta' => 'required|string|max:50',
+            'nombre_cuenta' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'Naturaleza' => 'required|in:DEUDORA,ACREEDORA',
+            'id_cuenta_madre' => 'nullable|exists:cuentas,id_cuenta',
+            'en_uso' => 'nullable|boolean',
+            'es_cuenta_resultados' => 'nullable|boolean',
+            'fondeo_c' => 'nullable|boolean',
+            'saldo_inicial' => 'nullable|numeric',
+            'nivel' => 'required|integer|min:0|max:5',
+            'cuenta_resultados' => 'nullable|exists:cuentas,id_cuenta',
+        ]);
 
-            $validated['en_uso'] = $validated['en_uso'] ?? $cuenta->en_uso;
-            $validated['es_cuenta_resultados'] = $validated['es_cuenta_resultados'] ?? $cuenta->es_cuenta_resultados;
-            $validated['fondeo_c'] = $validated['fondeo_c'] ?? $cuenta->fondeo_c;
+        // Verificar que el código no esté duplicado
+        $exists = Cuenta::where('id_empresa', $cuenta->id_empresa)
+            ->where('codigo_cuenta', $validated['codigo_cuenta'])
+            ->where('id_cuenta', '!=', $id)
+            ->exists();
+            
+        if ($exists) {
+            return redirect()->back()
+                ->with('error', 'El código "' . $validated['codigo_cuenta'] . '" ya está en uso')
+                ->withInput();
+        }
 
-            // 🔥 Si NO es cuenta de resultados, debe tener cuenta_resultados (padre de resultados)
-            if (!$validated['es_cuenta_resultados']) {
+        $validated['es_cuenta_resultados'] = $validated['es_cuenta_resultados'] ?? $cuenta->es_cuenta_resultados;
+        $validated['fondeo_c'] = $validated['fondeo_c'] ?? $cuenta->fondeo_c;
+        $validated['en_uso'] = $validated['en_uso'] ?? $cuenta->en_uso;
+
+        if ($validated['es_cuenta_resultados']) {
+            $validated['nivel'] = 2;
+            $validated['id_cuenta_madre'] = null;
+            $validated['cuenta_resultados'] = null;
+            $validated['fondeo_c'] = false;
+        } else {
+            if ($validated['fondeo_c']) {
+                $validated['cuenta_resultados'] = null;
+            } else {
+                $cuentaResultadosValue = $validated['cuenta_resultados'] ?? null;
+                
+                if (is_array($cuentaResultadosValue) && empty($cuentaResultadosValue)) {
+                    $cuentaResultadosValue = null;
+                } elseif (is_string($cuentaResultadosValue) && trim($cuentaResultadosValue) === '') {
+                    $cuentaResultadosValue = null;
+                }
+                
+                $validated['cuenta_resultados'] = $cuentaResultadosValue;
+                
                 if (empty($validated['cuenta_resultados'])) {
                     return redirect()->back()
                         ->with('error', 'Debes seleccionar una cuenta de resultados a la que pertenece esta cuenta')
                         ->withInput();
                 }
                 
-                // Verificar que la cuenta seleccionada realmente es de resultados
                 $cuentaResultados = Cuenta::find($validated['cuenta_resultados']);
                 if (!$cuentaResultados || !$cuentaResultados->es_cuenta_resultados) {
                     return redirect()->back()
                         ->with('error', 'La cuenta seleccionada no es una cuenta de resultados válida')
                         ->withInput();
                 }
-            } else {
-                // Si es cuenta de resultados, no tiene padre de resultados
-                $validated['cuenta_resultados'] = null;
             }
 
-            $cuenta->update($validated);
+            if ($validated['nivel'] == 1) {
+                $validated['id_cuenta_madre'] = null;
+            }
 
-            return redirect()->route('cuentas.index', ['empresa_id' => $cuenta->id_empresa])
-                ->with('success', 'Cuenta actualizada exitosamente.');
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
-                ->withInput();
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error al actualizar la cuenta: ' . $e->getMessage())
-                ->withInput();
+            if ($validated['nivel'] > 1) {
+                if (empty($validated['id_cuenta_madre'])) {
+                    return redirect()->back()
+                        ->with('error', 'Debes seleccionar una cuenta madre de nivel ' . ($validated['nivel'] - 1))
+                        ->withInput();
+                }
+                
+                $madre = Cuenta::find($validated['id_cuenta_madre']);
+                if (!$madre) {
+                    return redirect()->back()
+                        ->with('error', 'La cuenta madre seleccionada no existe.')
+                        ->withInput();
+                }
+                if ($madre->nivel != ($validated['nivel'] - 1)) {
+                    return redirect()->back()
+                        ->with('error', 'La cuenta madre debe ser de nivel ' . ($validated['nivel'] - 1))
+                        ->withInput();
+                }
+                if ($madre->id_empresa != $cuenta->id_empresa) {
+                    return redirect()->back()
+                        ->with('error', 'La cuenta madre no pertenece a la misma empresa')
+                        ->withInput();
+                }
+                if ($madre->id_cuenta == $id) {
+                    return redirect()->back()
+                        ->with('error', 'No puedes seleccionar esta cuenta como su propia madre')
+                        ->withInput();
+                }
+            }
         }
-    }
 
-    /**
-     * 🔥 Eliminación lógica - Desactivar cuenta (cambia en_uso a false)
-     * MODIFICADO: Permite desactivar aunque tenga hijas
-     */
+        $cuenta->update($validated);
+
+        return redirect()->route('cuentas.index', ['empresa_id' => $cuenta->id_empresa])
+            ->with('success', 'Cuenta "' . $cuenta->nombre_cuenta . '" actualizada exitosamente.');
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        // 🔥 CORREGIDO: Manejar correctamente los errores de validación
+        $errors = $e->errors();
+        $errorMessages = [];
+        
+        foreach ($errors as $field => $messages) {
+            $errorMessages[] = $field . ': ' . implode(', ', $messages);
+        }
+        
+        return redirect()->back()
+            ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
+            ->withInput();
+        
+    } catch (\Exception $e) {
+        return redirect()->back()
+            ->with('error', 'Error al actualizar la cuenta: ' . $e->getMessage())
+            ->withInput();
+    }
+}
+
     public function destroy(string $id)
     {
-        // ✅ Verificar permiso para eliminar cuentas
         if (!Gate::allows('eliminar-movimientos')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para eliminar cuentas');
@@ -876,7 +990,6 @@ class CuentaController extends Controller
             $cuenta = Cuenta::findOrFail($id);
             $empresaId = $cuenta->id_empresa;
             
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
             $user = auth()->user();
             $tieneAcceso = DB::table('empresas_usuarios')
                 ->where('id_empresa', $empresaId)
@@ -893,11 +1006,9 @@ class CuentaController extends Controller
                     ->with('warning', 'La cuenta ya está inactiva');
             }
 
-
             $nombreCuenta = $cuenta->nombre_cuenta;
             $hijasCount = $cuenta->cuentasHijas()->count();
             
-            // Desactivar la cuenta
             $cuenta->update(['en_uso' => false]);
 
             return redirect()->route('cuentas.index', ['empresa_id' => $empresaId]);
@@ -911,12 +1022,8 @@ class CuentaController extends Controller
         }
     }
 
-    /**
-     * Obtener cuentas inactivas
-     */
     public function inactivas(Request $request)
     {
-        // ✅ Verificar permiso para ver cuentas
         if (!Gate::allows('ver-cuentas')) {
             return response()->json([
                 'success' => false,
@@ -995,12 +1102,8 @@ class CuentaController extends Controller
         ]);
     }
 
-    /**
-     * Restaurar cuenta (activar)
-     */
     public function restaurar(Request $request, string $id)
     {
-        // ✅ Verificar permiso para editar cuentas (restaurar es una forma de editar)
         if (!Gate::allows('crear-cuentas')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para restaurar cuentas');
@@ -1010,7 +1113,6 @@ class CuentaController extends Controller
             $cuenta = Cuenta::findOrFail($id);
             $empresaId = $cuenta->id_empresa;
             
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
             $user = auth()->user();
             $tieneAcceso = DB::table('empresas_usuarios')
                 ->where('id_empresa', $empresaId)
@@ -1040,13 +1142,8 @@ class CuentaController extends Controller
         }
     }
 
-    /**
-     * Activar/Desactivar cuenta (Toggle)
-     * 🔥 MODIFICADO: Permite desactivar aunque tenga hijas
-     */
     public function toggleActive(Request $request, string $id)
     {
-        // ✅ Verificar permiso para editar cuentas (toggle es una forma de editar)
         if (!Gate::allows('crear-cuentas')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para cambiar el estado de la cuenta');
@@ -1056,7 +1153,6 @@ class CuentaController extends Controller
             $cuenta = Cuenta::findOrFail($id);
             $empresaId = $cuenta->id_empresa;
             
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
             $user = auth()->user();
             $tieneAcceso = DB::table('empresas_usuarios')
                 ->where('id_empresa', $empresaId)
@@ -1067,15 +1163,6 @@ class CuentaController extends Controller
                 return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
                     ->with('error', 'No tienes acceso a esta cuenta');
             }
-            
-            // 🔥 ELIMINADO: Ya no se bloquea si tiene hijas
-            // if ($cuenta->en_uso) {
-            //     $hijasCount = $cuenta->cuentasHijas()->count();
-            //     if ($hijasCount > 0) {
-            //         return redirect()->route('cuentas.index', ['empresa_id' => $empresaId])
-            //             ->with('error', 'No se puede desactivar la cuenta porque tiene ' . $hijasCount . ' cuenta(s) hija(s) asociadas');
-            //     }
-            // }
             
             $nuevoEstado = !$cuenta->en_uso;
             $cuenta->update(['en_uso' => $nuevoEstado]);
@@ -1103,13 +1190,8 @@ class CuentaController extends Controller
         }
     }
 
-    /**
-     * Cambiar estado de la cuenta (activar/desactivar)
-     * 🔥 MODIFICADO: Permite desactivar aunque tenga hijas
-     */
     public function cambiarEstado(Request $request, string $id)
     {
-        // ✅ Verificar permiso para editar cuentas
         if (!Gate::allows('crear-cuentas')) {
             return redirect()->route('cuentas.index')
                 ->with('error', 'No tienes permiso para cambiar el estado de la cuenta');
@@ -1118,7 +1200,6 @@ class CuentaController extends Controller
         try {
             $cuenta = Cuenta::findOrFail($id);
             
-            // ✅ Verificar que el usuario tiene acceso a la empresa de la cuenta
             $user = auth()->user();
             $tieneAcceso = DB::table('empresas_usuarios')
                 ->where('id_empresa', $cuenta->id_empresa)

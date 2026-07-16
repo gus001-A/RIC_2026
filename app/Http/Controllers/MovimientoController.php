@@ -28,326 +28,340 @@ class MovimientoController extends Controller
 {
 
     // ============================================
-    // 📄 INDEX - LISTADO DE MOVIMIENTOS (CON TRASPASOS)
-    // ============================================
-    public function index(Request $request)
-    {
-        if (!Gate::allows('ver-movimientos')) {
-            return redirect()->route('dashboard')
-                ->with('error', 'No tienes permiso para ver movimientos');
-        }
+// 📄 INDEX - LISTADO DE MOVIMIENTOS (CON TRASPASOS)
+// ============================================
+public function index(Request $request)
+{
+    if (!Gate::allows('ver-movimientos')) {
+        return redirect()->route('dashboard')
+            ->with('error', 'No tienes permiso para ver movimientos');
+    }
 
-        $empresas = auth()->user()->empresas()->where('activo', true)->get();
+    $empresas = auth()->user()->empresas()->where('activo', true)->get();
+    
+    if ($empresas->isEmpty()) {
+        return Inertia::render('Movimientos/Index', [
+            'movimientos' => [
+                'data' => [],
+                'from' => 0,
+                'to' => 0,
+                'total' => 0,
+                'links' => []
+            ],
+            'empresas' => [],
+            'filtros' => [],
+            'empresa_seleccionada' => null,
+            'saldo_total' => null,
+            'vista' => $request->get('vista', 'normal'),
+            'contadores' => [
+                'capturados' => 0,
+                'revisados' => 0,
+                'autorizados' => 0,
+                'abonados' => 0,
+                'liquidados' => 0,
+            ]
+        ]);
+    }
+
+    // 🔥 INTENTAR OBTENER EMPRESA DE: 1) Request, 2) Sesión
+    $empresaId = $request->input('empresa_id');
+    
+    if (!$empresaId) {
+        $empresaId = session('empresa_seleccionada');
+    }
+    
+    // Validar que el usuario tenga acceso a la empresa
+    if ($empresaId && !$empresas->contains('id', $empresaId)) {
+        $empresaId = null;
+    }
+    
+    // Si aún no hay, usar la primera empresa disponible
+    if (!$empresaId && $empresas->count() > 0) {
+        $empresaId = $empresas->first()->id;
+    }
+    
+    // 🔥 GUARDAR EN SESIÓN para persistir entre requests
+    if ($empresaId) {
+        session(['empresa_seleccionada' => $empresaId]);
+    }
+
+    $vista = $request->get('vista', 'normal');
+    $soloFiscales = $request->boolean('solo_fiscales', false);
+
+    $query = MovimientoPoliza::with([
+        'poliza.persona',
+        'poliza.usuarioCreador',
+        'poliza.usuarioRevisor',
+        'poliza.usuarioAutorizador',
+        'cuenta' => function($q) {
+            $q->where('en_uso', true);
+        },
+        'cuentaFondeadora' => function($q) {
+            $q->where('en_uso', true);
+        },
+        'poliza.marcador',
+        'poliza.abonos'
+    ]);
+
+    $query->whereHas('cuenta', function($q) {
+        $q->where('en_uso', true);
+    });
+
+    $query->whereHas('poliza', function($q) use ($empresaId) {
+        $q->where('id_empresa', $empresaId)
+        ->whereHas('empresa', function($sub) {
+            $sub->where('activo', true);
+        });
+    });
+
+    if ($soloFiscales) {
+        $query->whereHas('poliza', function($q) {
+            $q->where('categoria', 'FISCAL');
+        });
+    }
+
+    if ($vista === 'diferidas') {
+        $query->whereHas('poliza', function($q) {
+            $q->where('es_por_pagar', true);
+        });
+    } elseif ($vista === 'pendientes') {
+        $query->whereHas('poliza', function($q) {
+            $q->whereIn('estatus', ['PENDIENTE', 'CAPTURADO', 'REVISADO']);
+        });
+    } elseif ($vista === 'autorizadas') {
+        $query->whereHas('poliza', function($q) {
+            $q->where('estatus', 'AUTORIZADO');
+        });
+    } elseif ($vista === 'traspasos') {
+        $query->whereHas('poliza', function($q) {
+            $q->where('tipo_poliza', 'TRASPASO');
+        });
+    } else {
+        $query->whereHas('poliza', function($q) {
+            $q->where('es_por_pagar', false);
+        });
+    }
+
+    // FILTROS
+    if ($request->filled('fecha_desde')) {
+        $query->whereHas('poliza', function($q) use ($request) {
+            $q->whereDate('fecha_poliza', '>=', $request->fecha_desde);
+        });
+    }
+
+    if ($request->filled('fecha_hasta')) {
+        $query->whereHas('poliza', function($q) use ($request) {
+            $q->whereDate('fecha_poliza', '<=', $request->fecha_hasta);
+        });
+    }
+
+    if ($request->filled('referencia')) {
+        $query->whereHas('poliza', function($q) use ($request) {
+            $q->where('folio', 'LIKE', '%' . $request->referencia . '%')
+            ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
+        });
+    }
+
+    if ($request->filled('persona')) {
+        $query->whereHas('poliza.persona', function($q) use ($request) {
+            $q->where('Nombre', 'LIKE', '%' . $request->persona . '%')
+            ->orWhere('Paterno', 'LIKE', '%' . $request->persona . '%')
+            ->orWhere('Materno', 'LIKE', '%' . $request->persona . '%')
+            ->orWhereRaw("CONCAT(Nombre, ' ', Paterno, ' ', Materno) LIKE ?", ['%' . $request->persona . '%']);
+        });
+    }
+
+    if ($request->filled('cuenta')) {
+        $query->whereHas('cuenta', function($q) use ($request) {
+            $q->where('en_uso', true)
+            ->where(function($sub) use ($request) {
+                $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta . '%')
+                    ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta . '%');
+            });
+        });
+    }
+
+    if ($request->filled('estatus')) {
+        $query->whereHas('poliza', function($q) use ($request) {
+            $q->where('estatus', $request->estatus);
+        });
+    }
+
+    if ($request->filled('tipo_poliza')) {
+        $query->whereHas('poliza', function($q) use ($request) {
+            $q->where('tipo_poliza', $request->tipo_poliza);
+        });
+    }
+
+    if ($request->filled('cuenta_fondeadora')) {
+        $query->whereHas('cuentaFondeadora', function($q) use ($request) {
+            $q->where('en_uso', true)
+            ->where(function($sub) use ($request) {
+                $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta_fondeadora . '%')
+                    ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta_fondeadora . '%');
+            });
+        });
+    }
+
+    if ($request->filled('nota')) {
+        $query->whereHas('poliza', function($q) use ($request) {
+            $q->where('nota', 'LIKE', '%' . $request->nota . '%');
+        });
+    }
+
+    if ($request->filled('usuario')) {
+        $query->whereHas('poliza.usuarioCreador', function($q) use ($request) {
+            $q->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
+            ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
+        });
+    }
+
+    $sortBy = $request->get('sort_by', 'fecha_poliza');
+    $sortOrder = $request->get('sort_order', 'desc');
+    
+    $sortMap = [
+        'fecha_poliza' => 'polizas.fecha_poliza',
+        'fecha_vencimiento' => 'polizas.fecha_vencimiento',
+        'referencia' => 'polizas.folio',
+        'estatus' => 'polizas.estatus',
+        'monto' => 'movimientos_poliza.monto',
+        'monto_traspaso' => 'movimientos_poliza.monto_traspaso',
+        'persona' => 'polizas.id_persona',
+        'cuenta' => 'movimientos_poliza.id_cuenta'
+    ];
+
+    if (isset($sortMap[$sortBy])) {
+        if (strpos($sortMap[$sortBy], '.') !== false) {
+            $query->join('polizas', 'movimientos_poliza.id_poliza', '=', 'polizas.id')
+                ->orderBy($sortMap[$sortBy], $sortOrder)
+                ->select('movimientos_poliza.*');
+        } else {
+            $query->orderBy($sortMap[$sortBy], $sortOrder);
+        }
+    } else {
+        $query->orderBy('movimientos_poliza.created_at', 'desc');
+    }
+
+    $perPage = $request->get('per_page', 15);
+    $movimientos = $query->paginate($perPage);
+
+    $movimientosData = $movimientos->through(function($movimiento) {
+        $abonos = $movimiento->poliza->abonos ?? collect();
+        $totalAbonado = $abonos->sum('monto_abonado');
         
-        if ($empresas->isEmpty()) {
-            return Inertia::render('Movimientos/Index', [
-                'movimientos' => [
-                    'data' => [],
-                    'from' => 0,
-                    'to' => 0,
-                    'total' => 0,
-                    'links' => []
-                ],
-                'empresas' => [],
-                'filtros' => [],
-                'empresa_seleccionada' => null,
-                'saldo_total' => null,
-                'vista' => $request->get('vista', 'normal'),
-                'contadores' => [
-                    'capturados' => 0,
-                    'revisados' => 0,
-                    'autorizados' => 0,
-                    'abonados' => 0,
-                    'liquidados' => 0,
-                ]
+        $esTraspaso = $movimiento->poliza->tipo_poliza === 'TRASPASO';
+        $montoMostrar = $esTraspaso ? $movimiento->monto_traspaso : $movimiento->monto;
+        $saldoPendiente = abs($montoMostrar) - $totalAbonado;
+
+        $pdfUrl = null;
+        if ($movimiento->poliza->categoria === 'FISCAL' && !empty($movimiento->poliza->ruta_pdf)) {
+            $pdfUrl = route('movimientos.documento.fiscal', [
+                'id' => $movimiento->id_poliza,
+                'tipo' => 'pdf'
             ]);
         }
 
-        $empresaId = $request->get('empresa_id', $request->session()->get('empresa_movimientos'));
-        
-        if (!$empresaId || !$empresas->contains('id', $empresaId)) {
-            $empresaId = $empresas->first()->id;
+        $cuentaDestino = null;
+        if ($esTraspaso) {
+            $movDestino = MovimientoPoliza::where('id_poliza', $movimiento->id_poliza)
+                ->where('id_cuenta', '!=', $movimiento->id_cuenta)
+                ->first();
+            if ($movDestino && $movDestino->cuenta) {
+                $cuentaDestino = $movDestino->cuenta->nombre_cuenta;
+            }
         }
 
-        $request->session()->put('empresa_movimientos', $empresaId);
-
-        $vista = $request->get('vista', 'normal');
-        $soloFiscales = $request->boolean('solo_fiscales', false);
-
-        $query = MovimientoPoliza::with([
-            'poliza.persona',
-            'poliza.usuarioCreador',
-            'poliza.usuarioRevisor',
-            'poliza.usuarioAutorizador',
-            'cuenta' => function($q) {
-                $q->where('en_uso', true);
-            },
-            'cuentaFondeadora' => function($q) {
-                $q->where('en_uso', true);
-            },
-            'poliza.marcador',
-            'poliza.abonos'
-        ]);
-
-        $query->whereHas('cuenta', function($q) {
-            $q->where('en_uso', true);
-        });
-
-        $query->whereHas('poliza', function($q) use ($empresaId) {
-            $q->where('id_empresa', $empresaId)
-            ->whereHas('empresa', function($sub) {
-                $sub->where('activo', true);
-            });
-        });
-
-        if ($soloFiscales) {
-            $query->whereHas('poliza', function($q) {
-                $q->where('categoria', 'FISCAL');
-            });
-        }
-
-        if ($vista === 'diferidas') {
-            $query->whereHas('poliza', function($q) {
-                $q->where('es_por_pagar', true);
-            });
-        } elseif ($vista === 'pendientes') {
-            $query->whereHas('poliza', function($q) {
-                $q->whereIn('estatus', ['PENDIENTE', 'CAPTURADO', 'REVISADO']);
-            });
-        } elseif ($vista === 'autorizadas') {
-            $query->whereHas('poliza', function($q) {
-                $q->where('estatus', 'AUTORIZADO');
-            });
-        } elseif ($vista === 'traspasos') {
-            $query->whereHas('poliza', function($q) {
-                $q->where('tipo_poliza', 'TRASPASO');
-            });
-        } else {
-            $query->whereHas('poliza', function($q) {
-                $q->where('es_por_pagar', false);
-            });
-        }
-
-        // FILTROS
-        if ($request->filled('fecha_desde')) {
-            $query->whereHas('poliza', function($q) use ($request) {
-                $q->whereDate('fecha_poliza', '>=', $request->fecha_desde);
-            });
-        }
-
-        if ($request->filled('fecha_hasta')) {
-            $query->whereHas('poliza', function($q) use ($request) {
-                $q->whereDate('fecha_poliza', '<=', $request->fecha_hasta);
-            });
-        }
-
-        if ($request->filled('referencia')) {
-            $query->whereHas('poliza', function($q) use ($request) {
-                $q->where('folio', 'LIKE', '%' . $request->referencia . '%')
-                ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
-            });
-        }
-
-        if ($request->filled('persona')) {
-            $query->whereHas('poliza.persona', function($q) use ($request) {
-                $q->where('Nombre', 'LIKE', '%' . $request->persona . '%')
-                ->orWhere('Paterno', 'LIKE', '%' . $request->persona . '%')
-                ->orWhere('Materno', 'LIKE', '%' . $request->persona . '%')
-                ->orWhereRaw("CONCAT(Nombre, ' ', Paterno, ' ', Materno) LIKE ?", ['%' . $request->persona . '%']);
-            });
-        }
-
-        if ($request->filled('cuenta')) {
-            $query->whereHas('cuenta', function($q) use ($request) {
-                $q->where('en_uso', true)
-                ->where(function($sub) use ($request) {
-                    $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta . '%')
-                        ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta . '%');
-                });
-            });
-        }
-
-        if ($request->filled('estatus')) {
-            $query->whereHas('poliza', function($q) use ($request) {
-                $q->where('estatus', $request->estatus);
-            });
-        }
-
-        if ($request->filled('tipo_poliza')) {
-            $query->whereHas('poliza', function($q) use ($request) {
-                $q->where('tipo_poliza', $request->tipo_poliza);
-            });
-        }
-
-        if ($request->filled('cuenta_fondeadora')) {
-            $query->whereHas('cuentaFondeadora', function($q) use ($request) {
-                $q->where('en_uso', true)
-                ->where(function($sub) use ($request) {
-                    $sub->where('nombre_cuenta', 'LIKE', '%' . $request->cuenta_fondeadora . '%')
-                        ->orWhere('codigo_cuenta', 'LIKE', '%' . $request->cuenta_fondeadora . '%');
-                });
-            });
-        }
-
-        if ($request->filled('nota')) {
-            $query->whereHas('poliza', function($q) use ($request) {
-                $q->where('nota', 'LIKE', '%' . $request->nota . '%');
-            });
-        }
-
-        if ($request->filled('usuario')) {
-            $query->whereHas('poliza.usuarioCreador', function($q) use ($request) {
-                $q->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
-                ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
-            });
-        }
-
-        $sortBy = $request->get('sort_by', 'fecha_poliza');
-        $sortOrder = $request->get('sort_order', 'desc');
-        
-        $sortMap = [
-            'fecha_poliza' => 'polizas.fecha_poliza',
-            'fecha_vencimiento' => 'polizas.fecha_vencimiento',
-            'referencia' => 'polizas.folio',
-            'estatus' => 'polizas.estatus',
-            'monto' => 'movimientos_poliza.monto',
-            'monto_traspaso' => 'movimientos_poliza.monto_traspaso',
-            'persona' => 'polizas.id_persona',
-            'cuenta' => 'movimientos_poliza.id_cuenta'
+        return [
+            'id_movimiento' => $movimiento->id,
+            'id_poliza' => $movimiento->id_poliza,
+            'referencia' => $movimiento->poliza->folio ?? null,
+            'referencia_adicional' => $movimiento->poliza->referencia ?? null,
+            'fecha_poliza' => $movimiento->poliza->fecha_poliza ?? null,
+            'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento ?? null,
+            'estatus' => $movimiento->poliza->estatus ?? null,
+            'estatus_texto' => $this->getEstatusTexto($movimiento->poliza->estatus),
+            'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
+            'persona_id' => $movimiento->poliza->id_persona ?? null,
+            'cuenta' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->cuenta->nombre_cuenta : null,
+            'cuenta_id' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->id_cuenta : null,
+            'cuenta_fondeadora' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
+            'cuenta_fondeadora_id' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->id_caja_fondo : null,
+            'nota' => $movimiento->poliza->nota ?? null,
+            'monto' => $montoMostrar,
+            'monto_abs' => abs($montoMostrar),
+            'monto_base' => $movimiento->monto_base,
+            'monto_iva' => $movimiento->monto_iva,
+            'monto_traspaso' => $movimiento->monto_traspaso,
+            'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
+            'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
+            'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
+            'usuario_revisor' => $movimiento->poliza->usuarioRevisor ? $movimiento->poliza->usuarioRevisor->nombre_usuario : null,
+            'usuario_autorizador' => $movimiento->poliza->usuarioAutorizador ? $movimiento->poliza->usuarioAutorizador->nombre_usuario : null,
+            'fecha_revision' => $movimiento->poliza->fecha_revision ? $movimiento->poliza->fecha_revision->format('d/m/Y H:i') : null,
+            'fecha_autorizacion' => $movimiento->poliza->fecha_autorizacion ? $movimiento->poliza->fecha_autorizacion->format('d/m/Y H:i') : null,
+            'created_at' => $movimiento->created_at,
+            'es_fiscal' => $movimiento->poliza->categoria === 'FISCAL' ? true : false,
+            'pdf_url' => $pdfUrl,
+            'abonado' => $totalAbonado,
+            'saldo_pendiente' => $saldoPendiente,
+            'abonos' => $abonos->map(function($abono) {
+                return [
+                    'id' => $abono->id,
+                    'monto_abonado' => $abono->monto_abonado,
+                    'fecha_abono' => $abono->fecha_abono,
+                    'referencia' => $abono->referencia,
+                    'metodo_pago' => $abono->metodo_pago,
+                    'nota' => $abono->nota
+                ];
+            }),
+            'es_por_pagar' => $movimiento->poliza->es_por_pagar ?? false,
+            'tipo_poliza' => $movimiento->poliza->tipo_poliza ?? null,
+            'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
+            'tiene_xml_fiscal' => !empty($movimiento->poliza->ruta_xml),
+            'comentario_revision' => $movimiento->poliza->comentario_revision,
+            'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
+            'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
+            'es_traspaso' => $esTraspaso,
+            'cuenta_destino' => $cuentaDestino,
         ];
+    });
 
-        if (isset($sortMap[$sortBy])) {
-            if (strpos($sortMap[$sortBy], '.') !== false) {
-                $query->join('polizas', 'movimientos_poliza.id_poliza', '=', 'polizas.id')
-                    ->orderBy($sortMap[$sortBy], $sortOrder)
-                    ->select('movimientos_poliza.*');
-            } else {
-                $query->orderBy($sortMap[$sortBy], $sortOrder);
-            }
-        } else {
-            $query->orderBy('movimientos_poliza.created_at', 'desc');
-        }
-
-        $perPage = $request->get('per_page', 15);
-        $movimientos = $query->paginate($perPage);
-
-        $movimientosData = $movimientos->through(function($movimiento) {
-            $abonos = $movimiento->poliza->abonos ?? collect();
-            $totalAbonado = $abonos->sum('monto_abonado');
-            
-            $esTraspaso = $movimiento->poliza->tipo_poliza === 'TRASPASO';
-            $montoMostrar = $esTraspaso ? $movimiento->monto_traspaso : $movimiento->monto;
-            $saldoPendiente = abs($montoMostrar) - $totalAbonado;
-
-            $pdfUrl = null;
-            if ($movimiento->poliza->categoria === 'FISCAL' && !empty($movimiento->poliza->ruta_pdf)) {
-                $pdfUrl = route('movimientos.documento.fiscal', [
-                    'id' => $movimiento->id_poliza,
-                    'tipo' => 'pdf'
-                ]);
-            }
-
-            $cuentaDestino = null;
-            if ($esTraspaso) {
-                $movDestino = MovimientoPoliza::where('id_poliza', $movimiento->id_poliza)
-                    ->where('id_cuenta', '!=', $movimiento->id_cuenta)
-                    ->first();
-                if ($movDestino && $movDestino->cuenta) {
-                    $cuentaDestino = $movDestino->cuenta->nombre_cuenta;
-                }
-            }
-
-            return [
-                'id_movimiento' => $movimiento->id,
-                'id_poliza' => $movimiento->id_poliza,
-                'referencia' => $movimiento->poliza->folio ?? null,
-                'referencia_adicional' => $movimiento->poliza->referencia ?? null,
-                'fecha_poliza' => $movimiento->poliza->fecha_poliza ?? null,
-                'fecha_vencimiento' => $movimiento->poliza->fecha_vencimiento ?? null,
-                'estatus' => $movimiento->poliza->estatus ?? null,
-                'estatus_texto' => $this->getEstatusTexto($movimiento->poliza->estatus),
-                'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
-                'persona_id' => $movimiento->poliza->id_persona ?? null,
-                'cuenta' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->cuenta->nombre_cuenta : null,
-                'cuenta_id' => $movimiento->cuenta && $movimiento->cuenta->en_uso ? $movimiento->id_cuenta : null,
-                'cuenta_fondeadora' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->cuentaFondeadora->nombre_cuenta : null,
-                'cuenta_fondeadora_id' => $movimiento->cuentaFondeadora && $movimiento->cuentaFondeadora->en_uso ? $movimiento->id_caja_fondo : null,
-                'nota' => $movimiento->poliza->nota ?? null,
-                'monto' => $montoMostrar,
-                'monto_abs' => abs($montoMostrar),
-                'monto_base' => $movimiento->monto_base,
-                'monto_iva' => $movimiento->monto_iva,
-                'monto_traspaso' => $movimiento->monto_traspaso,
-                'marcador' => $movimiento->poliza->marcador ? $movimiento->poliza->marcador->nombre_marcador : null,
-                'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
-                'usuario_nombre' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_completo : null,
-                'usuario_revisor' => $movimiento->poliza->usuarioRevisor ? $movimiento->poliza->usuarioRevisor->nombre_usuario : null,
-                'usuario_autorizador' => $movimiento->poliza->usuarioAutorizador ? $movimiento->poliza->usuarioAutorizador->nombre_usuario : null,
-                'fecha_revision' => $movimiento->poliza->fecha_revision ? $movimiento->poliza->fecha_revision->format('d/m/Y H:i') : null,
-                'fecha_autorizacion' => $movimiento->poliza->fecha_autorizacion ? $movimiento->poliza->fecha_autorizacion->format('d/m/Y H:i') : null,
-                'created_at' => $movimiento->created_at,
-                'es_fiscal' => $movimiento->poliza->categoria === 'FISCAL' ? true : false,
-                'pdf_url' => $pdfUrl,
-                'abonado' => $totalAbonado,
-                'saldo_pendiente' => $saldoPendiente,
-                'abonos' => $abonos->map(function($abono) {
-                    return [
-                        'id' => $abono->id,
-                        'monto_abonado' => $abono->monto_abonado,
-                        'fecha_abono' => $abono->fecha_abono,
-                        'referencia' => $abono->referencia,
-                        'metodo_pago' => $abono->metodo_pago,
-                        'nota' => $abono->nota
-                    ];
-                }),
-                'es_por_pagar' => $movimiento->poliza->es_por_pagar ?? false,
-                'tipo_poliza' => $movimiento->poliza->tipo_poliza ?? null,
-                'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
-                'tiene_xml_fiscal' => !empty($movimiento->poliza->ruta_xml),
-                'comentario_revision' => $movimiento->poliza->comentario_revision,
-                'comentario_autorizacion' => $movimiento->poliza->comentario_autorizacion,
-                'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
-                'es_traspaso' => $esTraspaso,
-                'cuenta_destino' => $cuentaDestino,
-            ];
+    $saldoTotal = null;
+    if ($vista === 'diferidas') {
+        $saldoTotal = $query->get()->sum(function($movimiento) {
+            $totalAbonado = AbonoPoliza::where('id_poliza', $movimiento->id_poliza)->sum('monto_abonado');
+            $monto = $movimiento->poliza->tipo_poliza === 'TRASPASO' ? $movimiento->monto_traspaso : $movimiento->monto;
+            return abs($monto) - $totalAbonado;
         });
-
-        $saldoTotal = null;
-        if ($vista === 'diferidas') {
-            $saldoTotal = $query->get()->sum(function($movimiento) {
-                $totalAbonado = AbonoPoliza::where('id_poliza', $movimiento->id_poliza)->sum('monto_abonado');
-                $monto = $movimiento->poliza->tipo_poliza === 'TRASPASO' ? $movimiento->monto_traspaso : $movimiento->monto;
-                return abs($monto) - $totalAbonado;
-            });
-        } else {
-            $saldoTotal = (float) $query->sum('monto');
-        }
-
-        $filtros = $request->only([
-            'fecha_desde', 'fecha_hasta', 'referencia', 
-            'estatus', 'tipo_poliza', 'persona', 'cuenta', 'cuenta_fondeadora', 'nota', 'usuario',
-            'sort_by', 'sort_order', 'vista', 'mostrar_todos', 'solo_fiscales'
-        ]);
-
-        $contadores = [
-            'capturados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'PENDIENTE')->count(),
-            'revisados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'REVISADO')->count(),
-            'autorizados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'AUTORIZADO')->count(),
-            'abonados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'ABONADO')->count(),
-            'liquidados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'LIQUIDADO')->count(),
-            'traspasos' => Poliza::where('id_empresa', $empresaId)->where('tipo_poliza', 'TRASPASO')->count(),
-        ];
-
-        return Inertia::render('Movimientos/Index', [
-            'movimientos' => $movimientosData,
-            'empresas' => $empresas,
-            'filtros' => $filtros,
-            'empresa_seleccionada' => (int) $empresaId,
-            'saldo_total' => $saldoTotal !== null ? (float) $saldoTotal : null,
-            'vista' => $vista,
-            'contadores' => $contadores,
-        ]);
+    } else {
+        $saldoTotal = (float) $query->sum('monto');
     }
+
+    $filtros = $request->only([
+        'fecha_desde', 'fecha_hasta', 'referencia', 
+        'estatus', 'tipo_poliza', 'persona', 'cuenta', 'cuenta_fondeadora', 'nota', 'usuario',
+        'sort_by', 'sort_order', 'vista', 'mostrar_todos', 'solo_fiscales'
+    ]);
+
+    $contadores = [
+        'capturados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'PENDIENTE')->count(),
+        'revisados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'REVISADO')->count(),
+        'autorizados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'AUTORIZADO')->count(),
+        'abonados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'ABONADO')->count(),
+        'liquidados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'LIQUIDADO')->count(),
+        'traspasos' => Poliza::where('id_empresa', $empresaId)->where('tipo_poliza', 'TRASPASO')->count(),
+    ];
+
+    return Inertia::render('Movimientos/Index', [
+        'movimientos' => $movimientosData,
+        'empresas' => $empresas,
+        'filtros' => $filtros,
+        'empresa_seleccionada' => (int) $empresaId,
+        'saldo_total' => $saldoTotal !== null ? (float) $saldoTotal : null,
+        'vista' => $vista,
+        'contadores' => $contadores,
+    ]);
+}
 
   // ============================================
     // 📄 CREATE - FORMULARIO DE CREACIÓN

@@ -1,1150 +1,547 @@
 <template>
     <AppLayout title="Editar Persona">
         <template #header>
-            <div class="header-wrapper">
-                <div class="header-left">
-                    <Link :href="route('personas.index')" class="btn-back">
+            <div class="header-wrapper-premium">
+                <div class="header-left-premium">
+                    <Link :href="route('personas.index')" class="btn-back-premium">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
                     </Link>
-                    <div class="header-content">
-                        <h2 class="header-title">Editar Persona</h2>
-                        <p class="header-subtitle">Actualice la informacion de la persona</p>
+                    <div>
+                        <h2 class="header-title-premium">Editar Persona</h2>
+                        <p class="header-subtitle-premium">Actualice la información de la persona en el sistema</p>
                     </div>
                 </div>
-                <div class="header-right">
-                    <div class="status-badge" :class="statusClass">
-                        <span v-if="hasErrors">⚠️ {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✅ Completado</span>
+                <div class="header-right-premium">
+                    <div class="status-badge-premium" :class="statusClass">
+                        <span v-if="hasErrors">⚠ {{ errorCount }} errores</span>
+                        <span v-else-if="isComplete">✓ Completado</span>
                         <span v-else>📝 {{ Math.round(progressPercentage) }}%</span>
                     </div>
                 </div>
             </div>
         </template>
 
-        <div class="page-content">
-            <div class="container-custom">
-                <div class="form-card">
+        <div class="page-content-premium">
+            <div class="container-premium">
+                <div class="form-card-premium">
                     <form @submit.prevent="submit" id="personaForm" novalidate>
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 1: TIPO DE PERSONA -->
-                        <!-- ============================================ -->
-                        <div class="form-section">
-                            <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                                    <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
-                                </div>
-                                <div class="section-title-group">
-                                    <h3 class="section-title">Tipo de Persona</h3>
-                                    <p class="section-subtitle">Seleccione el tipo de persona que desea registrar</p>
-                                </div>
-                            </div>
+                        <!-- ===== TABS ===== -->
+                        <div class="tabs-premium">
+                            <button type="button" 
+                                    class="tab-premium" 
+                                    :class="{ active: activeTab === 'generales' }"
+                                    @click="activeTab = 'generales'">
+                                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Datos Generales
+                            </button>
+                            <button type="button" 
+                                    class="tab-premium" 
+                                    :class="{ active: activeTab === 'direccion' }"
+                                    @click="activeTab = 'direccion'">
+                                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Dirección
+                            </button>
+                            <button type="button" 
+                                    v-if="form.tipo_persona === 'MORAL'"
+                                    class="tab-premium" 
+                                    :class="{ active: activeTab === 'representante' }"
+                                    @click="activeTab = 'representante'">
+                                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                                Representante Legal
+                            </button>
+                        </div>
 
-                            <div class="form-grid">
-                                <div class="form-group full-width">
-                                    <div class="radio-group-horizontal">
-                                        <div class="radio-card-mini" 
+                        <!-- ===== CONTENIDO DE TABS ===== -->
+                        <div class="tab-content-premium">
+                            <!-- TAB 1: DATOS GENERALES -->
+                            <div v-show="activeTab === 'generales'" class="tab-pane-premium">
+                                <!-- Tipo de Persona -->
+                                <div class="section-premium section-tipo">
+                                    <div class="section-header-premium">
+                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                            <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="section-title-wrapper">
+                                            <span class="section-title-premium">Tipo de Persona</span>
+                                            <span class="badge-required">Requerido</span>
+                                        </div>
+                                    </div>
+                                    <div class="radio-group-premium">
+                                        <div class="radio-premium" 
                                              :class="{ 'selected': form.tipo_persona === 'FISICA' }"
                                              @click="form.tipo_persona = 'FISICA'; clearError('tipo_persona'); onTipoChange()">
-                                            <span class="radio-label">Persona Fisica</span>
-                                            <div class="radio-check-mini" v-if="form.tipo_persona === 'FISICA'">
+                                            <span class="radio-label">Persona Física</span>
+                                            <div class="radio-check" v-if="form.tipo_persona === 'FISICA'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                 </svg>
                                             </div>
                                             <input type="radio" v-model="form.tipo_persona" value="FISICA" class="radio-input">
                                         </div>
-
-                                        <div class="radio-card-mini" 
+                                        <div class="radio-premium" 
                                              :class="{ 'selected': form.tipo_persona === 'MORAL' }"
                                              @click="form.tipo_persona = 'MORAL'; clearError('tipo_persona'); onTipoChange()">
                                             <span class="radio-label">Persona Moral</span>
-                                            <div class="radio-check-mini" v-if="form.tipo_persona === 'MORAL'">
+                                            <div class="radio-check" v-if="form.tipo_persona === 'MORAL'">
                                                 <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                                 </svg>
                                             </div>
                                             <input type="radio" v-model="form.tipo_persona" value="MORAL" class="radio-input">
                                         </div>
                                     </div>
-                                    <div v-if="form.errors.tipo_persona" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.tipo_persona }}
-                                    </div>
+                                    <div v-if="form.errors.tipo_persona" class="error-premium">{{ form.errors.tipo_persona }}</div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 2: DATOS PERSONALES -->
-                        <!-- ============================================ -->
-                        <div class="form-section">
-                            <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                                    <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                </div>
-                                <div class="section-title-group">
-                                    <h3 class="section-title">Datos Personales</h3>
-                                    <p class="section-subtitle">Informacion principal de la persona</p>
-                                </div>
-                            </div>
-
-                            <div class="form-grid">
-                                <!-- Nombre -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Nombre(s) <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.Nombre"
-                                               @input="clearError('Nombre'); autoGenerarRFC(); validateText('Nombre')"
-                                               class="form-input"
-                                               :class="{ 'error': form.errors.Nombre || textErrors.Nombre }"
-                                               placeholder="Ej: Juan Carlos"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <!-- Datos Personales -->
+                                <div class="section-premium section-datos">
+                                    <div class="section-header-premium">
+                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                            <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                             </svg>
                                         </div>
-                                    </div>
-                                    <div v-if="form.errors.Nombre" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.Nombre }}
-                                    </div>
-                                    <div v-if="textErrors.Nombre" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.Nombre }}
-                                    </div>
-                                </div>
-
-                                <!-- Apellido Paterno -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Apellido Paterno <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.Paterno"
-                                               @input="clearError('Paterno'); autoGenerarRFC(); validateText('Paterno')"
-                                               class="form-input"
-                                               :class="{ 'error': form.errors.Paterno || textErrors.Paterno }"
-                                               placeholder="Ej: Perez"
-                                               maxlength="50">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                            </svg>
+                                        <div class="section-title-wrapper">
+                                            <span class="section-title-premium">Datos Personales</span>
+                                            <span class="badge-required">Requerido</span>
                                         </div>
                                     </div>
-                                    <div v-if="form.errors.Paterno" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.Paterno }}
-                                    </div>
-                                    <div v-if="textErrors.Paterno" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.Paterno }}
-                                    </div>
-                                </div>
 
-                                <!-- Apellido Materno -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Apellido Materno
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.Materno"
-                                               @input="autoGenerarRFC(); validateText('Materno')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.Materno }"
-                                               placeholder="Ej: Garcia"
-                                               maxlength="50">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                            </svg>
+                                    <!-- Nombre, Paterno, Materno -->
+                                    <div class="grid-nombres">
+                                        <div class="field-premium">
+                                            <label class="label-premium">Nombre(s) <span class="star">*</span></label>
+                                            <input type="text" v-model="form.Nombre"
+                                                   @input="clearError('Nombre'); autoGenerarRFC(); validateText('Nombre')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': form.errors.Nombre || textErrors.Nombre }"
+                                                   placeholder="Juan Carlos">
+                                            <div v-if="form.errors.Nombre" class="error-premium">{{ form.errors.Nombre }}</div>
+                                            <div v-if="textErrors.Nombre" class="error-premium">{{ textErrors.Nombre }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Apellido Paterno <span class="star">*</span></label>
+                                            <input type="text" v-model="form.Paterno"
+                                                   @input="clearError('Paterno'); autoGenerarRFC(); validateText('Paterno')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': form.errors.Paterno || textErrors.Paterno }"
+                                                   placeholder="Pérez">
+                                            <div v-if="form.errors.Paterno" class="error-premium">{{ form.errors.Paterno }}</div>
+                                            <div v-if="textErrors.Paterno" class="error-premium">{{ textErrors.Paterno }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Apellido Materno</label>
+                                            <input type="text" v-model="form.Materno"
+                                                   @input="autoGenerarRFC(); validateText('Materno')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.Materno }"
+                                                   placeholder="García">
+                                            <div v-if="textErrors.Materno" class="error-premium">{{ textErrors.Materno }}</div>
                                         </div>
                                     </div>
-                                    <div v-if="textErrors.Materno" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.Materno }}
-                                    </div>
-                                </div>
 
-                                <!-- Fila: Empleado + Fecha Nacimiento -->
-                                <div class="form-group full-width">
-                                    <div class="two-columns">
-                                        <!-- Empleado -->
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                </svg>
-                                                Es empleado
-                                            </label>
-                                            <div class="select-wrapper">
-                                                <select v-model="form.empleado"
-                                                        @change="clearError('empleado')"
-                                                        class="form-select"
-                                                        :class="{ 'error': form.errors.empleado }">
-                                                    <option value="0">No es empleado</option>
-                                                    <option value="1">Si es empleado</option>
-                                                </select>
-                                                <div class="select-icon">
-                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                                    </svg>
+                                    <!-- Empleado, Fecha, Sexo -->
+                                    <div class="grid-3">
+                                        <div class="field-premium">
+                                            <label class="label-premium">¿Es empleado?</label>
+                                            <select v-model="form.empleado"
+                                                    @change="clearError('empleado')"
+                                                    class="select-premium select-lg"
+                                                    :class="{ 'error': form.errors.empleado }">
+                                                <option :value="false">No</option>
+                                                <option :value="true">Sí</option>
+                                            </select>
+                                            <div v-if="form.errors.empleado" class="error-premium">{{ form.errors.empleado }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Fecha Nacimiento <span class="star">*</span></label>
+                                            <input type="date" v-model="form.Fecha_nacimiento"
+                                                   @change="clearError('Fecha_nacimiento'); validateEdad(); autoGenerarRFC()"
+                                                   class="input-premium input-lg date"
+                                                   :class="{ 'error': form.errors.Fecha_nacimiento || edadError }"
+                                                   :max="fechaMaxima">
+                                            <div v-if="form.errors.Fecha_nacimiento" class="error-premium">{{ form.errors.Fecha_nacimiento }}</div>
+                                            <div v-if="edadError" class="error-premium">{{ edadError }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Sexo <span class="star">*</span></label>
+                                            <div class="radio-group-sm radio-lg">
+                                                <div class="radio-sm radio-lg" 
+                                                     :class="{ 'selected': form.sexo === 'MASCULINO' }"
+                                                     @click="form.sexo = 'MASCULINO'; clearError('sexo')">
+                                                    <span>Masculino</span>
+                                                    <input type="radio" v-model="form.sexo" value="MASCULINO" class="radio-input">
+                                                </div>
+                                                <div class="radio-sm radio-lg" 
+                                                     :class="{ 'selected': form.sexo === 'FEMENINO' }"
+                                                     @click="form.sexo = 'FEMENINO'; clearError('sexo')">
+                                                    <span>Femenino</span>
+                                                    <input type="radio" v-model="form.sexo" value="FEMENINO" class="radio-input">
                                                 </div>
                                             </div>
-                                            <div v-if="form.errors.empleado" class="error-message">
-                                                <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                                {{ form.errors.empleado }}
+                                            <div v-if="form.errors.sexo" class="error-premium">{{ form.errors.sexo }}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- RFC + CURP -->
+                                    <div class="grid-2">
+                                        <div class="field-premium">
+                                            <label class="label-premium">RFC <span class="star">*</span></label>
+                                            <div class="input-with-btn">
+                                                <input type="text" v-model="form.rfc"
+                                                       @input="clearError('rfc'); form.rfc = form.rfc.toUpperCase(); validateRFC()"
+                                                       class="input-premium input-lg"
+                                                       :class="{ 'error': form.errors.rfc || rfcError }"
+                                                       placeholder="PERE890101XXX"
+                                                       maxlength="13">
+                                                <button type="button" 
+                                                        @click="generarRFC" 
+                                                        class="btn-rfc-premium"
+                                                        :disabled="generandoRFC || !puedeGenerarRFC">
+                                                    <span v-if="generandoRFC" class="spinner-sm"></span>
+                                                    <span v-else>Generar RFC</span>
+                                                </button>
                                             </div>
+                                            <div v-if="form.errors.rfc" class="error-premium">{{ form.errors.rfc }}</div>
+                                            <div v-if="rfcError" class="error-premium">{{ rfcError }}</div>
                                         </div>
-
-                                        <!-- Fecha Nacimiento -->
-                                        <div class="form-group">
-                                            <label class="form-label">
-                                                <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                </svg>
-                                                Fecha de Nacimiento <span class="required-star">*</span>
-                                            </label>
-                                            <div class="input-wrapper">
-                                                <input type="date" v-model="form.Fecha_nacimiento"
-                                                       @change="clearError('Fecha_nacimiento'); validateEdad(); autoGenerarRFC()"
-                                                       class="form-input date-input"
-                                                       :class="{ 'error': form.errors.Fecha_nacimiento || edadError }"
-                                                       :max="fechaMaxima">
-                                                <div class="input-icon">
-                                                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                            <div v-if="form.errors.Fecha_nacimiento" class="error-message">
-                                                <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                                {{ form.errors.Fecha_nacimiento }}
-                                            </div>
-                                            <div v-if="edadError" class="error-message">
-                                                <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                                {{ edadError }}
-                                            </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">CURP <span class="optional">(Opcional)</span></label>
+                                            <input type="text" v-model="form.curp"
+                                                   @input="clearError('curp'); form.curp = form.curp.toUpperCase(); validateCURP()"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': form.errors.curp || curpError }"
+                                                   placeholder="PERE890101HDFRRN09"
+                                                   maxlength="18">
+                                            <div v-if="form.errors.curp" class="error-premium">{{ form.errors.curp }}</div>
+                                            <div v-if="curpError" class="error-premium">{{ curpError }}</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Sexo -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                        </svg>
-                                        Sexo <span class="required-star">*</span>
-                                    </label>
-                                    <div class="radio-group-horizontal">
-                                        <div class="radio-card-mini" 
-                                             :class="{ 'selected': form.sexo === 'MASCULINO' }"
-                                             @click="form.sexo = 'MASCULINO'; clearError('sexo')">
-                                            <span class="radio-label">Masculino</span>
-                                            <div class="radio-check-mini" v-if="form.sexo === 'MASCULINO'">
-                                                <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                            </div>
-                                            <input type="radio" v-model="form.sexo" value="MASCULINO" class="radio-input">
-                                        </div>
-
-                                        <div class="radio-card-mini" 
-                                             :class="{ 'selected': form.sexo === 'FEMENINO' }"
-                                             @click="form.sexo = 'FEMENINO'; clearError('sexo')">
-                                            <span class="radio-label">Femenino</span>
-                                            <div class="radio-check-mini" v-if="form.sexo === 'FEMENINO'">
-                                                <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                            </div>
-                                            <input type="radio" v-model="form.sexo" value="FEMENINO" class="radio-input">
-                                        </div>
-                                    </div>
-                                    <div v-if="form.errors.sexo" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.sexo }}
-                                    </div>
-                                </div>
-
-                                <!-- RFC -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 18h14M7 6h10"/>
-                                        </svg>
-                                        RFC <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.rfc"
-                                               @input="clearError('rfc'); form.rfc = form.rfc.toUpperCase(); validateRFC()"
-                                               class="form-input text-uppercase"
-                                               :class="{ 'error': form.errors.rfc || rfcError }"
-                                               placeholder="Ej: PERE890101XXX"
-                                               maxlength="13">
-                                        <button type="button" 
-                                                @click="generarRFC" 
-                                                class="btn-generate-rfc"
-                                                :disabled="generandoRFC || !puedeGenerarRFC">
-                                            <span v-if="generandoRFC" class="spinner-small"></span>
-                                            <span v-else>Generar RFC</span>
-                                        </button>
-                                    </div>
-                                    <div v-if="form.errors.rfc" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.rfc }}
-                                    </div>
-                                    <div v-if="rfcError" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ rfcError }}
-                                    </div>
-                                </div>
-
-                                <!-- CURP -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 18h14M7 6h10"/>
-                                        </svg>
-                                        CURP
-                                        <span class="helper-label">(Opcional)</span>
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.curp"
-                                               @input="clearError('curp'); form.curp = form.curp.toUpperCase(); validateCURP()"
-                                               class="form-input text-uppercase"
-                                               :class="{ 'error': form.errors.curp || curpError }"
-                                               placeholder="Ej: PERE890101HDFRRN09"
-                                               maxlength="18">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 18h14M7 6h10"/>
+                                <!-- Contacto -->
+                                <div class="section-premium section-contacto">
+                                    <div class="section-header-premium">
+                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                            <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                                             </svg>
                                         </div>
+                                        <div class="section-title-wrapper">
+                                            <span class="section-title-premium">Contacto</span>
+                                            <span class="badge-optional">Opcional</span>
+                                        </div>
                                     </div>
-                                    <div v-if="form.errors.curp" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.curp }}
-                                    </div>
-                                    <div v-if="curpError" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ curpError }}
+                                    <div class="grid-contacto">
+                                        <div class="field-premium full">
+                                            <label class="label-premium">Correo Electrónico</label>
+                                            <input type="email" v-model="form.email"
+                                                   @input="clearError('email'); validateEmail()"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': form.errors.email || emailError }"
+                                                   placeholder="contacto@correo.com">
+                                            <div v-if="form.errors.email" class="error-premium">{{ form.errors.email }}</div>
+                                            <div v-if="emailError" class="error-premium">{{ emailError }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Teléfono Particular</label>
+                                            <input type="text" v-model="form.telefono_particular"
+                                                   @input="validatePhone('telefono_particular')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': phoneErrors.telefono_particular }"
+                                                   placeholder="777 123 4567"
+                                                   maxlength="10">
+                                            <div v-if="phoneErrors.telefono_particular" class="error-premium">{{ phoneErrors.telefono_particular }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Teléfono Trabajo</label>
+                                            <input type="text" v-model="form.telefono_trabajo"
+                                                   @input="validatePhone('telefono_trabajo')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': phoneErrors.telefono_trabajo }"
+                                                   placeholder="777 987 6543"
+                                                   maxlength="10">
+                                            <div v-if="phoneErrors.telefono_trabajo" class="error-premium">{{ phoneErrors.telefono_trabajo }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Extensión</label>
+                                            <input type="text" v-model="form.extension_trabajo"
+                                                   @input="validateNumeric('extension_trabajo')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': numericErrors.extension_trabajo }"
+                                                   placeholder="123"
+                                                   maxlength="10">
+                                            <div v-if="numericErrors.extension_trabajo" class="error-premium">{{ numericErrors.extension_trabajo }}</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 3: CONTACTO -->
-                        <!-- ============================================ -->
-                        <div class="form-section">
-                            <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                                    <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                                    </svg>
-                                </div>
-                                <div class="section-title-group">
-                                    <h3 class="section-title">Informacion de Contacto</h3>
-                                    <p class="section-subtitle">Telefonos y correo electronico</p>
-                                </div>
-                                <span class="badge-optional">Opcional</span>
-                            </div>
-
-                            <div class="form-grid">
-                                <!-- Correo -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                        </svg>
-                                        Correo Electronico
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="email" v-model="form.email"
-                                               @input="clearError('email'); validateEmail()"
-                                               class="form-input"
-                                               :class="{ 'error': form.errors.email || emailError }"
-                                               placeholder="contacto@correo.com"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                <!-- Notas -->
+                                <div class="section-premium section-notas">
+                                    <div class="section-header-premium">
+                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                            <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                             </svg>
                                         </div>
-                                    </div>
-                                    <div v-if="form.errors.email" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.email }}
-                                    </div>
-                                    <div v-if="emailError" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ emailError }}
-                                    </div>
-                                </div>
-
-                                <!-- Telefono Particular -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                        </svg>
-                                        Telefono Particular
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.telefono_particular"
-                                               @input="validatePhone('telefono_particular')"
-                                               class="form-input"
-                                               :class="{ 'error': phoneErrors.telefono_particular }"
-                                               placeholder="7771234567"
-                                               maxlength="10"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                            </svg>
+                                        <div class="section-title-wrapper">
+                                            <span class="section-title-premium">Notas Adicionales</span>
+                                            <span class="badge-optional">Opcional</span>
                                         </div>
                                     </div>
-                                    <div v-if="phoneErrors.telefono_particular" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ phoneErrors.telefono_particular }}
-                                    </div>
-                                </div>
-
-                                <!-- Telefono Trabajo -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Telefono de Trabajo
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.telefono_trabajo"
-                                               @input="validatePhone('telefono_trabajo')"
-                                               class="form-input"
-                                               :class="{ 'error': phoneErrors.telefono_trabajo }"
-                                               placeholder="7779876543"
-                                               maxlength="10"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="phoneErrors.telefono_trabajo" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ phoneErrors.telefono_trabajo }}
-                                    </div>
-                                </div>
-
-                                <!-- Extension -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                        </svg>
-                                        Extension
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.extension_trabajo"
-                                               @input="validateNumeric('extension_trabajo')"
-                                               class="form-input"
-                                               :class="{ 'error': numericErrors.extension_trabajo }"
-                                               placeholder="Ej: 123"
-                                               maxlength="10"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="numericErrors.extension_trabajo" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ numericErrors.extension_trabajo }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 4: DIRECCION -->
-                        <!-- ============================================ -->
-                        <div class="form-section">
-                            <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
-                                    <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    </svg>
-                                </div>
-                                <div class="section-title-group">
-                                    <h3 class="section-title">Direccion</h3>
-                                    <p class="section-subtitle">Informacion completa de ubicacion</p>
-                                </div>
-                                <span class="badge-optional">Opcional</span>
-                            </div>
-
-                            <div class="form-grid">
-                                <!-- Calle -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                        </svg>
-                                        Calle
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.calle"
-                                               @input="validateText('calle')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.calle }"
-                                               placeholder="Ej: Avenida Reforma"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="textErrors.calle" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.calle }}
-                                    </div>
-                                </div>
-
-                                <!-- Numero Exterior -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                        </svg>
-                                        Numero Exterior
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.numero_exterior"
-                                               @input="validateAlphanumeric('numero_exterior')"
-                                               class="form-input"
-                                               :class="{ 'error': alphanumericErrors.numero_exterior }"
-                                               placeholder="Ej: 123"
-                                               maxlength="10">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="alphanumericErrors.numero_exterior" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ alphanumericErrors.numero_exterior }}
-                                    </div>
-                                </div>
-
-                                <!-- Numero Interior -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                        </svg>
-                                        Numero Interior
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.numero_interior"
-                                               @input="validateAlphanumeric('numero_interior')"
-                                               class="form-input"
-                                               :class="{ 'error': alphanumericErrors.numero_interior }"
-                                               placeholder="Ej: 2B"
-                                               maxlength="10">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="alphanumericErrors.numero_interior" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ alphanumericErrors.numero_interior }}
-                                    </div>
-                                </div>
-
-                                <!-- Colonia -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                        </svg>
-                                        Colonia
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.colonia"
-                                               @input="validateText('colonia')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.colonia }"
-                                               placeholder="Ej: Juarez"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="textErrors.colonia" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.colonia }}
-                                    </div>
-                                </div>
-
-                                <!-- Ciudad + Municipio -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Ciudad
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.ciudad"
-                                               @input="validateText('ciudad')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.ciudad }"
-                                               placeholder="Ej: Ciudad de Mexico"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="textErrors.ciudad" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.ciudad }}
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Municipio
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.municipio"
-                                               @input="validateText('municipio')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.municipio }"
-                                               placeholder="Ej: Cuauhtemoc"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="textErrors.municipio" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.municipio }}
-                                    </div>
-                                </div>
-
-                                <!-- Estado + CP -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Estado
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.estado"
-                                               @input="validateText('estado')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.estado }"
-                                               placeholder="Ej: CDMX"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="textErrors.estado" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.estado }}
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 18h14M7 6h10"/>
-                                        </svg>
-                                        Codigo Postal
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.codigo_postal"
-                                               @input="validateCodigoPostal()"
-                                               class="form-input"
-                                               :class="{ 'error': codigoPostalError }"
-                                               placeholder="Ej: 06600"
-                                               maxlength="5"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 18h14M7 6h10"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="codigoPostalError" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ codigoPostalError }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 5: REPRESENTANTE LEGAL -->
-                        <!-- ============================================ -->
-                        <div class="form-section">
-                            <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">
-                                    <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                </div>
-                                <div class="section-title-group">
-                                    <h3 class="section-title">Representante Legal</h3>
-                                    <p class="section-subtitle">Informacion del representante legal</p>
-                                </div>
-                                <span class="badge-optional">Opcional</span>
-                            </div>
-
-                            <div class="form-grid">
-                                <!-- Nombre Representante -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Nombre del Representante
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.representante_nombre"
-                                               @input="clearError('representante_nombre'); validateText('representante_nombre')"
-                                               class="form-input"
-                                               :class="{ 'error': form.errors.representante_nombre || textErrors.representante_nombre }"
-                                               placeholder="Ej: Maria"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="form.errors.representante_nombre" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.representante_nombre }}
-                                    </div>
-                                    <div v-if="textErrors.representante_nombre" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.representante_nombre }}
-                                    </div>
-                                </div>
-
-                                <!-- Apellido Paterno Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Apellido Paterno
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.representante_paterno"
-                                               @input="clearError('representante_paterno'); validateText('representante_paterno')"
-                                               class="form-input"
-                                               :class="{ 'error': form.errors.representante_paterno || textErrors.representante_paterno }"
-                                               placeholder="Ej: Lopez"
-                                               maxlength="50">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="form.errors.representante_paterno" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.representante_paterno }}
-                                    </div>
-                                    <div v-if="textErrors.representante_paterno" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.representante_paterno }}
-                                    </div>
-                                </div>
-
-                                <!-- Apellido Materno Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Apellido Materno
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.representante_materno"
-                                               @input="validateText('representante_materno')"
-                                               class="form-input"
-                                               :class="{ 'error': textErrors.representante_materno }"
-                                               placeholder="Ej: Martinez"
-                                               maxlength="50">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="textErrors.representante_materno" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ textErrors.representante_materno }}
-                                    </div>
-                                </div>
-
-                                <!-- Fecha Nacimiento Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
-                                        Fecha de Nacimiento
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="date" v-model="form.representante_fecha_nacimiento"
-                                               @change="clearError('representante_fecha_nacimiento')"
-                                               class="form-input date-input"
-                                               :class="{ 'error': form.errors.representante_fecha_nacimiento }"
-                                               :max="fechaMaxima">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="form.errors.representante_fecha_nacimiento" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ form.errors.representante_fecha_nacimiento }}
-                                    </div>
-                                </div>
-
-                                <!-- Sexo Representante -->
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                        </svg>
-                                        Sexo del Representante
-                                    </label>
-                                    <div class="radio-group-horizontal">
-                                        <div class="radio-card-mini" 
-                                             :class="{ 'selected': form.representante_sexo === 'MASCULINO' }"
-                                             @click="form.representante_sexo = 'MASCULINO'">
-                                            <span class="radio-label">Masculino</span>
-                                            <div class="radio-check-mini" v-if="form.representante_sexo === 'MASCULINO'">
-                                                <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                            </div>
-                                            <input type="radio" v-model="form.representante_sexo" value="MASCULINO" class="radio-input">
-                                        </div>
-
-                                        <div class="radio-card-mini" 
-                                             :class="{ 'selected': form.representante_sexo === 'FEMENINO' }"
-                                             @click="form.representante_sexo = 'FEMENINO'">
-                                            <span class="radio-label">Femenino</span>
-                                            <div class="radio-check-mini" v-if="form.representante_sexo === 'FEMENINO'">
-                                                <svg class="check-icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                            </div>
-                                            <input type="radio" v-model="form.representante_sexo" value="FEMENINO" class="radio-input">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Correo Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                        </svg>
-                                        Correo del Representante
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="email" v-model="form.representante_email"
-                                               @input="validateRepresentanteEmail()"
-                                               class="form-input"
-                                               :class="{ 'error': representanteEmailError }"
-                                               placeholder="representante@correo.com"
-                                               maxlength="100">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="representanteEmailError" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ representanteEmailError }}
-                                    </div>
-                                </div>
-
-                                <!-- Telefono Particular Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                        </svg>
-                                        Telefono Particular
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.representante_telefono_particular"
-                                               @input="validatePhone('representante_telefono_particular')"
-                                               class="form-input"
-                                               :class="{ 'error': phoneErrors.representante_telefono_particular }"
-                                               placeholder="7771234567"
-                                               maxlength="10"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="phoneErrors.representante_telefono_particular" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ phoneErrors.representante_telefono_particular }}
-                                    </div>
-                                </div>
-
-                                <!-- Telefono Trabajo Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        Telefono de Trabajo
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.representante_telefono_trabajo"
-                                               @input="validatePhone('representante_telefono_trabajo')"
-                                               class="form-input"
-                                               :class="{ 'error': phoneErrors.representante_telefono_trabajo }"
-                                               placeholder="7779876543"
-                                               maxlength="10"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="phoneErrors.representante_telefono_trabajo" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ phoneErrors.representante_telefono_trabajo }}
-                                    </div>
-                                </div>
-
-                                <!-- Extension Representante -->
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                        </svg>
-                                        Extension
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="text" v-model="form.representante_extension_trabajo"
-                                               @input="validateNumeric('representante_extension_trabajo')"
-                                               class="form-input"
-                                               :class="{ 'error': numericErrors.representante_extension_trabajo }"
-                                               placeholder="Ej: 123"
-                                               maxlength="10"
-                                               inputmode="numeric"
-                                               pattern="[0-9]*">
-                                        <div class="input-icon">
-                                            <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="numericErrors.representante_extension_trabajo" class="error-message">
-                                        <svg class="error-icon" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        {{ numericErrors.representante_extension_trabajo }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ============================================ -->
-                        <!-- SECCIÓN 6: NOTAS -->
-                        <!-- ============================================ -->
-                        <div class="form-section">
-                            <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                                    <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                    </svg>
-                                </div>
-                                <div class="section-title-group">
-                                    <h3 class="section-title">Notas Adicionales</h3>
-                                    <p class="section-subtitle">Informacion complementaria sobre la persona</p>
-                                </div>
-                                <span class="badge-optional">Opcional</span>
-                            </div>
-
-                            <div class="form-grid">
-                                <div class="form-group full-width">
-                                    <label class="form-label">
-                                        <svg class="label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                        </svg>
-                                        Notas
-                                    </label>
-                                    <div class="input-wrapper">
+                                    <div class="field-premium full">
                                         <textarea v-model="form.notas"
-                                                  class="form-textarea"
-                                                  rows="4"
-                                                  placeholder="Informacion adicional sobre la persona..."
+                                                  class="textarea-premium textarea-lg"
+                                                  rows="3"
+                                                  placeholder="Información adicional sobre la persona..."
                                                   maxlength="500"></textarea>
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- TAB 2: DIRECCIÓN -->
+                            <div v-show="activeTab === 'direccion'" class="tab-pane-premium">
+                                <div class="section-premium section-direccion">
+                                    <div class="section-header-premium">
+                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+                                            <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="section-title-wrapper">
+                                            <span class="section-title-premium">Dirección</span>
+                                            <span class="badge-optional">Opcional</span>
+                                        </div>
+                                    </div>
+                                    <div class="grid-direccion">
+                                        <div class="field-premium full">
+                                            <label class="label-premium">Calle</label>
+                                            <input type="text" v-model="form.calle"
+                                                   @input="validateText('calle')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.calle }"
+                                                   placeholder="Avenida Reforma">
+                                            <div v-if="textErrors.calle" class="error-premium">{{ textErrors.calle }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Número Exterior</label>
+                                            <input type="text" v-model="form.numero_exterior"
+                                                   @input="validateAlphanumeric('numero_exterior')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': alphanumericErrors.numero_exterior }"
+                                                   placeholder="123">
+                                            <div v-if="alphanumericErrors.numero_exterior" class="error-premium">{{ alphanumericErrors.numero_exterior }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Número Interior</label>
+                                            <input type="text" v-model="form.numero_interior"
+                                                   @input="validateAlphanumeric('numero_interior')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': alphanumericErrors.numero_interior }"
+                                                   placeholder="2B">
+                                            <div v-if="alphanumericErrors.numero_interior" class="error-premium">{{ alphanumericErrors.numero_interior }}</div>
+                                        </div>
+                                        <div class="field-premium full">
+                                            <label class="label-premium">Colonia</label>
+                                            <input type="text" v-model="form.colonia"
+                                                   @input="validateText('colonia')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.colonia }"
+                                                   placeholder="Juárez">
+                                            <div v-if="textErrors.colonia" class="error-premium">{{ textErrors.colonia }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Ciudad</label>
+                                            <input type="text" v-model="form.ciudad"
+                                                   @input="validateText('ciudad')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.ciudad }"
+                                                   placeholder="Ciudad de México">
+                                            <div v-if="textErrors.ciudad" class="error-premium">{{ textErrors.ciudad }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Municipio</label>
+                                            <input type="text" v-model="form.municipio"
+                                                   @input="validateText('municipio')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.municipio }"
+                                                   placeholder="Cuauhtémoc">
+                                            <div v-if="textErrors.municipio" class="error-premium">{{ textErrors.municipio }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Estado</label>
+                                            <input type="text" v-model="form.estado"
+                                                   @input="validateText('estado')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.estado }"
+                                                   placeholder="CDMX">
+                                            <div v-if="textErrors.estado" class="error-premium">{{ textErrors.estado }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Código Postal</label>
+                                            <input type="text" v-model="form.codigo_postal"
+                                                   @input="validateCodigoPostal()"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': codigoPostalError }"
+                                                   placeholder="06600"
+                                                   maxlength="5">
+                                            <div v-if="codigoPostalError" class="error-premium">{{ codigoPostalError }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB 3: REPRESENTANTE LEGAL -->
+                            <div v-show="activeTab === 'representante'" class="tab-pane-premium">
+                                <div class="section-premium section-representante">
+                                    <div class="section-header-premium">
+                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+                                            <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="section-title-wrapper">
+                                            <span class="section-title-premium">Representante Legal</span>
+                                            <span class="badge-optional">Opcional</span>
+                                        </div>
+                                    </div>
+                                    <div class="grid-representante">
+                                        <!-- Fila 1: Nombre + Apellido Paterno + Apellido Materno -->
+                                        <div class="field-premium">
+                                            <label class="label-premium">Nombre del Representante</label>
+                                            <input type="text" v-model="form.representante_nombre"
+                                                   @input="clearError('representante_nombre'); validateText('representante_nombre')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': form.errors.representante_nombre || textErrors.representante_nombre }"
+                                                   placeholder="María">
+                                            <div v-if="form.errors.representante_nombre" class="error-premium">{{ form.errors.representante_nombre }}</div>
+                                            <div v-if="textErrors.representante_nombre" class="error-premium">{{ textErrors.representante_nombre }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Apellido Paterno</label>
+                                            <input type="text" v-model="form.representante_paterno"
+                                                   @input="clearError('representante_paterno'); validateText('representante_paterno')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': form.errors.representante_paterno || textErrors.representante_paterno }"
+                                                   placeholder="López">
+                                            <div v-if="form.errors.representante_paterno" class="error-premium">{{ form.errors.representante_paterno }}</div>
+                                            <div v-if="textErrors.representante_paterno" class="error-premium">{{ textErrors.representante_paterno }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Apellido Materno</label>
+                                            <input type="text" v-model="form.representante_materno"
+                                                   @input="validateText('representante_materno')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': textErrors.representante_materno }"
+                                                   placeholder="Martínez">
+                                            <div v-if="textErrors.representante_materno" class="error-premium">{{ textErrors.representante_materno }}</div>
+                                        </div>
+
+                                        <!-- Fila 2: Fecha Nacimiento + Correo + Sexo -->
+                                        <div class="field-premium">
+                                            <label class="label-premium">Fecha Nacimiento</label>
+                                            <input type="date" v-model="form.representante_fecha_nacimiento"
+                                                   @change="clearError('representante_fecha_nacimiento')"
+                                                   class="input-premium input-lg date"
+                                                   :class="{ 'error': form.errors.representante_fecha_nacimiento }"
+                                                   :max="fechaMaxima">
+                                            <div v-if="form.errors.representante_fecha_nacimiento" class="error-premium">{{ form.errors.representante_fecha_nacimiento }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Sexo</label>
+                                            <div class="radio-group-sm radio-lg">
+                                                <div class="radio-sm radio-lg" 
+                                                     :class="{ 'selected': form.representante_sexo === 'MASCULINO' }"
+                                                     @click="form.representante_sexo = 'MASCULINO'">
+                                                    <span>Masculino</span>
+                                                    <input type="radio" v-model="form.representante_sexo" value="MASCULINO" class="radio-input">
+                                                </div>
+                                                <div class="radio-sm radio-lg" 
+                                                     :class="{ 'selected': form.representante_sexo === 'FEMENINO' }"
+                                                     @click="form.representante_sexo = 'FEMENINO'">
+                                                    <span>Femenino</span>
+                                                    <input type="radio" v-model="form.representante_sexo" value="FEMENINO" class="radio-input">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Correo del Representante</label>
+                                            <input type="email" v-model="form.representante_email"
+                                                   @input="validateRepresentanteEmail()"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': representanteEmailError }"
+                                                   placeholder="representante@correo.com">
+                                            <div v-if="representanteEmailError" class="error-premium">{{ representanteEmailError }}</div>
+                                        </div>
+                                        
+                                        <!-- Fila 3: Teléfonos -->
+                                        <div class="field-premium">
+                                            <label class="label-premium">Teléfono Particular</label>
+                                            <input type="text" v-model="form.representante_telefono_particular"
+                                                   @input="validatePhone('representante_telefono_particular')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': phoneErrors.representante_telefono_particular }"
+                                                   placeholder="777 123 4567"
+                                                   maxlength="10">
+                                            <div v-if="phoneErrors.representante_telefono_particular" class="error-premium">{{ phoneErrors.representante_telefono_particular }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Teléfono Trabajo</label>
+                                            <input type="text" v-model="form.representante_telefono_trabajo"
+                                                   @input="validatePhone('representante_telefono_trabajo')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': phoneErrors.representante_telefono_trabajo }"
+                                                   placeholder="777 987 6543"
+                                                   maxlength="10">
+                                            <div v-if="phoneErrors.representante_telefono_trabajo" class="error-premium">{{ phoneErrors.representante_telefono_trabajo }}</div>
+                                        </div>
+                                        <div class="field-premium">
+                                            <label class="label-premium">Extensión</label>
+                                            <input type="text" v-model="form.representante_extension_trabajo"
+                                                   @input="validateNumeric('representante_extension_trabajo')"
+                                                   class="input-premium input-lg"
+                                                   :class="{ 'error': numericErrors.representante_extension_trabajo }"
+                                                   placeholder="123"
+                                                   maxlength="10">
+                                            <div v-if="numericErrors.representante_extension_trabajo" class="error-premium">{{ numericErrors.representante_extension_trabajo }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- ============================================ -->
-                        <!-- BOTONES -->
-                        <!-- ============================================ -->
-                        <div class="info-box-mini">
-                            <svg class="info-icon" fill="none" stroke="#667eea" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Los campos con <strong class="text-danger">*</strong> son obligatorios</span>
-                        </div>
-
-                        <div class="form-actions">
-                            <div class="actions-right">
-                                <Link :href="route('personas.index')" class="btn btn-cancel">
-                                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <!-- ===== FOOTER ===== -->
+                        <div class="footer-premium">
+                            <div class="info-premium">
+                                <svg class="info-icon-sm" fill="none" stroke="#667eea" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Los campos con <strong class="text-danger">*</strong> son obligatorios</span>
+                            </div>
+                            <div class="actions-premium">
+                                <Link :href="route('personas.index')" class="btn-cancel-premium btn-lg">
+                                    <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
                                     Cancelar
                                 </Link>
                                 <button type="submit" 
                                         :disabled="form.processing || !isFormValid"
-                                        class="btn btn-submit">
-                                    <span v-if="form.processing" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                    <svg v-else class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        class="btn-submit-premium btn-lg">
+                                    <span v-if="form.processing" class="spinner-border-sm" role="status"></span>
+                                    <svg v-else class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
                                     </svg>
                                     {{ form.processing ? 'Guardando...' : 'Actualizar Persona' }}
@@ -1222,6 +619,11 @@ const phoneErrors = ref({
 });
 
 // ============================================
+// TAB ACTIVO
+// ============================================
+const activeTab = ref('generales');
+
+// ============================================
 // FECHA MAXIMA (18 años)
 // ============================================
 const fechaMaxima = computed(() => {
@@ -1247,11 +649,11 @@ const formatDate = (date) => {
 };
 
 // ============================================
-// FORMULARIO
+// FORMULARIO - CORREGIDO
 // ============================================
 const form = useForm({
     tipo_persona: props.persona?.tipo_persona || 'FISICA',
-    empleado: props.persona?.empleado ?? 0,
+    empleado: props.persona?.empleado ?? false, // ✅ CORREGIDO: usa booleano
     Nombre: props.persona?.Nombre || '',
     Paterno: props.persona?.Paterno || '',
     Materno: props.persona?.Materno || '',
@@ -1263,7 +665,6 @@ const form = useForm({
     telefono_particular: props.persona?.telefono_particular || '',
     telefono_trabajo: props.persona?.telefono_trabajo || '',
     extension_trabajo: props.persona?.extension_trabajo || '',
-    direccion: props.persona?.direccion || '',
     calle: props.persona?.calle || '',
     numero_exterior: props.persona?.numero_exterior || '',
     numero_interior: props.persona?.numero_interior || '',
@@ -1285,7 +686,7 @@ const form = useForm({
 });
 
 // ============================================
-// VALIDACIONES (mismas que en Create)
+// VALIDACIONES
 // ============================================
 const validateText = (field) => {
     const value = form[field];
@@ -1308,7 +709,7 @@ const validateNumeric = (field) => {
         return;
     }
     if (!/^\d+$/.test(value)) {
-        numericErrors.value[field] = 'Solo se permiten numeros';
+        numericErrors.value[field] = 'Solo se permiten números';
     } else {
         numericErrors.value[field] = '';
     }
@@ -1321,7 +722,7 @@ const validateAlphanumeric = (field) => {
         return;
     }
     if (!/^[a-zA-Z0-9]+$/.test(value)) {
-        alphanumericErrors.value[field] = 'Solo se permiten letras y numeros (sin espacios)';
+        alphanumericErrors.value[field] = 'Solo letras y números (sin espacios)';
     } else {
         alphanumericErrors.value[field] = '';
     }
@@ -1334,9 +735,9 @@ const validateCodigoPostal = () => {
         return;
     }
     if (!/^\d+$/.test(value)) {
-        codigoPostalError.value = 'Solo se permiten numeros';
+        codigoPostalError.value = 'Solo se permiten números';
     } else if (value.length !== 5) {
-        codigoPostalError.value = 'El codigo postal debe tener 5 digitos';
+        codigoPostalError.value = 'El código postal debe tener 5 dígitos';
     } else {
         codigoPostalError.value = '';
     }
@@ -1359,7 +760,7 @@ const validateCURP = () => {
         return;
     }
     if (!curpRegex.test(curpLimpio)) {
-        curpError.value = 'Formato de CURP invalido';
+        curpError.value = 'Formato de CURP inválido';
         return;
     }
     curpError.value = '';
@@ -1374,10 +775,10 @@ const validateRFC = () => {
     let rfcRegex;
     if (form.tipo_persona === 'FISICA') {
         rfcRegex = /^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$/;
-        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona fisica invalido';
+        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona física inválido';
     } else {
         rfcRegex = /^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$/;
-        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona moral invalido';
+        rfcError.value = rfcRegex.test(rfc) ? '' : 'RFC de persona moral inválido';
     }
 };
 
@@ -1392,21 +793,21 @@ const validateEdad = () => {
     let edad = hoy.getFullYear() - fechaNac.getFullYear();
     const mes = hoy.getMonth() - fechaNac.getMonth();
     if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) edad--;
-    edadError.value = edad < 18 ? `Debe ser mayor de edad (tiene ${edad} años)` : '';
+    edadError.value = edad < 18 ? `Debe ser mayor de edad (${edad} años)` : '';
 };
 
 const validateEmail = () => {
     const email = form.email;
     if (!email) { emailError.value = ''; return; }
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    emailError.value = emailRegex.test(email) ? '' : 'Correo electronico invalido';
+    emailError.value = emailRegex.test(email) ? '' : 'Correo electrónico inválido';
 };
 
 const validateRepresentanteEmail = () => {
     const email = form.representante_email;
     if (!email) { representanteEmailError.value = ''; return; }
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    representanteEmailError.value = emailRegex.test(email) ? '' : 'Correo electronico invalido';
+    representanteEmailError.value = emailRegex.test(email) ? '' : 'Correo electrónico inválido';
 };
 
 const validatePhone = (field) => {
@@ -1421,9 +822,9 @@ const validatePhone = (field) => {
         return;
     }
     if (phone.length < 10) {
-        phoneErrors.value[field] = 'El telefono debe tener 10 digitos';
+        phoneErrors.value[field] = 'El teléfono debe tener 10 dígitos';
     } else if (phone.length > 10) {
-        phoneErrors.value[field] = 'El telefono no puede tener mas de 10 digitos';
+        phoneErrors.value[field] = 'El teléfono no puede tener más de 10 dígitos';
     } else {
         phoneErrors.value[field] = '';
     }
@@ -1499,6 +900,10 @@ const onTipoChange = () => {
     
     curpError.value = '';
     rfcError.value = '';
+    
+    if (form.tipo_persona === 'FISICA' && activeTab.value === 'representante') {
+        activeTab.value = 'generales';
+    }
     
     if (puedeGenerarRFC.value) {
         generarRFC();
@@ -1647,7 +1052,7 @@ const submit = () => {
     if (!isFormValid.value) {
         alertRef.value?.show({
             type: 'error',
-            title: 'Error de validacion',
+            title: 'Error de validación',
             message: 'Por favor, corrija los errores en el formulario antes de continuar.',
             buttonText: 'Entendido'
         });
@@ -1656,21 +1061,29 @@ const submit = () => {
     
     form.put(route('personas.update', props.persona.id_persona), {
         onSuccess: () => {
-            // El controlador redirige con flash
+            alertRef.value?.show({
+                type: 'success',
+                title: 'Persona actualizada',
+                message: 'La persona se ha actualizado exitosamente en el sistema.',
+                buttonText: 'Ir al listado'
+            });
+            setTimeout(() => {
+                router.visit(route('personas.index'));
+            }, 1500);
         },
         onError: (errors) => {
             if (errors.rfc) {
                 alertRef.value?.show({
                     type: 'error',
                     title: 'RFC duplicado',
-                    message: 'El RFC que ingresaste ya esta registrado en otra persona.',
+                    message: 'El RFC que ingresaste ya está registrado en otra persona.',
                     buttonText: 'Entendido'
                 });
             } else {
                 alertRef.value?.show({
                     type: 'error',
                     title: 'Error al actualizar',
-                    message: 'Ocurrio un error al actualizar la persona.',
+                    message: 'Ocurrió un error al actualizar la persona.',
                     buttonText: 'Intentar de nuevo'
                 });
             }
@@ -1680,47 +1093,42 @@ const submit = () => {
 </script>
 
 <style scoped>
-/* ===== TODOS LOS ESTILOS ===== */
-.header-wrapper {
+/* ===== HEADER PREMIUM ===== */
+.header-wrapper-premium {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 4px 0;
+    padding: 2px 0;
 }
 
-.header-left {
+.header-left-premium {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
 
-.btn-back {
+.btn-back-premium {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #6b7280;
     transition: all 0.3s ease;
 }
 
-.btn-back:hover {
+.btn-back-premium:hover {
     background: white;
     color: #1f2937;
-    transform: translateX(-3px) scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateX(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.header-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.header-title {
+.header-title-premium {
     font-size: 1.25rem;
     font-weight: 700;
     color: #111827;
@@ -1728,22 +1136,22 @@ const submit = () => {
     line-height: 1.3;
 }
 
-.header-subtitle {
+.header-subtitle-premium {
     font-size: 0.85rem;
     color: #6b7280;
     margin: 0;
 }
 
-.header-right {
+.header-right-premium {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
-.status-badge {
-    padding: 6px 16px;
+.status-badge-premium {
+    padding: 6px 18px;
     border-radius: 20px;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -1756,7 +1164,6 @@ const submit = () => {
 .status-error {
     background: linear-gradient(135deg, #fecaca, #fca5a5);
     color: #991b1b;
-    animation: shake 0.5s ease;
 }
 
 .status-progress {
@@ -1764,209 +1171,409 @@ const submit = () => {
     color: #4338ca;
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+/* ===== PAGE CONTENT ===== */
+.page-content-premium {
+    padding: 0.75rem 0;
 }
 
-.page-content {
-    padding: 1.5rem 0;
-}
-
-.container-custom {
-    max-width: 72rem;
+.container-premium {
+    max-width: 100%;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
 }
 
-.form-card {
+.form-card-premium {
     background: white;
-    border-radius: 20px;
+    border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    border: 1px solid #f3f4f6;
-    padding: 2rem;
-    transition: all 0.3s ease;
+    border: 1px solid #f0f2f5;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 180px);
 }
 
-.form-card:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+/* ===== TABS ===== */
+.tabs-premium {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #f0f2f5;
+    padding-bottom: 2px;
+    flex-shrink: 0;
 }
 
-.form-section {
-    margin-bottom: 2rem;
-    animation: fadeIn 0.5s ease;
+.tab-premium {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border-radius: 8px 8px 0 0;
+    white-space: nowrap;
 }
 
-.form-section:last-of-type {
-    margin-bottom: 1.5rem;
+.tab-premium:hover {
+    color: #1f2937;
+    background: #f8f9fa;
+}
+
+.tab-premium.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: rgba(102, 126, 234, 0.06);
+}
+
+.tab-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===== TAB CONTENT ===== */
+.tab-content-premium {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    min-height: 0;
+}
+
+.tab-content-premium::-webkit-scrollbar {
+    width: 5px;
+}
+
+.tab-content-premium::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.tab-content-premium::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.tab-content-premium::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+.tab-pane-premium {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: fadeIn 0.25s ease;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.section-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #f3f4f6;
+/* ===== SECCIONES ===== */
+.section-premium {
+    background: #fafbfc;
+    border-radius: 10px;
+    padding: 10px 14px 12px;
+    border: 1px solid #f0f2f5;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
-.section-icon {
+.section-premium:hover {
+    border-color: #e5e7eb;
+    background: #f8f9fa;
+}
+
+.section-tipo { border-left: 4px solid #667eea; }
+.section-datos { border-left: 4px solid #8b5cf6; }
+.section-contacto { border-left: 4px solid #f59e0b; }
+.section-direccion { border-left: 4px solid #06b6d4; }
+.section-representante { border-left: 4px solid #ec4899; }
+.section-notas { border-left: 4px solid #10b981; }
+
+.section-header-premium {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.section-icon-premium {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     color: white;
     flex-shrink: 0;
-    transition: all 0.3s ease;
 }
 
-.section-header:hover .section-icon {
-    transform: scale(1.05) rotate(-5deg);
+.icon-sm {
+    width: 15px;
+    height: 15px;
 }
 
-.icon-svg {
-    width: 22px;
-    height: 22px;
-}
-
-.section-title-group {
+.section-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex: 1;
+    flex-wrap: wrap;
 }
 
-.section-title {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #111827;
-    margin: 0;
+.section-title-premium {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1f2937;
+    letter-spacing: 0.3px;
 }
 
-.section-subtitle {
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin: 0;
+.badge-required {
+    background: #fecaca;
+    color: #991b1b;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
 }
 
 .badge-optional {
     background: #f3f4f6;
     color: #6b7280;
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 0.7rem;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.6rem;
     font-weight: 600;
-    white-space: nowrap;
 }
 
-.form-grid {
+.optional {
+    font-weight: 400;
+    color: #9ca3af;
+    font-size: 0.65rem;
+}
+
+/* ===== GRID SISTEM ===== */
+.grid-nombres {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px 12px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 8px 12px;
+}
+
+.grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 8px 12px;
 }
 
-.form-group {
+.grid-contacto {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px 12px;
+}
+
+.grid-direccion {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+}
+
+.grid-representante {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px 12px;
+}
+
+.field-premium {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
-.form-group.full-width {
+.field-premium.full {
     grid-column: 1 / -1;
 }
 
-.two-columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    width: 100%;
-}
-
-.form-label {
-    font-size: 0.85rem;
+/* ===== LABELS ===== */
+.label-premium {
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #374151;
+    color: #4b5563;
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    gap: 4px;
 }
 
-.label-icon {
-    width: 18px;
-    height: 18px;
-    color: #667eea;
-    flex-shrink: 0;
-}
-
-.required-star {
+.star {
     color: #ef4444;
-    font-weight: 700;
 }
 
-.helper-label {
-    font-size: 0.7rem;
-    font-weight: 400;
-    color: #6b7280;
-    margin-left: 4px;
+/* ===== INPUTS ===== */
+.input-premium {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    color: #1f2937;
+    transition: all 0.2s ease;
+    outline: none;
+    height: 40px;
 }
 
-.radio-group-horizontal {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+.input-premium:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.input-premium.error {
+    border-color: #ef4444;
+}
+
+.input-premium.error:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.input-premium.date {
+    padding: 8px 10px;
+}
+
+.select-premium {
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    font-size: 0.85rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    color: #1f2937;
+    outline: none;
+    height: 40px;
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+}
+
+.select-premium:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.select-premium.error {
+    border-color: #ef4444;
+}
+
+.select-premium.error:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.textarea-premium {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    color: #1f2937;
+    outline: none;
+    font-family: inherit;
+    resize: none;
+    min-height: 70px;
+    max-height: 120px;
+    transition: all 0.2s ease;
+}
+
+.textarea-premium:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+/* ===== RADIO ===== */
+.radio-group-premium {
+    display: flex;
     gap: 12px;
 }
 
-.radio-card-mini {
+.radio-premium {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 8px;
+    padding: 8px 18px;
     background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #4b5563;
+    height: 38px;
     position: relative;
+    flex: 1;
 }
 
-.radio-card-mini:hover {
+.radio-premium:hover {
     border-color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
 }
 
-.radio-card-mini.selected {
+.radio-premium.selected {
     border-color: #667eea;
-    background: linear-gradient(135deg, #f8f7ff, #f0eeff);
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+    background: #f0f4ff;
+    color: #1f2937;
 }
 
-.radio-label {
+.radio-check .check-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.radio-group-sm {
+    display: flex;
+    gap: 6px;
+}
+
+.radio-sm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: #111827;
-    font-size: 0.9rem;
+    color: #4b5563;
+    height: 34px;
+    min-width: 60px;
+    position: relative;
+    flex: 1;
 }
 
-.radio-check-mini {
-    animation: popIn 0.3s ease;
+.radio-sm:hover {
+    border-color: #667eea;
 }
 
-.check-icon {
-    width: 22px;
-    height: 22px;
-}
-
-@keyframes popIn {
-    0% { transform: scale(0); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
+.radio-sm.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+    color: #1f2937;
 }
 
 .radio-input {
@@ -1976,404 +1583,277 @@ const submit = () => {
     height: 0;
 }
 
-.input-wrapper {
+/* ===== INPUT CON BOTON ===== */
+.input-with-btn {
     position: relative;
 }
 
-.form-input {
-    width: 100%;
-    padding: 10px 120px 10px 14px;
-    font-size: 0.9rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    background: white;
-    color: #1f2937;
-    transition: all 0.3s ease;
-    outline: none;
-    height: 44px;
+.input-with-btn .input-premium {
+    padding-right: 100px;
 }
 
-.form-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.form-input:hover:not(:focus) {
-    border-color: #9ca3af;
-}
-
-.form-input.error {
-    border-color: #ef4444;
-}
-
-.form-input.error:focus {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-}
-
-.form-input.text-uppercase {
-    text-transform: uppercase;
-}
-
-.form-input.date-input {
-    padding-right: 40px;
-}
-
-.form-textarea {
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 0.9rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    background: white;
-    color: #1f2937;
-    transition: all 0.3s ease;
-    outline: none;
-    font-family: inherit;
-    resize: vertical;
-    min-height: 80px;
-}
-
-.form-textarea:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.form-textarea:hover:not(:focus) {
-    border-color: #9ca3af;
-}
-
-.input-icon {
+.btn-rfc-premium {
     position: absolute;
-    right: 12px;
+    right: 6px;
     top: 50%;
     transform: translateY(-50%);
-    color: #9ca3af;
-    pointer-events: none;
-    transition: color 0.3s ease;
-}
-
-.input-wrapper:focus-within .input-icon {
-    color: #667eea;
-}
-
-.icon-svg-sm {
-    width: 18px;
-    height: 18px;
-}
-
-.select-wrapper {
-    position: relative;
-}
-
-.form-select {
-    width: 100%;
-    padding: 10px 40px 10px 14px;
-    font-size: 0.9rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    background: white;
-    color: #1f2937;
-    transition: all 0.3s ease;
-    outline: none;
-    height: 44px;
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-}
-
-.form-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.form-select:hover:not(:focus) {
-    border-color: #9ca3af;
-}
-
-.form-select.error {
-    border-color: #ef4444;
-}
-
-.form-select.error:focus {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-}
-
-.select-icon {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    pointer-events: none;
-    transition: color 0.3s ease;
-}
-
-.select-wrapper:focus-within .select-icon {
-    color: #667eea;
-}
-
-.error-message {
-    font-size: 0.75rem;
-    color: #ef4444;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 2px;
-}
-
-.error-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-}
-
-.btn-generate-rfc {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 6px 16px;
+    padding: 5px 16px;
     background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     color: white;
     border: none;
     border-radius: 6px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    z-index: 2;
-    height: 32px;
+    transition: all 0.2s ease;
+    height: 30px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    white-space: nowrap;
 }
 
-.btn-generate-rfc:hover:not(:disabled) {
-    transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+.btn-rfc-premium:hover:not(:disabled) {
+    transform: translateY(-50%) scale(1.03);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
 }
 
-.btn-generate-rfc:disabled {
+.btn-rfc-premium:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: translateY(-50%);
 }
 
-.spinner-small {
+.spinner-sm {
     display: inline-block;
     width: 16px;
     height: 16px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
-    animation: spinner 0.6s linear infinite;
+    animation: spin 0.6s linear infinite;
 }
 
-@keyframes spinner {
+@keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-.info-box-mini {
+/* ===== ERROR ===== */
+.error-premium {
+    font-size: 0.7rem;
+    color: #ef4444;
+    margin-top: 2px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 18px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06));
-    border-radius: 12px;
-    border-left: 4px solid #667eea;
-    font-size: 0.85rem;
-    color: #4b5563;
-    margin-top: 4px;
+    gap: 4px;
 }
 
-.info-icon {
-    width: 20px;
-    height: 20px;
+/* ===== FOOTER ===== */
+.footer-premium {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    margin-top: 10px;
+    border-top: 1.5px solid #f0f2f5;
     flex-shrink: 0;
+    background: white;
+    padding-bottom: 2px;
+}
+
+.info-premium {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.info-icon-sm {
+    width: 18px;
+    height: 18px;
 }
 
 .text-danger {
     color: #ef4444;
 }
 
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12px;
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 2px solid #f3f4f6;
-}
-
-.actions-right {
+.actions-premium {
     display: flex;
     gap: 12px;
-    align-items: center;
 }
 
-.btn {
+.btn-cancel-premium {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 28px;
+    padding: 8px 28px;
     font-weight: 600;
-    border: none;
-    border-radius: 50px;
-    font-size: 0.9rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.85rem;
     transition: all 0.3s ease;
     cursor: pointer;
     text-decoration: none;
-    height: 44px;
-}
-
-.btn-icon {
-    width: 18px;
-    height: 18px;
-}
-
-.btn-cancel {
-    background: #f3f4f6;
     color: #6b7280;
+    background: white;
+    height: 42px;
 }
 
-.btn-cancel:hover {
-    background: #fecaca;
+.btn-cancel-premium:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
     color: #dc2626;
-    transform: translateY(-2px);
 }
 
-.btn-submit {
+.btn-submit-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 32px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
+    height: 42px;
 }
 
-.btn-submit:hover:not(:disabled) {
+.btn-submit-premium:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
-.btn-submit:disabled {
+.btn-submit-premium:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
 
-.spinner-border {
+.btn-icon-sm {
+    width: 18px;
+    height: 18px;
+}
+
+.spinner-border-sm {
     display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    border: 0.2em solid currentColor;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-right-color: transparent;
     border-radius: 50%;
-    animation: spinner 0.75s linear infinite;
+    animation: spin 0.75s linear infinite;
 }
 
-.me-2 {
-    margin-right: 0.5rem;
-}
-
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-    .form-card {
-        padding: 1.25rem;
+    .tabs-premium {
+        flex-wrap: wrap;
+        gap: 4px;
     }
-    .form-grid {
+    .tab-premium {
+        font-size: 0.75rem;
+        padding: 8px 14px;
+        flex: 1;
+        justify-content: center;
+        min-width: 0;
+    }
+    .tab-icon { width: 16px; height: 16px; }
+    
+    .grid-nombres,
+    .grid-3,
+    .grid-2,
+    .grid-contacto,
+    .grid-direccion,
+    .grid-representante {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 6px;
     }
-    .form-group.full-width {
-        grid-column: 1;
+    
+    .form-card-premium {
+        padding: 0.8rem 1rem;
+        max-height: calc(100vh - 200px);
     }
-    .two-columns {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    .radio-group-horizontal {
-        grid-template-columns: 1fr;
-    }
-    .header-wrapper {
+    
+    .footer-premium {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    .header-right {
-        width: 100%;
-        justify-content: flex-start;
-    }
-    .form-actions {
-        flex-direction: column-reverse;
+        gap: 8px;
         align-items: stretch;
     }
-    .actions-right {
-        width: 100%;
+    .info-premium { justify-content: center; }
+    .actions-premium { justify-content: center; }
+    .btn-cancel-premium,
+    .btn-submit-premium {
+        flex: 1;
         justify-content: center;
-        flex-direction: column;
     }
-    .btn {
+    .header-wrapper-premium {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .header-right-premium {
         width: 100%;
-        justify-content: center;
-        padding: 10px 20px;
-        height: 44px;
-    }
-    .container-custom {
-        padding: 0 0.75rem;
-    }
-    .status-badge {
-        font-size: 0.7rem;
-        padding: 4px 12px;
-    }
-    .section-icon {
-        width: 38px;
-        height: 38px;
-    }
-    .icon-svg {
-        width: 18px;
-        height: 18px;
-    }
-    .section-title {
-        font-size: 0.95rem;
-    }
-    .form-input {
-        padding-right: 110px;
-    }
-    .btn-generate-rfc {
-        font-size: 0.65rem;
-        padding: 4px 10px;
-        right: 6px;
+        justify-content: flex-start;
     }
 }
 
 @media (max-width: 480px) {
-    .form-card {
-        padding: 1rem;
-        border-radius: 16px;
-    }
-    .header-title {
-        font-size: 1.1rem;
-    }
-    .section-header {
-        gap: 10px;
-    }
-    .section-icon {
-        width: 34px;
-        height: 34px;
-    }
-    .icon-svg {
-        width: 16px;
-        height: 16px;
-    }
-    .radio-label {
-        font-size: 0.85rem;
-    }
-    .form-input {
-        padding-right: 90px;
+    .section-premium { padding: 8px 10px 10px; }
+    .input-premium {
         font-size: 0.8rem;
+        height: 36px;
+        padding: 6px 10px;
     }
-    .btn-generate-rfc {
-        font-size: 0.6rem;
-        padding: 3px 8px;
-        height: 28px;
+    .select-premium {
+        font-size: 0.8rem;
+        height: 36px;
+        padding: 6px 28px 6px 10px;
+    }
+    .label-premium { font-size: 0.7rem; }
+    .section-title-premium { font-size: 0.8rem; }
+    .btn-cancel-premium,
+    .btn-submit-premium {
+        font-size: 0.8rem;
+        height: 38px;
+        padding: 6px 18px;
+    }
+    .status-badge-premium {
+        font-size: 0.7rem;
+        padding: 4px 12px;
+    }
+    .header-title-premium { font-size: 1.05rem; }
+    .radio-premium {
+        font-size: 0.8rem;
+        height: 34px;
+        padding: 5px 12px;
+    }
+    .radio-sm {
+        font-size: 0.75rem;
+        height: 30px;
+        min-width: 50px;
+        padding: 4px 12px;
+    }
+    .btn-rfc-premium {
+        font-size: 0.65rem;
+        height: 26px;
+        padding: 3px 10px;
+    }
+    .textarea-premium {
+        font-size: 0.8rem;
+        min-height: 60px;
+        padding: 8px 10px;
+    }
+    .info-premium { font-size: 0.65rem; }
+    .form-card-premium { padding: 0.5rem 0.6rem; }
+    .grid-nombres,
+    .grid-3,
+    .grid-2,
+    .grid-contacto,
+    .grid-direccion,
+    .grid-representante {
+        gap: 4px;
     }
 }
 </style>

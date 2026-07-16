@@ -15,7 +15,6 @@
                                 @change="cambiarEmpresa"
                                 class="empresa-select-native"
                             >
-                                <option value="">Seleccione...</option>
                                 <option 
                                     v-for="empresa in empresas" 
                                     :key="empresa.id" 
@@ -61,7 +60,7 @@
                             <input 
                                 type="date" 
                                 v-model="filtros.fecha_desde"
-                                @change="cargarReporte"
+                                @change="onFechaDesdeChange"
                                 :max="fechaActual"
                                 class="fecha-input-premium"
                             />
@@ -71,7 +70,7 @@
                             <input 
                                 type="date" 
                                 v-model="filtros.fecha_hasta"
-                                @change="cargarReporte"
+                                @change="onFechaHastaChange"
                                 :max="fechaActual"
                                 class="fecha-input-premium"
                             />
@@ -316,7 +315,7 @@
                 <!-- Mensaje si no hay empresas -->
                 <div v-else class="reporte-wrapper-premium">
                     <div class="text-center py-12">
-                        <div class="text-6xl mb-4">No hay empresas</div>
+                        <div class="text-6xl mb-4">🏢</div>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No tienes empresas asignadas</h3>
                         <p class="text-gray-500">Contacta al administrador para que te asigne una empresa.</p>
                     </div>
@@ -429,7 +428,6 @@
                                     @click="onRowClickResultados(record)"
                                 >
                                     {{ record.nombre_cuenta || '---' }}
-                                    <span v-if="record.es_fiscal === true" class="fiscal-badge-small">Fiscal</span>
                                     <span v-if="record.es_madre" class="subtotal-badge">
                                         Subtotal: ${{ formatNumber(record.subtotal || 0) }}
                                     </span>
@@ -439,10 +437,6 @@
                                 <span class="monto-text-ultra" :class="(record.saldo || 0) >= 0 ? 'ingreso' : 'egreso'">
                                     ${{ formatNumber(record.saldo || 0) }}
                                 </span>
-                            </template>
-                            <template v-if="column.key === 'fiscal'">
-                                <span v-if="record.es_fiscal" class="fiscal-badge-small">FISCAL</span>
-                                <span v-else class="no-fiscal-badge-small">NO FISCAL</span>
                             </template>
                         </template>
                     </a-table>
@@ -586,6 +580,7 @@ import {
     Tag as ATag,
     Modal as AModal,
 } from 'ant-design-vue';
+import { useEmpresa } from '@/composables/useEmpresa';
 
 const props = defineProps({
     empresas: {
@@ -610,13 +605,20 @@ const props = defineProps({
     }
 });
 
+// ✅ USAR useEmpresa
+const { 
+    empresaSeleccionada, 
+    cargarEmpresaGuardada, 
+    guardarEmpresa,
+    getEmpresaActual
+} = useEmpresa();
+
 // ============================================
 // REFS Y VARIABLES
 // ============================================
 const loading = ref(false);
 const cargado = ref(false);
 const modalAlert = ref(null);
-const empresaSeleccionada = ref(props.empresa_seleccionada || null);
 
 // Funcion para obtener fecha local correcta
 const obtenerFechaLocal = () => {
@@ -752,7 +754,7 @@ const columnasPrincipales = computed(() => {
 // ============================================
 const columnasFondeadoras = [
     {
-        title: 'Codigo',
+        title: 'Código',
         key: 'codigo',
         width: '120px'
     },
@@ -776,19 +778,13 @@ const columnasResultados = [
     {
         title: 'Nombre de la Cuenta',
         key: 'nombre',
-        width: '55%'
+        width: '70%'
     },
     {
         title: 'Saldo',
         key: 'saldo',
-        width: '25%',
+        width: '30%',
         align: 'right'
-    },
-    {
-        title: 'Tipo',
-        key: 'fiscal',
-        width: '20%',
-        align: 'center'
     }
 ];
 
@@ -900,6 +896,10 @@ const balanceClass = computed(() => {
     return 'neutro';
 });
 
+/**
+ * 🔥 TOTAL DISPONIBLE - SUMA DIRECTA DE LOS SALDOS DE LAS FONDEADORAS
+ * Los saldos vienen directamente del campo saldo_inicial de la base de datos
+ */
 const totalDisponible = computed(() => {
     return reporteFondeadoras.value.reduce((sum, item) => sum + (item.saldo || 0), 0);
 });
@@ -938,8 +938,19 @@ const formatNumber = (value) => {
 };
 
 // ============================================
-// FILTROS DE FECHAS
+// FUNCIONES DE FECHAS DINÁMICAS
 // ============================================
+const onFechaHastaChange = () => {
+    if (filtros.value.fecha_hasta) {
+        filtros.value.fecha_desde = filtros.value.fecha_hasta;
+    }
+    cargarReporte();
+};
+
+const onFechaDesdeChange = () => {
+    cargarReporte();
+};
+
 const limpiarFechas = () => {
     filtros.value.fecha_desde = '';
     filtros.value.fecha_hasta = '';
@@ -984,13 +995,13 @@ const cambiarVista = (vista) => {
 // ============================================
 const cambiarEmpresa = () => {
     if (empresaSeleccionada.value) {
-        localStorage.setItem('empresa_reportes', String(empresaSeleccionada.value));
+        guardarEmpresa(empresaSeleccionada.value);
         cargarReporte();
     }
 };
 
 // ============================================
-// FILTRAR CUENTAS DE RESULTADOS - CON LLAMADA AL BACKEND
+// FILTRAR CUENTAS DE RESULTADOS
 // ============================================
 const filtrarCuentasResultados = async () => {
     if (!empresaSeleccionada.value) return;
@@ -1003,24 +1014,13 @@ const filtrarCuentasResultados = async () => {
             vista: vistaActual.value,
             fecha_desde: filtros.value.fecha_desde,
             fecha_hasta: filtros.value.fecha_hasta,
-            solo_fiscales: tipoResultado.value === 'fiscales'
+            tipo_filtro: tipoResultado.value
         };
 
         const response = await axios.get(route('reportes.movimientos'), { params });
 
         if (response.data.success) {
             cuentasResultados.value = response.data.cuentas_resultados || [];
-            
-            // Marcar cuentas fiscales
-            cuentasResultados.value = cuentasResultados.value.map(cuenta => {
-                if (cuenta.hijas && cuenta.hijas.length > 0) {
-                    cuenta.es_fiscal = cuenta.hijas.some(hija => hija.es_fiscal === true);
-                } else {
-                    cuenta.es_fiscal = tipoResultado.value === 'fiscales';
-                }
-                return cuenta;
-            });
-            
             cuentasResultadosFiltradas.value = cuentasResultados.value;
         } else {
             throw new Error(response.data.message || 'Error al cargar las cuentas de resultados');
@@ -1062,23 +1062,13 @@ const abrirModalCuentasResultados = async () => {
             vista: vistaActual.value,
             fecha_desde: filtros.value.fecha_desde,
             fecha_hasta: filtros.value.fecha_hasta,
-            solo_fiscales: false
+            tipo_filtro: 'todas'
         };
 
         const response = await axios.get(route('reportes.movimientos'), { params });
 
         if (response.data.success) {
             cuentasResultados.value = response.data.cuentas_resultados || [];
-            
-            cuentasResultados.value = cuentasResultados.value.map(cuenta => {
-                if (cuenta.hijas && cuenta.hijas.length > 0) {
-                    cuenta.es_fiscal = cuenta.hijas.some(hija => hija.es_fiscal === true);
-                } else {
-                    cuenta.es_fiscal = false;
-                }
-                return cuenta;
-            });
-            
             cuentasResultadosFiltradas.value = cuentasResultados.value;
         } else {
             throw new Error(response.data.message || 'Error al cargar las cuentas de resultados');
@@ -1120,13 +1110,15 @@ const cargarReporte = async () => {
             empresa_id: empresaSeleccionada.value,
             vista: vistaActual.value,
             fecha_desde: filtros.value.fecha_desde,
-            fecha_hasta: filtros.value.fecha_hasta
+            fecha_hasta: filtros.value.fecha_hasta,
+            tipo_filtro: 'todas'
         };
 
         const response = await axios.get(route('reportes.movimientos'), { params });
 
         if (response.data.success) {
             reporteData.value = response.data.data || [];
+            // 🔥 LOS SALDOS DE FONDEADORAS VIENEN DIRECTAMENTE DEL CONTROLADOR
             reporteFondeadoras.value = response.data.fondeadoras || [];
             cargado.value = true;
         } else {
@@ -1138,7 +1130,7 @@ const cargarReporte = async () => {
         Swal.fire({
             icon: 'error',
             title: 'Error al cargar',
-            text: error.response?.data?.message || error.message || 'Ocurrio un error inesperado',
+            text: error.response?.data?.message || error.message || 'Ocurrió un error inesperado',
             confirmButtonColor: '#dc2626'
         });
         reporteData.value = [];
@@ -1176,7 +1168,8 @@ const abrirDetalleCuenta = async (record) => {
             empresa_id: empresaSeleccionada.value,
             id_cuenta: record.id_cuenta,
             fecha_desde: filtros.value.fecha_desde,
-            fecha_hasta: filtros.value.fecha_hasta
+            fecha_hasta: filtros.value.fecha_hasta,
+            tipo_filtro: 'todas'
         };
 
         const response = await axios.get(route('reportes.movimientos.cuenta'), { params });
@@ -1202,7 +1195,7 @@ const abrirDetalleCuenta = async (record) => {
 };
 
 // ============================================
-// CLICK EN FILA DE RESULTADOS - ABRE DETALLE DE LA CUENTA
+// CLICK EN FILA DE RESULTADOS
 // ============================================
 const onRowClickResultados = (record) => {
     const recordData = reporteData.value.find(r => r.id_cuenta === record.id_cuenta);
@@ -1246,6 +1239,7 @@ const exportarExcel = () => {
     params.append('vista', vistaActual.value);
     params.append('fecha_desde', filtros.value.fecha_desde || '');
     params.append('fecha_hasta', filtros.value.fecha_hasta || '');
+    params.append('tipo_filtro', 'todas');
     
     window.open(route('reportes.export.excel') + '?' + params.toString(), '_blank');
 };
@@ -1258,13 +1252,17 @@ onMounted(() => {
     filtros.value.fecha_desde = hoy;
     filtros.value.fecha_hasta = hoy;
     
-    if (!empresaSeleccionada.value) {
-        const empresaGuardada = localStorage.getItem('empresa_reportes');
-        if (empresaGuardada && props.empresas?.some(e => e.id == parseInt(empresaGuardada))) {
-            empresaSeleccionada.value = parseInt(empresaGuardada);
-        } else if (props.empresas && props.empresas.length > 0) {
-            empresaSeleccionada.value = props.empresas[0].id;
-        }
+    // Cargar empresa guardada desde localStorage
+    const empresaGuardada = cargarEmpresaGuardada();
+    
+    if (empresaGuardada && props.empresas.some(e => e.id === empresaGuardada)) {
+        empresaSeleccionada.value = empresaGuardada;
+    } else if (props.empresa_seleccionada) {
+        empresaSeleccionada.value = parseInt(props.empresa_seleccionada);
+        guardarEmpresa(props.empresa_seleccionada);
+    } else if (props.empresas && props.empresas.length > 0) {
+        empresaSeleccionada.value = props.empresas[0].id;
+        guardarEmpresa(props.empresas[0].id);
     }
     
     if (empresaSeleccionada.value) {
@@ -1275,8 +1273,6 @@ onMounted(() => {
 
 <style scoped>
 /* ===== TODOS LOS ESTILOS PREMIUM ===== */
-
-/* Selector de Empresa */
 .empresa-selector-premium {
     background: #ffffff;
     border-radius: 12px;
@@ -1776,28 +1772,6 @@ onMounted(() => {
 .categoria-badge.no-fiscal {
     background: #f3f4f6;
     color: #374151;
-}
-
-.fiscal-badge-small {
-    display: inline-block;
-    padding: 1px 8px;
-    background: #d1fae5;
-    color: #065f46;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 600;
-    margin-left: 8px;
-}
-
-.no-fiscal-badge-small {
-    display: inline-block;
-    padding: 1px 8px;
-    background: #f3f4f6;
-    color: #374151;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 600;
-    margin-left: 8px;
 }
 
 .subtotal-badge {

@@ -15,7 +15,6 @@
                                 @change="cambiarEmpresa"
                                 class="empresa-select-native"
                             >
-                                <option value="">Seleccione...</option>
                                 <option 
                                     v-for="empresa in empresas" 
                                     :key="empresa.id" 
@@ -105,15 +104,6 @@
                                     </div>
                                 </template>
 
-                                <!-- NIVEL (JERARQUIA COMPLETA) -->
-                                <template v-if="column.key === 'nivel'">
-                                    <div class="nivel-cell-ultra">
-                                        <span class="nivel-badge" :class="getNivelClass(record.nivel_texto)">
-                                            {{ record.nivel_jerarquico || record.codigo_cuenta }}
-                                        </span>
-                                    </div>
-                                </template>
-
                                 <!-- INDICE -->
                                 <template v-if="column.key === 'indice'">
                                     <div class="indice-cell-ultra">
@@ -125,15 +115,6 @@
                                 <template v-if="column.key === 'cuenta_madre'">
                                     <div class="origen-cell-ultra">
                                         <span class="origen-text-ultra">{{ record.cuenta_madre }}</span>
-                                    </div>
-                                </template>
-
-                                <!-- TIPO -->
-                                <template v-if="column.key === 'tipo_cuenta'">
-                                    <div class="fondo-cell-ultra">
-                                        <span class="fondo-badge" :class="getFondoClass(record.tipo_cuenta)">
-                                            {{ record.tipo_cuenta || '—' }}
-                                        </span>
                                     </div>
                                 </template>
 
@@ -219,24 +200,6 @@
                                             </a-select>
                                         </div>
 
-                                        <!-- Filtro Tipo -->
-                                        <div class="filtro-item-ultra">
-                                            <InputLabel>Tipo</InputLabel>
-                                            <a-select
-                                                v-model:value="filtros.tipo_cuenta"
-                                                @change="aplicarFiltros"
-                                                placeholder="Todos"
-                                                allow-clear
-                                                size="small"
-                                                class="filtro-select-ultra"
-                                            >
-                                                <a-select-option value="">Todos</a-select-option>
-                                                <a-select-option value="FONDEADORA">Fondeadora</a-select-option>
-                                                <a-select-option value="RESULTADO">Resultado</a-select-option>
-                                                <a-select-option value="ORDEN">Orden</a-select-option>
-                                            </a-select>
-                                        </div>
-
                                         <!-- Boton Limpiar -->
                                         <div class="filtro-item-ultra filtro-actions">
                                             <InputLabel>Acciones</InputLabel>
@@ -290,7 +253,7 @@
             </div>
         </div>
 
-        <!-- MODAL CUENTAS INACTIVAS - SIN EMOJIS, SIN NATURALEZA Y SIN FONDEADORA -->
+        <!-- MODAL CUENTAS INACTIVAS -->
         <a-modal
             v-model:open="modalInactivasVisible"
             title="Cuentas Inactivas"
@@ -303,19 +266,19 @@
             <div class="modal-inactivas-content">
                 <div class="modal-inactivas-header">
                     <span class="modal-inactivas-title">Listado de Cuentas Inactivas</span>
-                    <span class="modal-inactivas-count">{{ cuentasInactivas.length }} cuentas</span>
+                    <span class="modal-inactivas-count">{{ cuentasInactivasFiltradas.length }} cuentas</span>
                 </div>
 
-                <div class="table-scroll-container">
+                <div class="table-scroll-container-modal">
                     <a-table
                         :columns="columnsInactivas"
-                        :data-source="cuentasInactivas"
+                        :data-source="cuentasInactivasFiltradas"
                         :pagination="false"
                         :loading="loadingInactivas"
                         row-key="id_cuenta"
                         class="cuenta-table-ultra"
                         size="middle"
-                        :scroll="{ x: 'max-content', y: 400 }"
+                        :scroll="{ x: 'max-content', y: 280 }"
                         sticky
                     >
                         <template #bodyCell="{ column, record }">
@@ -338,15 +301,6 @@
                                 </div>
                             </template>
 
-                            <!-- NIVEL -->
-                            <template v-if="column.key === 'nivel'">
-                                <div class="nivel-cell-ultra">
-                                    <span class="nivel-badge" :class="getNivelClass(record.nivel_texto)">
-                                        {{ record.nivel_jerarquico || record.codigo_cuenta }}
-                                    </span>
-                                </div>
-                            </template>
-
                             <!-- INDICE -->
                             <template v-if="column.key === 'indice'">
                                 <div class="indice-cell-ultra">
@@ -358,15 +312,6 @@
                             <template v-if="column.key === 'cuenta_madre'">
                                 <div class="origen-cell-ultra">
                                     <span class="origen-text-ultra inactivo-text">{{ record.cuenta_madre }}</span>
-                                </div>
-                            </template>
-
-                            <!-- TIPO -->
-                            <template v-if="column.key === 'tipo_cuenta'">
-                                <div class="fondo-cell-ultra">
-                                    <span class="fondo-badge" :class="getFondoClass(record.tipo_cuenta)">
-                                        {{ record.tipo_cuenta || '—' }}
-                                    </span>
                                 </div>
                             </template>
 
@@ -385,12 +330,85 @@
                                 </div>
                             </template>
                         </template>
+
+                        <!-- FOOTER CON FILTROS PARA INACTIVAS -->
+                        <template #footer>
+                            <div class="filtros-ultra-modal">
+                                <div class="filtros-grid-ultra-modal">
+                                    <!-- Filtro ID -->
+                                    <div class="filtro-item-ultra-modal">
+                                        <InputLabel>ID</InputLabel>
+                                        <TextInput 
+                                            v-model="filtrosInactivos.id"
+                                            placeholder="ID..."
+                                            square
+                                        />
+                                    </div>
+
+                                    <!-- Filtro Código -->
+                                    <div class="filtro-item-ultra-modal">
+                                        <InputLabel>Código</InputLabel>
+                                        <TextInput 
+                                            v-model="filtrosInactivos.codigo_cuenta"
+                                            placeholder="Código..."
+                                            square
+                                        />
+                                    </div>
+
+                                    <!-- Filtro Cuenta -->
+                                    <div class="filtro-item-ultra-modal">
+                                        <InputLabel>Cuenta</InputLabel>
+                                        <TextInput 
+                                            v-model="filtrosInactivos.nombre_cuenta"
+                                            placeholder="Nombre..."
+                                            square
+                                        />
+                                    </div>
+
+                                    <!-- Filtro Cuenta Madre -->
+                                    <div class="filtro-item-ultra-modal">
+                                        <InputLabel>Cuenta Madre</InputLabel>
+                                        <TextInput 
+                                            v-model="filtrosInactivos.cuenta_madre"
+                                            placeholder="Cuenta madre..."
+                                            square
+                                        />
+                                    </div>
+
+                                    <!-- Botón Limpiar -->
+                                    <div class="filtro-item-ultra-modal filtro-actions-modal">
+                                        <InputLabel>Acciones</InputLabel>
+                                        <a-button 
+                                            v-if="filtrosInactivosActivos"
+                                            @click="limpiarFiltrosInactivos" 
+                                            size="small"
+                                            class="btn-clear-ultra"
+                                            block
+                                        >
+                                            <template #icon>
+                                                <CloseOutlined />
+                                            </template>
+                                            Limpiar
+                                        </a-button>
+                                        <a-button 
+                                            v-else
+                                            disabled
+                                            size="small"
+                                            block
+                                            class="btn-no-filtros-ultra"
+                                        >
+                                            <span class="no-filtros-text-ultra">Sin filtros</span>
+                                        </a-button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </a-table>
                 </div>
 
                 <div class="modal-inactivas-footer">
                     <span class="pagination-info-ultra">
-                        Mostrando <span class="pagination-highlight-ultra">{{ cuentasInactivas.length }}</span> cuentas inactivas
+                        Mostrando <span class="pagination-highlight-ultra">{{ cuentasInactivasFiltradas.length }}</span> cuentas inactivas
                     </span>
                     <a-button @click="cerrarModalInactivas" class="btn-cerrar-modal">
                         <template #icon>
@@ -433,6 +451,9 @@ import {
     Modal as AModal,
 } from 'ant-design-vue';
 
+// ✅ IMPORTAR useEmpresa
+import { useEmpresa } from '@/composables/useEmpresa';
+
 // ============================================
 // PERMISOS DESDE EL BACKEND
 // ============================================
@@ -470,15 +491,27 @@ const props = defineProps({
     }
 });
 
+// ============================================
+// ✅ USAR useEmpresa
+// ============================================
+const { 
+    empresaSeleccionada, 
+    cargarEmpresaGuardada, 
+    guardarEmpresa,
+    getEmpresaActual
+} = useEmpresa();
+
+// ============================================
+// REFS Y VARIABLES
+// ============================================
 const loading = ref(false);
 const loadingInactivas = ref(false);
 const modalAlert = ref(null);
-const empresaSeleccionada = ref(props.empresa_seleccionada || null);
 const modalInactivasVisible = ref(false);
 const cuentasInactivas = ref(props.cuentas_inactivas || []);
 
 // ============================================
-// COLUMNAS DE LA TABLA PRINCIPAL (CON FONDEADORA Y NATURALEZA)
+// COLUMNAS DE LA TABLA PRINCIPAL (SIN NIVEL JERARQUICO)
 // ============================================
 const columns = [
     {
@@ -500,26 +533,14 @@ const columns = [
         width: '320px'
     },
     {
-        title: 'Nivel Jerarquico',
-        key: 'nivel',
-        width: '150px',
-        align: 'center'
-    },
-    {
         title: 'Indice',
         key: 'indice',
-        width: '180px'
+        width: '200px'
     },
     {
         title: 'Cuenta Madre',
         key: 'cuenta_madre',
-        width: '180px'
-    },
-    {
-        title: 'Tipo',
-        key: 'tipo_cuenta',
-        width: '100px',
-        align: 'center'
+        width: '200px'
     },
     {
         title: 'Naturaleza',
@@ -536,7 +557,7 @@ const columns = [
 ];
 
 // ============================================
-// COLUMNAS DEL MODAL DE INACTIVAS (SIN NATURALEZA Y SIN FONDEADORA)
+// COLUMNAS DEL MODAL DE INACTIVAS (SIN NIVEL Y TIPO)
 // ============================================
 const columnsInactivas = [
     {
@@ -547,7 +568,7 @@ const columnsInactivas = [
         fixed: 'left'
     },
     {
-        title: 'Codigo',
+        title: 'Código',
         key: 'codigo_cuenta',
         width: '130px',
         fixed: 'left'
@@ -555,29 +576,17 @@ const columnsInactivas = [
     {
         title: 'Cuenta',
         key: 'nombre_cuenta',
-        width: '320px'
+        width: '280px'
     },
     {
-        title: 'Nivel Jerarquico',
-        key: 'nivel',
-        width: '150px',
-        align: 'center'
-    },
-    {
-        title: 'Indice',
+        title: 'Índice',
         key: 'indice',
         width: '180px'
     },
     {
         title: 'Cuenta Madre',
         key: 'cuenta_madre',
-        width: '180px'
-    },
-    {
-        title: 'Tipo',
-        key: 'tipo_cuenta',
-        width: '100px',
-        align: 'center'
+        width: '200px'
     },
     {
         title: 'Restaurar',
@@ -589,7 +598,7 @@ const columnsInactivas = [
 ];
 
 // ============================================
-// FILTROS
+// FILTROS PRINCIPALES
 // ============================================
 const filtros = ref({
     codigo_cuenta: props.filtros?.codigo_cuenta || '',
@@ -642,11 +651,60 @@ const limpiarFiltros = () => {
 };
 
 // ============================================
-// EMPRESA
+// FILTROS PARA INACTIVAS (LOCALES)
+// ============================================
+const filtrosInactivos = ref({
+    id: '',
+    codigo_cuenta: '',
+    nombre_cuenta: '',
+    cuenta_madre: '',
+});
+
+const filtrosInactivosActivos = computed(() => {
+    return Object.values(filtrosInactivos.value).some(val => val !== '' && val !== null && val !== undefined);
+});
+
+// Computed que filtra las cuentas inactivas según los filtros
+const cuentasInactivasFiltradas = computed(() => {
+    let list = cuentasInactivas.value;
+    const f = filtrosInactivos.value;
+
+    if (f.id) {
+        const q = f.id.trim();
+        list = list.filter(item => String(item.id_cuenta).includes(q));
+    }
+    if (f.codigo_cuenta) {
+        const q = f.codigo_cuenta.toLowerCase().trim();
+        list = list.filter(item => item.codigo_cuenta && item.codigo_cuenta.toLowerCase().includes(q));
+    }
+    if (f.nombre_cuenta) {
+        const q = f.nombre_cuenta.toLowerCase().trim();
+        list = list.filter(item => item.nombre_cuenta && item.nombre_cuenta.toLowerCase().includes(q));
+    }
+    if (f.cuenta_madre) {
+        const q = f.cuenta_madre.toLowerCase().trim();
+        list = list.filter(item => item.cuenta_madre && item.cuenta_madre.toLowerCase().includes(q));
+    }
+
+    return list;
+});
+
+// Limpiar filtros inactivos
+const limpiarFiltrosInactivos = () => {
+    filtrosInactivos.value = {
+        id: '',
+        codigo_cuenta: '',
+        nombre_cuenta: '',
+        cuenta_madre: '',
+    };
+};
+
+// ============================================
+// ✅ CAMBIAR EMPRESA - USANDO useEmpresa
 // ============================================
 const cambiarEmpresa = () => {
     if (empresaSeleccionada.value) {
-        localStorage.setItem('empresa_cuentas', String(empresaSeleccionada.value));
+        guardarEmpresa(empresaSeleccionada.value);
         loading.value = true;
         const params = {
             empresa_id: empresaSeleccionada.value
@@ -691,6 +749,8 @@ const abrirModalInactivas = async () => {
         });
         // Ordenar por ID ascendente
         cuentasInactivas.value = (response.data.data || []).sort((a, b) => a.id_cuenta - b.id_cuenta);
+        // Limpiar filtros al abrir
+        limpiarFiltrosInactivos();
     } catch (error) {
         console.error('Error al cargar cuentas inactivas:', error);
         mostrarModal('error', 'Error', 'No se pudieron cargar las cuentas inactivas');
@@ -702,6 +762,7 @@ const abrirModalInactivas = async () => {
 const cerrarModalInactivas = () => {
     modalInactivasVisible.value = false;
     cuentasInactivas.value = [];
+    limpiarFiltrosInactivos();
 };
 
 // ============================================
@@ -846,29 +907,6 @@ const agregarEstilosSwal = () => {
 };
 
 // ============================================
-// CLASES Y ESTILOS
-// ============================================
-const getNivelClass = (nivel) => {
-    const classes = {
-        'Primer Nivel': 'nivel-1',
-        'Segundo Nivel': 'nivel-2',
-        'Tercer Nivel': 'nivel-3',
-        'Cuarto Nivel': 'nivel-4',
-        'Quinto Nivel': 'nivel-5'
-    };
-    return classes[nivel] || 'nivel-1';
-};
-
-const getFondoClass = (tipo) => {
-    const classes = {
-        'FONDEADORA': 'fondeadora',
-        'RESULTADO': 'resultado',
-        'ORDEN': 'orden'
-    };
-    return classes[tipo] || '';
-};
-
-// ============================================
 // FUNCIONES DE ACCION
 // ============================================
 const mostrarModal = (type, title, message, duration = 4000, onConfirm = null) => {
@@ -908,15 +946,28 @@ watch(() => props.flash, (newFlash) => {
     }
 }, { deep: true, immediate: true });
 
+// ============================================
+// ✅ LIFECYCLE - CON useEmpresa
+// ============================================
 onMounted(() => {
     agregarEstilosSwal();
-    if (!empresaSeleccionada.value) {
-        const empresaGuardada = localStorage.getItem('empresa_cuentas');
-        if (empresaGuardada && props.empresas?.some(e => e.id == parseInt(empresaGuardada))) {
-            empresaSeleccionada.value = parseInt(empresaGuardada);
-        } else if (props.empresas && props.empresas.length > 0) {
-            empresaSeleccionada.value = props.empresas[0].id;
-        }
+    
+    // ✅ Cargar empresa guardada desde localStorage
+    const empresaGuardada = cargarEmpresaGuardada();
+    
+    // ✅ Si hay empresa guardada y existe en la lista, usarla
+    if (empresaGuardada && props.empresas.some(e => e.id === empresaGuardada)) {
+        empresaSeleccionada.value = empresaGuardada;
+    } 
+    // ✅ Si viene desde props, usarla
+    else if (props.empresa_seleccionada) {
+        empresaSeleccionada.value = parseInt(props.empresa_seleccionada);
+        guardarEmpresa(props.empresa_seleccionada);
+    }
+    // ✅ Si no hay empresa seleccionada, usar la primera
+    else if (props.empresas && props.empresas.length > 0) {
+        empresaSeleccionada.value = props.empresas[0].id;
+        guardarEmpresa(props.empresas[0].id);
     }
     
     if (empresaSeleccionada.value && (!props.cuentas?.data || props.cuentas.data.length === 0)) {
@@ -1540,7 +1591,7 @@ onMounted(() => {
 
 .filtros-grid-ultra {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 0.8fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr;
     gap: 12px;
     align-items: end;
 }
@@ -1765,6 +1816,109 @@ onMounted(() => {
 .btn-cerrar-modal:hover {
     color: #1a3a5c !important;
     border-color: #1a3a5c !important;
+}
+
+/* ===== FILTROS DEL MODAL INACTIVAS ===== */
+.table-scroll-container-modal {
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.table-scroll-container-modal :deep(.ant-table-body) {
+    max-height: 280px !important;
+    overflow-y: auto !important;
+}
+
+.table-scroll-container-modal :deep(.ant-table-body)::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-scroll-container-modal :deep(.ant-table-body)::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-scroll-container-modal :deep(.ant-table-body)::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-scroll-container-modal :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.filtros-ultra-modal {
+    background: #ffffff;
+    padding: 12px 0 0 0;
+    border-top: 2px solid #f1f5f9;
+}
+
+.filtros-grid-ultra-modal {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 0.6fr;
+    gap: 10px;
+    align-items: end;
+}
+
+@media (max-width: 1200px) {
+    .filtros-grid-ultra-modal {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 992px) {
+    .filtros-grid-ultra-modal {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .filtros-grid-ultra-modal {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filtros-grid-ultra-modal {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.filtro-item-ultra-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.filtro-item-ultra-modal :deep(.input-label) {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 0 !important;
+}
+
+.filtro-item-ultra-modal :deep(.text-input) {
+    height: 32px !important;
+    font-size: 12px !important;
+    padding: 0 8px !important;
+    border-radius: 0px !important;
+    border: 2px solid #d1d5db !important;
+}
+
+.filtro-item-ultra-modal :deep(.text-input:focus) {
+    border-color: #1a3a5c !important;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
+}
+
+.filtro-actions-modal {
+    min-width: 80px;
 }
 
 /* ===== ANIMACIONES ===== */

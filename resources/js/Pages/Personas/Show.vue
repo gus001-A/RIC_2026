@@ -44,7 +44,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <!-- Stats Cards -->
                 <a-row :gutter="[20, 20]" class="mb-6">
-                    <a-col :xs="24" :sm="6" :md="6">
+                    <a-col :xs="24" :sm="8" :md="8">
                         <div class="stats-card-enhanced">
                             <div class="stats-card-enhanced-content">
                                 <div class="stats-card-enhanced-left">
@@ -58,21 +58,7 @@
                         </div>
                     </a-col>
 
-                    <a-col :xs="24" :sm="6" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Pólizas</span>
-                                    <span class="stats-card-enhanced-value" style="color: #2c5282;">{{ persona.polizas_count || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(44, 82, 130, 0.1), rgba(44, 82, 130, 0.05));">
-                                    <FileProtectOutlined style="font-size: 28px; color: #2c5282;" />
-                                </div>
-                            </div>
-                        </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="6" :md="6">
+                    <a-col :xs="24" :sm="8" :md="8">
                         <div class="stats-card-enhanced">
                             <div class="stats-card-enhanced-content">
                                 <div class="stats-card-enhanced-left">
@@ -86,7 +72,7 @@
                         </div>
                     </a-col>
 
-                    <a-col :xs="24" :sm="6" :md="6">
+                    <a-col :xs="24" :sm="8" :md="8">
                         <div class="stats-card-enhanced">
                             <div class="stats-card-enhanced-content">
                                 <div class="stats-card-enhanced-left">
@@ -415,47 +401,6 @@
                                 </div>
                             </div>
                         </a-tab-pane>
-
-                        <!-- TAB 3: PÓLIZAS -->
-                        <a-tab-pane key="polizas" tab="Pólizas">
-                            <div class="tab-content-premium">
-                                <div v-if="persona.polizas && persona.polizas.length > 0" class="polizas-list-premium">
-                                    <div v-for="poliza in persona.polizas" :key="poliza.id" class="poliza-item-premium">
-                                        <div class="poliza-info-premium">
-                                            <div class="poliza-icon-premium" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                                                <FileProtectOutlined style="color: white; font-size: 18px;" />
-                                            </div>
-                                            <div>
-                                                <div class="poliza-nombre-premium">
-                                                    Póliza #{{ poliza.id }}
-                                                    <span v-if="poliza.activo" class="doc-finalizado-badge">Activa</span>
-                                                    <span v-else class="doc-pendiente-badge">Inactiva</span>
-                                                </div>
-                                                <div class="poliza-fecha-premium">
-                                                    <span>Inicio: {{ formatFecha(poliza.fecha_inicio) }}</span>
-                                                    <span>•</span>
-                                                    <span>Fin: {{ formatFecha(poliza.fecha_fin) }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="poliza-actions-premium">
-                                            <a-tooltip title="Ver detalles" placement="top" color="#1a3a5c">
-                                                <Link :href="route('polizas.show', poliza.id)">
-                                                    <a-button size="small" type="link" class="doc-action-btn-premium">
-                                                        <EyeOutlined />
-                                                    </a-button>
-                                                </Link>
-                                            </a-tooltip>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="documentos-empty-premium">
-                                    <FileProtectOutlined style="font-size: 48px; color: #d1d5db;" />
-                                    <p>No hay pólizas asociadas</p>
-                                    <span class="empty-subtext-premium">Esta persona aún no tiene pólizas registradas</span>
-                                </div>
-                            </div>
-                        </a-tab-pane>
                     </a-tabs>
                 </div>
             </div>
@@ -679,11 +624,11 @@ const eliminarDocumento = (doc) => {
         message: `
             <div class="text-center">
                 <p class="font-medium text-gray-700">${doc.tipo_documento_texto || doc.tipo_documento}</p>
-                <p class="text-sm text-red-600 mt-2 font-medium">Esta accion no se puede deshacer</p>
-                <p class="text-xs text-gray-500 mt-1">El archivo se eliminara permanentemente</p>
+                <p class="text-sm text-red-600 mt-2 font-medium">Esta acción no se puede deshacer</p>
+                <p class="text-xs text-gray-500 mt-1">El archivo se eliminará permanentemente</p>
             </div>
         `,
-        buttonText: 'Si, eliminar',
+        buttonText: 'Sí, eliminar',
         duration: 0
     }, () => {
         router.delete(route('personas.eliminar-documento', doc.id), {
@@ -1144,7 +1089,7 @@ onMounted(() => {
 }
 
 /* ============================================ */
-/* DOCUMENTOS (reutilizado del Index)          */
+/* DOCUMENTOS                                   */
 /* ============================================ */
 .documentos-tab-container {
     display: flex;
@@ -1535,73 +1480,6 @@ onMounted(() => {
     margin-top: 4px;
 }
 
-/* ============================================ */
-/* PÓLIZAS                                     */
-/* ============================================ */
-.polizas-list-premium {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.poliza-item-premium {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.poliza-item-premium:hover {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    transform: translateX(4px);
-}
-
-.poliza-info-premium {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.poliza-icon-premium {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.poliza-nombre-premium {
-    font-size: 15px;
-    font-weight: 600;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.poliza-fecha-premium {
-    font-size: 13px;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-top: 2px;
-}
-
-.poliza-actions-premium {
-    display: flex;
-    gap: 4px;
-}
-
 /* ===== TELEFONO ===== */
 .telefono-item {
     display: flex;
@@ -1630,6 +1508,12 @@ onMounted(() => {
 .email-link-ultra:hover {
     color: #1d4ed8;
     text-decoration: underline;
+}
+
+/* ===== FONT MONO ===== */
+.font-mono {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -1685,17 +1569,6 @@ onMounted(() => {
     .btn-upload-premium {
         width: 100% !important;
         justify-content: center !important;
-    }
-    
-    .poliza-item-premium {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .poliza-actions-premium {
-        width: 100%;
-        justify-content: flex-end;
     }
     
     .fechas-section-premium {

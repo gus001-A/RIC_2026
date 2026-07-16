@@ -9,37 +9,22 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: 'Courier New', 'Courier', monospace;
-            font-size: 10px;
-            color: #1a1a2e;
-            padding: 15px;
-            background: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            color: #000;
+            background: #fff;
+            padding: 12px;
             max-width: 380px;
             margin: 0 auto;
+            line-height: 1.4;
         }
+
         .ticket {
             border: 1px solid #000;
-            padding: 14px 16px;
-            position: relative;
-        }
-        .ticket::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
-        }
-        .ticket::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
+            padding: 14px 14px 12px;
+            background: #fff;
         }
 
         /* HEADER */
@@ -49,30 +34,33 @@
             padding-bottom: 10px;
             margin-bottom: 10px;
         }
+
         .header .logo-container {
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
+
         .header .logo {
-            max-width: 80px;
-            max-height: 50px;
+            max-width: 70px;
+            max-height: 45px;
             display: block;
             margin: 0 auto;
         }
+
         .header .empresa {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-top: 4px;
-        }
-        .header .empresa-line {
-            font-size: 8px;
             letter-spacing: 1px;
-            margin-top: 2px;
-            color: #555;
+            text-transform: uppercase;
         }
+
+        .header .empresa-line {
+            font-size: 9px;
+            letter-spacing: 0.5px;
+            color: #333;
+        }
+
         .header .folio {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             margin-top: 6px;
             background: #000;
@@ -81,84 +69,114 @@
             display: inline-block;
             letter-spacing: 1px;
         }
+
         .header .tipo {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             margin-top: 4px;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
+
         .header .fecha {
-            font-size: 9px;
-            color: #555;
+            font-size: 10px;
+            color: #333;
             margin-top: 2px;
         }
+
         .header .status {
-            font-size: 8px;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
             margin-top: 4px;
             padding: 2px 12px;
             display: inline-block;
             border: 1px solid #000;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
-        /* SECCIONES */
-        .section {
-            margin-bottom: 6px;
+        .tag-fiscal {
+            font-size: 7px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border: 1px solid #000;
+            margin-left: 4px;
         }
+
+        .badge-por-pagar {
+            font-size: 7px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border: 1px solid #000;
+            margin-left: 4px;
+        }
+
+        .badge-vencido {
+            font-size: 7px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border: 1px solid #000;
+            margin-left: 4px;
+        }
+
+        /* SECTIONS */
+        .section {
+            margin-bottom: 8px;
+        }
+
         .section-title {
-            font-size: 8px;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            border-bottom: 1px dotted #999;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #000;
             padding-bottom: 2px;
-            margin-bottom: 4px;
-            color: #333;
+            margin-bottom: 5px;
         }
 
-        /* FILAS */
+        /* ROWS */
         .row {
             display: flex;
             justify-content: space-between;
             padding: 2px 0;
-            border-bottom: 1px dotted #eee;
+            border-bottom: 1px dotted #ccc;
         }
+
         .row:last-child {
             border-bottom: none;
         }
+
         .row .label {
             font-weight: 600;
-            color: #555;
-            font-size: 8px;
+            font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
+
         .row .value {
             font-weight: 600;
             text-align: right;
-            font-size: 9px;
+            font-size: 10px;
         }
 
-        /* MONTOS DESTACADOS */
+        /* MONTO DESTACADO */
         .monto-destacado {
             text-align: center;
             padding: 8px 0;
-            margin: 4px 0;
-            background: #f8fafc;
-            border: 1px solid #ddd;
+            margin: 4px 0 6px;
+            border: 1px solid #000;
+            background: #f4f4f4;
         }
+
         .monto-destacado .label {
-            font-size: 7px;
+            font-size: 8px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #666;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             display: block;
         }
+
         .monto-destacado .value {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
@@ -169,32 +187,34 @@
             justify-content: space-between;
             align-items: center;
             padding: 6px 8px;
-            background: #f8fafc;
-            border: 1px solid #ddd;
-            margin: 4px 0;
+            border: 1px solid #000;
+            margin: 4px 0 6px;
+            background: #f4f4f4;
         }
+
         .cuentas-box .cuenta {
             text-align: center;
             padding: 2px 4px;
             flex: 1;
         }
+
         .cuentas-box .cuenta .label {
-            font-size: 6px;
+            font-size: 7px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #666;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             display: block;
         }
+
         .cuentas-box .cuenta .value {
-            font-size: 8px;
+            font-size: 9px;
             font-weight: 600;
             margin-top: 2px;
         }
+
         .cuentas-box .flecha {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 700;
-            color: #666;
             padding: 0 6px;
         }
 
@@ -203,12 +223,25 @@
             display: flex;
             justify-content: space-between;
             padding: 2px 0;
-            font-size: 8px;
-            border-bottom: 1px dotted #eee;
+            font-size: 9px;
+            border-bottom: 1px dotted #ccc;
         }
-        .abono-row .fecha { flex: 1; }
-        .abono-row .monto { flex: 1; text-align: right; font-weight: 600; }
-        .abono-row .ref { flex: 1; text-align: center; font-size: 7px; color: #555; }
+
+        .abono-row .fecha {
+            flex: 1;
+        }
+        .abono-row .monto {
+            flex: 1;
+            text-align: right;
+            font-weight: 600;
+        }
+        .abono-row .ref {
+            flex: 1;
+            text-align: center;
+            font-size: 8px;
+            color: #333;
+        }
+
         .abono-total {
             display: flex;
             justify-content: space-between;
@@ -217,16 +250,23 @@
             border-top: 2px solid #000;
             margin-top: 2px;
         }
-        .abono-total .label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .abono-total .value { font-size: 11px; }
 
-        /* DETALLE IVA */
+        .abono-total .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .abono-total .value {
+            font-size: 12px;
+        }
+
+        /* IVA ROWS */
         .iva-row {
             display: flex;
             justify-content: space-between;
             padding: 1px 0;
-            font-size: 7px;
-            color: #555;
+            font-size: 8px;
+            color: #000;
         }
 
         /* FOOTER */
@@ -235,12 +275,13 @@
             border-top: 2px dashed #000;
             padding-top: 10px;
             margin-top: 10px;
-            font-size: 8px;
-            color: #555;
+            font-size: 9px;
         }
+
         .footer .line {
             margin: 3px 0;
         }
+
         .footer .firma {
             margin-top: 10px;
             padding-top: 10px;
@@ -248,11 +289,13 @@
             display: flex;
             justify-content: space-between;
         }
+
         .footer .firma .firma-item {
             text-align: center;
             flex: 1;
             padding: 0 4px;
         }
+
         .footer .firma .firma-item .linea {
             display: block;
             width: 100%;
@@ -260,145 +303,83 @@
             margin-top: 18px;
             padding-bottom: 2px;
         }
+
         .footer .firma .firma-item .label {
-            font-size: 6px;
+            font-size: 7px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #555;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
+
         .footer .firma .firma-item .nombre {
-            font-size: 7px;
+            font-size: 8px;
             font-weight: 600;
         }
 
         .nota-text {
-            font-size: 8px;
+            font-size: 9px;
             padding: 4px 8px;
-            background: #f8fafc;
-            border-left: 2px solid #666;
+            border-left: 2px solid #000;
             margin: 4px 0;
             font-style: italic;
-            color: #333;
+            background: #f4f4f4;
         }
 
         .uuid-text {
-            font-size: 6px;
-            color: #555;
-            background: #f1f5f9;
+            font-size: 7px;
+            background: #eee;
             padding: 1px 6px;
             font-family: 'Courier New', monospace;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
 
         .separator-dots {
             text-align: center;
-            color: #999;
-            font-size: 8px;
+            font-size: 9px;
             letter-spacing: 3px;
-            margin: 4px 0;
+            margin: 6px 0 4px;
+            color: #333;
         }
 
         .impreso-por {
-            font-size: 7px;
-            color: #666;
+            font-size: 8px;
             margin-top: 4px;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
-        .folio-value {
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-
-        .tag-fiscal {
-            font-size: 6px;
-            font-weight: 700;
-            padding: 1px 6px;
-            border: 1px solid #666;
-            margin-left: 4px;
-        }
-
-        .badge-por-pagar {
-            font-size: 6px;
-            font-weight: 700;
-            padding: 1px 6px;
-            background: #fef3c7;
-            color: #92400e;
-            border: 1px solid #f59e0b;
-            margin-left: 4px;
-            border-radius: 2px;
-        }
-
-        .badge-vencido {
-            font-size: 6px;
-            font-weight: 700;
-            padding: 1px 6px;
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #ef4444;
-            margin-left: 4px;
-            border-radius: 2px;
-        }
-
-        .text-vencido {
-            color: #dc2626;
-            font-weight: 700;
-        }
-
+        /* PRINT */
         @media print {
-            body { 
-                padding: 8px; 
+            body {
+                padding: 6px;
                 max-width: 100%;
                 margin: 0;
             }
-            .ticket { 
-                border: 1px solid #000; 
+
+            .ticket {
+                border: 1px solid #000;
                 max-width: 380px;
                 margin: 0 auto;
             }
-            .header .folio { 
-                background: #000 !important; 
-                color: #fff !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
-            .monto-destacado { 
-                background: #f8fafc !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
-            .cuentas-box { 
-                background: #f8fafc !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
-            .nota-text { 
-                background: #f8fafc !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
-            .uuid-text { 
-                background: #f1f5f9 !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
-            .header .logo { 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
-            .badge-por-pagar {
-                background: #fef3c7 !important;
+
+            .header .folio {
+                background: #000 !important;
+                color: #fff !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .badge-vencido {
-                background: #fee2e2 !important;
+
+            .monto-destacado,
+            .cuentas-box,
+            .nota-text,
+            .uuid-text {
+                background: #f4f4f4 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .text-vencido {
-                color: #dc2626 !important;
+
+            .header .logo {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
     </style>
@@ -410,19 +391,18 @@
             @php
                 $logoPath = public_path('logos/logo.png');
                 $logoData = null;
-                
                 if (file_exists($logoPath)) {
                     $imageData = file_get_contents($logoPath);
                     $logoData = base64_encode($imageData);
                 }
             @endphp
-            
+
             @if($logoData)
             <div class="logo-container">
                 <img src="data:image/png;base64,{{ $logoData }}" alt="Logo" class="logo">
             </div>
             @endif
-            
+
             <div class="empresa">{{ $empresa->nombre_empresa ?? 'EMPRESA' }}</div>
             <div class="empresa-line">{{ $empresa->razon_social ?? '—' }}</div>
             <div class="folio">FOLIO: {{ $movimiento->poliza->folio ?? 'SIN FOLIO' }}</div>
@@ -443,10 +423,10 @@
             </div>
         </div>
 
-        <!-- ========== PERSONA / CUENTAS ========== -->
+        <!-- ========== DATOS ========== -->
         <div class="section">
             <div class="section-title">Datos</div>
-            
+
             @if(!$esTraspaso)
             <div class="row">
                 <span class="label">Persona</span>
@@ -502,7 +482,7 @@
         <!-- ========== MONTOS ========== -->
         <div class="section">
             <div class="section-title">Montos</div>
-            
+
             <div class="monto-destacado">
                 <span class="label">{{ $esTraspaso ? 'MONTO TRASPASO' : 'TOTAL' }}</span>
                 <span class="value">
@@ -520,13 +500,13 @@
             </div>
             <div class="row" style="border-top:1px solid #000;padding-top:4px;margin-top:2px;">
                 <span class="label" style="font-weight:700;">Total con IVA</span>
-                <span class="value" style="font-weight:700;font-size:11px;">
+                <span class="value" style="font-weight:700;font-size:12px;">
                     ${{ number_format(abs($montoMostrar), 2) }}
                 </span>
             </div>
         </div>
 
-        <!-- ========== DETALLE IVA (DOBLE IVA) ========== -->
+        <!-- ========== DESGLOSE IVA ========== -->
         @if(($movimiento->monto_iva_cero ?? 0) != 0 || ($movimiento->monto_iva_dieciseis ?? 0) != 0 || ($movimiento->iva_dieciseis ?? 0) != 0)
         <div class="section">
             <div class="section-title">Desglose IVA</div>
@@ -546,14 +526,14 @@
                 <span>${{ number_format(abs($movimiento->iva_dieciseis), 2) }}</span>
             </div>
             @endif
-            <div class="iva-row" style="border-top:1px solid #ccc;padding-top:2px;font-weight:700;">
+            <div class="iva-row" style="border-top:1px solid #000;padding-top:2px;font-weight:700;">
                 <span>TOTAL</span>
                 <span>${{ number_format(abs(($movimiento->monto_iva_cero ?? 0) + ($movimiento->monto_iva_dieciseis ?? 0) + ($movimiento->iva_dieciseis ?? 0)), 2) }}</span>
             </div>
         </div>
         @endif
 
-        <!-- ========== SALDOS (SI ES POR PAGAR) ========== -->
+        <!-- ========== SALDOS (POR PAGAR) ========== -->
         @if($movimiento->poliza->es_por_pagar)
         <div class="section">
             <div class="section-title">Saldos</div>
@@ -563,7 +543,7 @@
             </div>
             <div class="row" style="border-top:1px solid #000;padding-top:4px;margin-top:2px;">
                 <span class="label" style="font-weight:700;">Saldo Pendiente</span>
-                <span class="value" style="font-weight:700;font-size:11px;">
+                <span class="value" style="font-weight:700;font-size:12px;">
                     ${{ number_format(abs($saldoPendiente ?? 0), 2) }}
                 </span>
             </div>
@@ -642,13 +622,13 @@
         <!-- ========== SEPARADOR ========== -->
         <div class="separator-dots">• • • • • • • • • • • • • • • • • • • • •</div>
 
-        <!-- ========== FOOTER / FIRMAS ========== -->
+        <!-- ========== FOOTER ========== -->
         <div class="footer">
             <div class="impreso-por">
                 RIC | IMPRIME: {{ Auth::user()->nombre_completo ?? 'Sistema' }}
             </div>
             <div class="line">{{ $fecha_exportacion }}</div>
-            
+
             <div class="firma">
                 <div class="firma-item">
                     <span class="nombre">{{ Auth::user()->nombre_completo ?? '—' }}</span>

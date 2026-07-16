@@ -15,7 +15,6 @@
                                 @change="cambiarEmpresa"
                                 class="empresa-select-native"
                             >
-                                <option value="">Seleccione...</option>
                                 <option 
                                     v-for="empresa in empresas" 
                                     :key="empresa.id" 
@@ -71,7 +70,7 @@
                             <input 
                                 type="date" 
                                 v-model="filtros.fecha_desde"
-                                @change="aplicarFiltros"
+                                @change="onFechaDesdeChange"
                                 :max="fechaActual"
                                 class="fecha-input-premium"
                             />
@@ -81,7 +80,7 @@
                             <input 
                                 type="date" 
                                 v-model="filtros.fecha_hasta"
-                                @change="aplicarFiltros"
+                                @change="onFechaHastaChange"
                                 :max="fechaActual"
                                 class="fecha-input-premium"
                             />
@@ -109,11 +108,6 @@
                                 Limpiar
                             </a-button>
                         </div>
-
-                        <!-- Separador -->
-                        <div class="filtros-separator"></div>
-
- 
 
                         <!-- Separador -->
                         <div class="filtros-separator"></div>
@@ -628,6 +622,9 @@ import {
     Tag as ATag,
 } from 'ant-design-vue';
 
+// ✅ IMPORTAR useEmpresa
+import { useEmpresa } from '@/composables/useEmpresa';
+
 // ============================================
 // PERMISOS
 // ============================================
@@ -670,13 +667,22 @@ const props = defineProps({
 });
 
 // ============================================
+// ✅ USAR useEmpresa
+// ============================================
+const { 
+    empresaSeleccionada, 
+    cargarEmpresaGuardada, 
+    guardarEmpresa,
+    getEmpresaActual
+} = useEmpresa();
+
+// ============================================
 // REFS Y VARIABLES
 // ============================================
 const loading = ref(false);
 const modalAlert = ref(null);
 const modalLiquidacion = ref(null);
 const movimientoSeleccionado = ref(null);
-const empresaSeleccionada = ref(props.empresa_seleccionada || null);
 
 // FUNCION PARA OBTENER FECHA LOCAL CORRECTA
 const obtenerFechaLocal = () => {
@@ -853,7 +859,7 @@ const filtros = ref({
     solo_fiscales: false
 });
 
-// ✅ SINCRONIZAR CHECKBOXES CON PROPS PERO POR DEFECTO EN FALSE
+// SINCRONIZAR CHECKBOXES CON PROPS PERO POR DEFECTO EN FALSE
 watch(mostrarTodos, (val) => { filtros.value.mostrar_todos = val; });
 watch(soloFiscales, (val) => { filtros.value.solo_fiscales = val; });
 
@@ -862,6 +868,20 @@ const filtrosActivos = computed(() => {
     return Object.values(otros).some(v => v !== '' && v !== null && v !== undefined) ||
            fecha_desde || fecha_hasta || mostrar_todos || solo_fiscales;
 });
+
+// ============================================
+// FUNCIONES DE FECHAS DINÁMICAS
+// ============================================
+const onFechaHastaChange = () => {
+    if (filtros.value.fecha_hasta) {
+        filtros.value.fecha_desde = filtros.value.fecha_hasta;
+    }
+    aplicarFiltros();
+};
+
+const onFechaDesdeChange = () => {
+    aplicarFiltros();
+};
 
 const aplicarFiltros = () => {
     clearTimeout(timeoutId);
@@ -889,7 +909,6 @@ const aplicarFiltros = () => {
 };
 
 const limpiarFiltros = () => {
-    // ✅ SOLO LIMPIAR FILTROS, NO APLICAR FECHA DE HOY
     filtros.value = {
         fecha_desde: '',
         fecha_hasta: '',
@@ -912,7 +931,6 @@ const limpiarFiltros = () => {
 };
 
 const limpiarFechas = () => {
-    // ✅ SOLO LIMPIAR FECHAS, MANTENER EL RESTO DE FILTROS
     filtros.value.fecha_desde = '';
     filtros.value.fecha_hasta = '';
     aplicarFiltros();
@@ -945,9 +963,12 @@ const handleTableChange = (pagination, filters, sorter) => {
     }
 };
 
+// ============================================
+// ✅ CAMBIAR EMPRESA - USANDO useEmpresa
+// ============================================
 const cambiarEmpresa = () => {
     if (empresaSeleccionada.value) {
-        localStorage.setItem('empresa_movimientos', String(empresaSeleccionada.value));
+        guardarEmpresa(empresaSeleccionada.value);
         loading.value = true;
         const params = { 
             empresa_id: empresaSeleccionada.value, 
@@ -1149,7 +1170,7 @@ const exportarPdf = () => {
 };
 
 // ============================================
-// LIFECYCLE - CORREGIDO
+// ✅ LIFECYCLE - CON useEmpresa
 // ============================================
 onMounted(() => {
     // Inicializar columnas
@@ -1158,32 +1179,33 @@ onMounted(() => {
         columnasActivas.value = defaultKeys;
     }
     
-    // Cargar empresa seleccionada
-    if (!empresaSeleccionada.value) {
-        const empresaGuardada = localStorage.getItem('empresa_movimientos');
-        if (empresaGuardada && props.empresas?.some(e => e.id == parseInt(empresaGuardada))) {
-            empresaSeleccionada.value = parseInt(empresaGuardada);
-        } else if (props.empresas && props.empresas.length > 0) {
-            empresaSeleccionada.value = props.empresas[0].id;
-        }
+    // ✅ Cargar empresa guardada desde localStorage
+    const empresaGuardada = cargarEmpresaGuardada();
+    
+    // ✅ Si hay empresa guardada y existe en la lista, usarla
+    if (empresaGuardada && props.empresas.some(e => e.id === empresaGuardada)) {
+        empresaSeleccionada.value = empresaGuardada;
+    } 
+    // ✅ Si viene desde props, usarla
+    else if (props.empresa_seleccionada) {
+        empresaSeleccionada.value = parseInt(props.empresa_seleccionada);
+        guardarEmpresa(props.empresa_seleccionada);
+    }
+    // ✅ Si no hay empresa seleccionada, usar la primera
+    else if (props.empresas && props.empresas.length > 0) {
+        empresaSeleccionada.value = props.empresas[0].id;
+        guardarEmpresa(props.empresas[0].id);
     }
     
-    // ✅ SOLO SETEAR LA FECHA DE HOY POR DEFECTO
-    // NO ACTIVAR FILTROS ADICIONALES (mostrar_todos, solo_fiscales, etc.)
     if (empresaSeleccionada.value) {
         const hoy = obtenerFechaLocal();
-        
-        // ✅ SI NO HAY FECHAS EN FILTROS, USAR HOY
         if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
             filtros.value.fecha_desde = hoy;
             filtros.value.fecha_hasta = hoy;
         }
-        
-        // ✅ SOLO APLICAR FILTROS SI HAY EMPRESA SELECCIONADA
         aplicarFiltros();
     }
     
-    // ✅ PROCESAR FLASH MESSAGES
     if (props.flash && Object.keys(props.flash).length > 0) {
         nextTick(() => {
             const tipoMap = {
@@ -1207,9 +1229,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ===== ESTILOS COMPLETOS ===== */
-
-/* --- ESTILOS GENERALES --- */
 .empresa-selector-premium {
     background: #ffffff;
     border-radius: 12px;
@@ -1456,40 +1475,6 @@ onMounted(() => {
 .btn-export-pdf-mini:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
-}
-
-.checkbox-todos-item {
-    min-width: auto;
-    justify-content: center;
-}
-
-.checkbox-todos-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-    height: 36px;
-}
-
-.checkbox-todos-label:hover {
-    background: #f1f5f9;
-}
-
-.checkbox-todos-input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #1a3a5c;
-}
-
-.checkbox-todos-text {
-    font-size: 13px;
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
 }
 
 .checkbox-fiscal-item {
@@ -1987,17 +1972,6 @@ onMounted(() => {
     height: 24px;
 }
 
-.btn-accion.liquidar {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.btn-accion.liquidar:hover:not(:disabled) {
-    background: #bbf7d0;
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(22, 101, 52, 0.15);
-}
-
 .btn-accion.abonar {
     background: #dbeafe;
     color: #1e40af;
@@ -2356,7 +2330,6 @@ onMounted(() => {
         justify-content: center;
     }
 
-    .checkbox-todos-item,
     .checkbox-fiscal-item {
         align-items: flex-start;
     }
@@ -2487,7 +2460,6 @@ onMounted(() => {
         height: 8px;
     }
     
-    .checkbox-todos-text,
     .checkbox-fiscal-text {
         font-size: 12px;
     }
