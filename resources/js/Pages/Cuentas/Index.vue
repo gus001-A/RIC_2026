@@ -25,7 +25,6 @@
                             </select>
                         </div>
                         <div class="empresa-selector-actions">
-                            <!-- VER INACTIVAS - solo admin, auditor, super -->
                             <a-button 
                                 v-if="permisos?.puede_editar_cuentas"
                                 size="middle" 
@@ -46,6 +45,7 @@
                     <!-- Header de la tabla -->
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
+                            <span class="table-title-ultra">Listado de Cuentas</span>
                             <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
                                 <span class="filter-dot-active"></span>
                                 Filtros activos
@@ -61,8 +61,8 @@
                         </div>
                     </div>
 
-                    <!-- Tabla con scroll fijo -->
-                    <div class="table-scroll-container">
+                    <!-- Contenedor de tabla con scroll -->
+                    <div class="table-scroll-container-full">
                         <a-table
                             :columns="columns"
                             :data-source="cuentas.data"
@@ -71,23 +71,19 @@
                             row-key="id_cuenta"
                             class="cuenta-table-ultra"
                             size="middle"
-                            :scroll="{ x: 'max-content', y: 500 }"
-                            sticky
+                            :scroll="{ x: 'max-content' }"
                         >
                             <template #bodyCell="{ column, record }">
-                                <!-- ID -->
                                 <template v-if="column.key === '#'">
                                     <span class="text-gray-400 font-mono text-sm">{{ record.id_cuenta }}</span>
                                 </template>
 
-                                <!-- CODIGO -->
                                 <template v-if="column.key === 'codigo_cuenta'">
                                     <div class="clave-cell-ultra">
                                         <span class="clave-text-ultra">{{ record.codigo_cuenta }}</span>
                                     </div>
                                 </template>
 
-                                <!-- CUENTA - Click para editar (solo admin, auditor, super) -->
                                 <template v-if="column.key === 'nombre_cuenta'">
                                     <div class="nombre-cell-ultra">
                                         <Link 
@@ -104,21 +100,18 @@
                                     </div>
                                 </template>
 
-                                <!-- INDICE -->
                                 <template v-if="column.key === 'indice'">
                                     <div class="indice-cell-ultra">
                                         <span class="indice-text-ultra">{{ record.indice }}</span>
                                     </div>
                                 </template>
 
-                                <!-- CUENTA MADRE -->
                                 <template v-if="column.key === 'cuenta_madre'">
                                     <div class="origen-cell-ultra">
                                         <span class="origen-text-ultra">{{ record.cuenta_madre }}</span>
                                     </div>
                                 </template>
 
-                                <!-- NATURALEZA -->
                                 <template v-if="column.key === 'naturaleza'">
                                     <div class="naturaleza-cell-ultra">
                                         <span class="naturaleza-badge" :class="record.Naturaleza === 'DEUDORA' ? 'deudora' : 'acreedora'">
@@ -127,7 +120,6 @@
                                     </div>
                                 </template>
 
-                                <!-- FONDEADORA -->
                                 <template v-if="column.key === 'fondeadora'">
                                     <div class="fondeadora-cell-ultra">
                                         <span class="fondeadora-badge" :class="record.fondeo_c == 1 ? 'fondeadora-si' : 'fondeadora-no'">
@@ -136,102 +128,113 @@
                                     </div>
                                 </template>
                             </template>
-
-                            <!-- Footer con filtros -->
-                            <template #footer>
-                                <div class="filtros-ultra">
-                                    <div class="filtros-grid-ultra">
-                                        <!-- Filtro Codigo -->
-                                        <div class="filtro-item-ultra">
-                                            <InputLabel>Codigo</InputLabel>
-                                            <TextInput 
-                                                v-model="filtros.codigo_cuenta"
-                                                @input="aplicarFiltros"
-                                                placeholder="Codigo..."
-                                                square
-                                            />
-                                        </div>
-
-                                        <!-- Filtro Cuenta -->
-                                        <div class="filtro-item-ultra">
-                                            <InputLabel>Cuenta</InputLabel>
-                                            <TextInput 
-                                                v-model="filtros.nombre_cuenta"
-                                                @input="aplicarFiltros"
-                                                placeholder="Nombre..."
-                                                square
-                                            />
-                                        </div>
-
-                                        <!-- Filtro Nivel -->
-                                        <div class="filtro-item-ultra">
-                                            <InputLabel>Nivel</InputLabel>
-                                            <a-select
-                                                v-model:value="filtros.nivel"
-                                                @change="aplicarFiltros"
-                                                placeholder="Todos"
-                                                allow-clear
-                                                size="small"
-                                                class="filtro-select-ultra"
-                                            >
-                                                <a-select-option value="">Todos</a-select-option>
-                                                <a-select-option value="1">1er Nivel</a-select-option>
-                                                <a-select-option value="2">2do Nivel</a-select-option>
-                                                <a-select-option value="3">3er Nivel</a-select-option>
-                                                <a-select-option value="4">4to Nivel</a-select-option>
-                                                <a-select-option value="5">5to Nivel</a-select-option>
-                                            </a-select>
-                                        </div>
-
-                                        <!-- Filtro Naturaleza -->
-                                        <div class="filtro-item-ultra">
-                                            <InputLabel>Naturaleza</InputLabel>
-                                            <a-select
-                                                v-model:value="filtros.naturaleza"
-                                                @change="aplicarFiltros"
-                                                placeholder="Todos"
-                                                allow-clear
-                                                size="small"
-                                                class="filtro-select-ultra"
-                                            >
-                                                <a-select-option value="">Todos</a-select-option>
-                                                <a-select-option value="DEUDORA">Deudora</a-select-option>
-                                                <a-select-option value="ACREEDORA">Acreedora</a-select-option>
-                                            </a-select>
-                                        </div>
-
-                                        <!-- Boton Limpiar -->
-                                        <div class="filtro-item-ultra filtro-actions">
-                                            <InputLabel>Acciones</InputLabel>
-                                            <a-button 
-                                                v-if="filtrosActivos"
-                                                @click="limpiarFiltros" 
-                                                size="small"
-                                                class="btn-clear-ultra"
-                                                block
-                                            >
-                                                <template #icon>
-                                                    <CloseOutlined />
-                                                </template>
-                                                Limpiar filtros
-                                            </a-button>
-                                            <a-button 
-                                                v-else
-                                                disabled
-                                                size="small"
-                                                block
-                                                class="btn-no-filtros-ultra"
-                                            >
-                                                <span class="no-filtros-text-ultra">Sin filtros</span>
-                                            </a-button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
                         </a-table>
                     </div>
 
-                    <!-- Paginacion -->
+                    <!-- FILTROS INFERIOR -->
+                    <div class="filtros-ultra-full filtros-inferior">
+                        <div class="filtros-grid-ultra-full">
+                            <!-- Filtro ID -->
+                            <div class="filtro-item-ultra">
+                                <InputLabel>ID</InputLabel>
+                                <TextInput 
+                                    v-model="filtros.id"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    square
+                                />
+                            </div>
+
+                            <!-- Filtro Código -->
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Código</InputLabel>
+                                <TextInput 
+                                    v-model="filtros.codigo_cuenta"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    square
+                                />
+                            </div>
+
+                            <!-- Filtro Cuenta -->
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Cuenta</InputLabel>
+                                <TextInput 
+                                    v-model="filtros.nombre_cuenta"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    square
+                                />
+                            </div>
+
+                            <!-- Filtro Índice -->
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Índice</InputLabel>
+                                <TextInput 
+                                    v-model="filtros.indice"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    square
+                                />
+                            </div>
+
+                            <!-- Filtro Cuenta Madre -->
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Cuenta Madre</InputLabel>
+                                <TextInput 
+                                    v-model="filtros.cuenta_madre"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    square
+                                />
+                            </div>
+
+                            <!-- Filtro Naturaleza -->
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Naturaleza</InputLabel>
+                                <a-select
+                                    v-model:value="filtros.naturaleza"
+                                    @change="aplicarFiltros"
+                                    placeholder="Todos"
+                                    allow-clear
+                                    size="small"
+                                    class="filtro-select-ultra"
+                                >
+                                    <ASelectOption value="">Todos</ASelectOption>
+                                    <ASelectOption value="DEUDORA">Deudora</ASelectOption>
+                                    <ASelectOption value="ACREEDORA">Acreedora</ASelectOption>
+                                </a-select>
+                            </div>
+
+                            <!-- Botón Limpiar -->
+                            <div class="filtro-item-ultra filtro-actions">
+                                <InputLabel>Acciones</InputLabel>
+                                <a-button 
+                                    v-if="filtrosActivos"
+                                    @click="limpiarFiltros" 
+                                    size="small"
+                                    class="btn-clear-ultra"
+                                    block
+                                >
+                                    <template #icon>
+                                        <CloseOutlined />
+                                    </template>
+                                    Limpiar filtros
+                                </a-button>
+                                <a-button 
+                                    v-else
+                                    disabled
+                                    size="small"
+                                    block
+                                    class="btn-no-filtros-ultra"
+                                >
+                                    <span class="no-filtros-text-ultra">Sin filtros</span>
+                                </a-button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
                     <div class="pagination-ultra">
                         <span class="pagination-info-ultra">
                             Mostrando <span class="pagination-highlight-ultra">{{ cuentas.from || 0 }}</span> a 
@@ -282,40 +285,28 @@
                         sticky
                     >
                         <template #bodyCell="{ column, record }">
-                            <!-- ID -->
                             <template v-if="column.key === '#'">
                                 <span class="text-gray-400 font-mono text-sm">{{ record.id_cuenta }}</span>
                             </template>
 
-                            <!-- CODIGO -->
                             <template v-if="column.key === 'codigo_cuenta'">
                                 <div class="clave-cell-ultra">
                                     <span class="clave-text-ultra inactivo-text">{{ record.codigo_cuenta }}</span>
                                 </div>
                             </template>
 
-                            <!-- CUENTA -->
                             <template v-if="column.key === 'nombre_cuenta'">
                                 <div class="nombre-cell-ultra">
                                     <span class="nombre-text-ultra inactivo-text">{{ record.nombre_cuenta }}</span>
                                 </div>
                             </template>
 
-                            <!-- INDICE -->
-                            <template v-if="column.key === 'indice'">
-                                <div class="indice-cell-ultra">
-                                    <span class="indice-text-ultra inactivo-text">{{ record.indice }}</span>
-                                </div>
-                            </template>
-
-                            <!-- CUENTA MADRE -->
                             <template v-if="column.key === 'cuenta_madre'">
                                 <div class="origen-cell-ultra">
                                     <span class="origen-text-ultra inactivo-text">{{ record.cuenta_madre }}</span>
                                 </div>
                             </template>
 
-                            <!-- RESTAURAR - solo admin, auditor, super -->
                             <template v-if="column.key === 'restaurar'">
                                 <div class="restaurar-cell-ultra">
                                     <a-tooltip v-if="permisos?.puede_editar_cuentas" title="Restaurar cuenta" placement="top" color="#10b981">
@@ -330,80 +321,78 @@
                                 </div>
                             </template>
                         </template>
-
-                        <!-- FOOTER CON FILTROS PARA INACTIVAS -->
-                        <template #footer>
-                            <div class="filtros-ultra-modal">
-                                <div class="filtros-grid-ultra-modal">
-                                    <!-- Filtro ID -->
-                                    <div class="filtro-item-ultra-modal">
-                                        <InputLabel>ID</InputLabel>
-                                        <TextInput 
-                                            v-model="filtrosInactivos.id"
-                                            placeholder="ID..."
-                                            square
-                                        />
-                                    </div>
-
-                                    <!-- Filtro Código -->
-                                    <div class="filtro-item-ultra-modal">
-                                        <InputLabel>Código</InputLabel>
-                                        <TextInput 
-                                            v-model="filtrosInactivos.codigo_cuenta"
-                                            placeholder="Código..."
-                                            square
-                                        />
-                                    </div>
-
-                                    <!-- Filtro Cuenta -->
-                                    <div class="filtro-item-ultra-modal">
-                                        <InputLabel>Cuenta</InputLabel>
-                                        <TextInput 
-                                            v-model="filtrosInactivos.nombre_cuenta"
-                                            placeholder="Nombre..."
-                                            square
-                                        />
-                                    </div>
-
-                                    <!-- Filtro Cuenta Madre -->
-                                    <div class="filtro-item-ultra-modal">
-                                        <InputLabel>Cuenta Madre</InputLabel>
-                                        <TextInput 
-                                            v-model="filtrosInactivos.cuenta_madre"
-                                            placeholder="Cuenta madre..."
-                                            square
-                                        />
-                                    </div>
-
-                                    <!-- Botón Limpiar -->
-                                    <div class="filtro-item-ultra-modal filtro-actions-modal">
-                                        <InputLabel>Acciones</InputLabel>
-                                        <a-button 
-                                            v-if="filtrosInactivosActivos"
-                                            @click="limpiarFiltrosInactivos" 
-                                            size="small"
-                                            class="btn-clear-ultra"
-                                            block
-                                        >
-                                            <template #icon>
-                                                <CloseOutlined />
-                                            </template>
-                                            Limpiar
-                                        </a-button>
-                                        <a-button 
-                                            v-else
-                                            disabled
-                                            size="small"
-                                            block
-                                            class="btn-no-filtros-ultra"
-                                        >
-                                            <span class="no-filtros-text-ultra">Sin filtros</span>
-                                        </a-button>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
                     </a-table>
+                </div>
+
+                <!-- FILTROS INFERIOR DEL MODAL -->
+                <div class="filtros-ultra-full-modal">
+                    <div class="filtros-grid-ultra-full-modal">
+                        <!-- Filtro ID -->
+                        <div class="filtro-item-ultra-modal">
+                            <InputLabel>ID</InputLabel>
+                            <TextInput 
+                                v-model="filtrosInactivos.id"
+                                placeholder="Buscar..."
+                                square
+                            />
+                        </div>
+
+                        <!-- Filtro Código -->
+                        <div class="filtro-item-ultra-modal">
+                            <InputLabel>Código</InputLabel>
+                            <TextInput 
+                                v-model="filtrosInactivos.codigo_cuenta"
+                                placeholder="Buscar..."
+                                square
+                            />
+                        </div>
+
+                        <!-- Filtro Cuenta -->
+                        <div class="filtro-item-ultra-modal">
+                            <InputLabel>Cuenta</InputLabel>
+                            <TextInput 
+                                v-model="filtrosInactivos.nombre_cuenta"
+                                placeholder="Buscar..."
+                                square
+                            />
+                        </div>
+
+                        <!-- Filtro Cuenta Madre -->
+                        <div class="filtro-item-ultra-modal">
+                            <InputLabel>Cuenta Madre</InputLabel>
+                            <TextInput 
+                                v-model="filtrosInactivos.cuenta_madre"
+                                placeholder="Buscar..."
+                                square
+                            />
+                        </div>
+
+                        <!-- Botón Limpiar -->
+                        <div class="filtro-item-ultra-modal filtro-actions-modal">
+                            <InputLabel>Acciones</InputLabel>
+                            <a-button 
+                                v-if="filtrosInactivosActivos"
+                                @click="limpiarFiltrosInactivos" 
+                                size="small"
+                                class="btn-clear-ultra"
+                                block
+                            >
+                                <template #icon>
+                                    <CloseOutlined />
+                                </template>
+                                Limpiar
+                            </a-button>
+                            <a-button 
+                                v-else
+                                disabled
+                                size="small"
+                                block
+                                class="btn-no-filtros-ultra"
+                            >
+                                <span class="no-filtros-text-ultra">Sin filtros</span>
+                            </a-button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="modal-inactivas-footer">
@@ -435,7 +424,6 @@ import ModalAlert from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import {
-    PlusOutlined,
     CloseOutlined,
     EyeOutlined,
     ReloadOutlined,
@@ -451,12 +439,10 @@ import {
     Modal as AModal,
 } from 'ant-design-vue';
 
-// ✅ IMPORTAR useEmpresa
+const ASelectOption = ASelect.Option;
+
 import { useEmpresa } from '@/composables/useEmpresa';
 
-// ============================================
-// PERMISOS DESDE EL BACKEND
-// ============================================
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
 
@@ -491,19 +477,12 @@ const props = defineProps({
     }
 });
 
-// ============================================
-// ✅ USAR useEmpresa
-// ============================================
 const { 
     empresaSeleccionada, 
     cargarEmpresaGuardada, 
     guardarEmpresa,
-    getEmpresaActual
 } = useEmpresa();
 
-// ============================================
-// REFS Y VARIABLES
-// ============================================
 const loading = ref(false);
 const loadingInactivas = ref(false);
 const modalAlert = ref(null);
@@ -511,101 +490,97 @@ const modalInactivasVisible = ref(false);
 const cuentasInactivas = ref(props.cuentas_inactivas || []);
 
 // ============================================
-// COLUMNAS DE LA TABLA PRINCIPAL (SIN NIVEL JERARQUICO)
+// COLUMNAS DE LA TABLA PRINCIPAL
 // ============================================
 const columns = [
     {
         title: 'ID',
         key: '#',
-        width: '70px',
+        width: '8%',
         align: 'center',
         fixed: 'left'
     },
     {
         title: 'Codigo',
         key: 'codigo_cuenta',
-        width: '130px',
+        width: '14%',
         fixed: 'left'
     },
     {
         title: 'Cuenta',
         key: 'nombre_cuenta',
-        width: '320px'
+        width: '24%'
     },
     {
         title: 'Indice',
         key: 'indice',
-        width: '200px'
+        width: '12%'
     },
     {
         title: 'Cuenta Madre',
         key: 'cuenta_madre',
-        width: '200px'
+        width: '18%'
     },
     {
         title: 'Naturaleza',
         key: 'naturaleza',
-        width: '100px',
+        width: '12%',
         align: 'center'
     },
     {
         title: 'Fondeadora',
         key: 'fondeadora',
-        width: '100px',
+        width: '12%',
         align: 'center'
     }
 ];
 
 // ============================================
-// COLUMNAS DEL MODAL DE INACTIVAS (SIN NIVEL Y TIPO)
+// COLUMNAS DEL MODAL DE INACTIVAS (SIN INDICE)
 // ============================================
 const columnsInactivas = [
     {
         title: 'ID',
         key: '#',
-        width: '70px',
+        width: '12%',
         align: 'center',
         fixed: 'left'
     },
     {
-        title: 'Código',
+        title: 'Codigo',
         key: 'codigo_cuenta',
-        width: '130px',
+        width: '18%',
         fixed: 'left'
     },
     {
         title: 'Cuenta',
         key: 'nombre_cuenta',
-        width: '280px'
-    },
-    {
-        title: 'Índice',
-        key: 'indice',
-        width: '180px'
+        width: '32%'
     },
     {
         title: 'Cuenta Madre',
         key: 'cuenta_madre',
-        width: '200px'
+        width: '25%'
     },
     {
         title: 'Restaurar',
         key: 'restaurar',
-        width: '100px',
+        width: '13%',
         align: 'center',
         fixed: 'right'
     }
 ];
 
 // ============================================
-// FILTROS PRINCIPALES
+// FILTROS PRINCIPALES (SIN FONDEADORA)
 // ============================================
 const filtros = ref({
+    id: props.filtros?.id || '',
     codigo_cuenta: props.filtros?.codigo_cuenta || '',
     nombre_cuenta: props.filtros?.nombre_cuenta || '',
-    nivel: props.filtros?.nivel || '',
+    indice: props.filtros?.indice || '',
+    cuenta_madre: props.filtros?.cuenta_madre || '',
     naturaleza: props.filtros?.naturaleza || '',
-    tipo_cuenta: props.filtros?.tipo_cuenta || '',
 });
 
 const filtrosActivos = computed(() => {
@@ -641,17 +616,18 @@ const aplicarFiltros = () => {
 
 const limpiarFiltros = () => {
     filtros.value = {
+        id: '',
         codigo_cuenta: '',
         nombre_cuenta: '',
-        nivel: '',
+        indice: '',
+        cuenta_madre: '',
         naturaleza: '',
-        tipo_cuenta: '',
     };
     aplicarFiltros();
 };
 
 // ============================================
-// FILTROS PARA INACTIVAS (LOCALES)
+// FILTROS PARA INACTIVAS
 // ============================================
 const filtrosInactivos = ref({
     id: '',
@@ -664,7 +640,6 @@ const filtrosInactivosActivos = computed(() => {
     return Object.values(filtrosInactivos.value).some(val => val !== '' && val !== null && val !== undefined);
 });
 
-// Computed que filtra las cuentas inactivas según los filtros
 const cuentasInactivasFiltradas = computed(() => {
     let list = cuentasInactivas.value;
     const f = filtrosInactivos.value;
@@ -689,7 +664,6 @@ const cuentasInactivasFiltradas = computed(() => {
     return list;
 });
 
-// Limpiar filtros inactivos
 const limpiarFiltrosInactivos = () => {
     filtrosInactivos.value = {
         id: '',
@@ -700,7 +674,7 @@ const limpiarFiltrosInactivos = () => {
 };
 
 // ============================================
-// ✅ CAMBIAR EMPRESA - USANDO useEmpresa
+// CAMBIAR EMPRESA
 // ============================================
 const cambiarEmpresa = () => {
     if (empresaSeleccionada.value) {
@@ -730,7 +704,7 @@ const cambiarEmpresa = () => {
 };
 
 // ============================================
-// MODAL DE CUENTAS INACTIVAS
+// MODAL CUENTAS INACTIVAS
 // ============================================
 const abrirModalInactivas = async () => {
     if (!empresaSeleccionada.value) {
@@ -747,9 +721,7 @@ const abrirModalInactivas = async () => {
                 empresa_id: empresaSeleccionada.value
             }
         });
-        // Ordenar por ID ascendente
         cuentasInactivas.value = (response.data.data || []).sort((a, b) => a.id_cuenta - b.id_cuenta);
-        // Limpiar filtros al abrir
         limpiarFiltrosInactivos();
     } catch (error) {
         console.error('Error al cargar cuentas inactivas:', error);
@@ -766,7 +738,7 @@ const cerrarModalInactivas = () => {
 };
 
 // ============================================
-// RESTAURAR CUENTA (solo admin, auditor, super)
+// RESTAURAR CUENTA
 // ============================================
 const confirmarRestaurar = (cuenta) => {
     if (!permisos.value?.puede_editar_cuentas) {
@@ -860,7 +832,7 @@ const confirmarRestaurar = (cuenta) => {
 };
 
 // ============================================
-// ESTILOS PARA SWEETALERT2
+// ESTILOS SWEETALERT2
 // ============================================
 const agregarEstilosSwal = () => {
     const style = document.createElement('style');
@@ -947,24 +919,20 @@ watch(() => props.flash, (newFlash) => {
 }, { deep: true, immediate: true });
 
 // ============================================
-// ✅ LIFECYCLE - CON useEmpresa
+// LIFECYCLE
 // ============================================
 onMounted(() => {
     agregarEstilosSwal();
     
-    // ✅ Cargar empresa guardada desde localStorage
     const empresaGuardada = cargarEmpresaGuardada();
     
-    // ✅ Si hay empresa guardada y existe en la lista, usarla
     if (empresaGuardada && props.empresas.some(e => e.id === empresaGuardada)) {
         empresaSeleccionada.value = empresaGuardada;
     } 
-    // ✅ Si viene desde props, usarla
     else if (props.empresa_seleccionada) {
         empresaSeleccionada.value = parseInt(props.empresa_seleccionada);
         guardarEmpresa(props.empresa_seleccionada);
     }
-    // ✅ Si no hay empresa seleccionada, usar la primera
     else if (props.empresas && props.empresas.length > 0) {
         empresaSeleccionada.value = props.empresas[0].id;
         guardarEmpresa(props.empresas[0].id);
@@ -981,7 +949,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ===== TODOS LOS ESTILOS EXISTENTES SE MANTIENEN IGUAL ===== */
 /* ===== HEADER PREMIUM ===== */
 .header-premium {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
@@ -1105,7 +1072,6 @@ onMounted(() => {
         width: 100%;
         flex-wrap: wrap;
     }
-    .empresa-selector-actions .btn-nueva-cuenta-premium,
     .empresa-selector-actions .btn-ver-inactivas {
         flex: 1;
         min-width: 120px;
@@ -1138,24 +1104,6 @@ onMounted(() => {
     background: #ffffff;
 }
 
-.btn-nueva-cuenta-premium {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%) !important;
-    border: none !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    padding: 0 20px !important;
-    height: 36px !important;
-    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    font-size: 13px !important;
-    letter-spacing: 0.3px;
-}
-
-.btn-nueva-cuenta-premium:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3) !important;
-}
-
 .btn-ver-inactivas {
     background: linear-gradient(135deg, #f59e0b, #d97706) !important;
     border: none !important;
@@ -1184,36 +1132,6 @@ onMounted(() => {
     padding: 20px;
 }
 
-.table-scroll-container {
-    overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid #f1f5f9;
-}
-
-.table-scroll-container :deep(.ant-table-body) {
-    max-height: 500px !important;
-    overflow-y: auto !important;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
 .table-header-ultra {
     display: flex;
     flex-direction: column;
@@ -1234,6 +1152,12 @@ onMounted(() => {
     align-items: center;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+.table-title-ultra {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
 }
 
 .table-header-right-ultra {
@@ -1269,7 +1193,7 @@ onMounted(() => {
     color: #64748b !important;
     border: 2px solid #d1d5db !important;
     transition: all 0.3s ease !important;
-    height: 36px !important;
+    height: 40px !important;
     font-weight: 600 !important;
     background: #ffffff !important;
 }
@@ -1280,6 +1204,36 @@ onMounted(() => {
     background: #f8faff !important;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1) !important;
+}
+
+/* ===== CONTENEDOR DE TABLA CON SCROLL ===== */
+.table-scroll-container-full {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+    min-height: 200px;
+    max-height: 450px;
+}
+
+.table-scroll-container-full::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-scroll-container-full::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-scroll-container-full::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-scroll-container-full::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* ===== TABLA ANT DESIGN ===== */
@@ -1296,10 +1250,11 @@ onMounted(() => {
     font-weight: 700;
     color: #1e293b;
     border-bottom: 2px solid #d1d5db;
-    padding: 12px 16px;
+    padding: 10px 12px;
     font-size: 11px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    white-space: nowrap;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -1319,7 +1274,6 @@ onMounted(() => {
 
 .cuenta-table-ultra :deep(.ant-table-tbody > tr:hover) {
     background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
-    box-shadow: inset 0 0 0 1px #dbeafe;
 }
 
 .cuenta-table-ultra :deep(.ant-table-tbody > tr:last-child td) {
@@ -1327,19 +1281,234 @@ onMounted(() => {
 }
 
 .cuenta-table-ultra :deep(.ant-table-cell) {
-    padding: 10px 14px;
+    padding: 8px 10px;
     border-bottom: 1px solid #f1f5f9;
     font-size: 13px;
 }
 
-/* Columnas fijas */
-.cuenta-table-ultra :deep(.ant-table-cell-fix-left) {
-    background: #ffffff;
-    z-index: 5;
+/* ===== FILTROS INFERIOR - ALINEADOS PERFECTAMENTE ===== */
+.filtros-ultra-full {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid #f1f5f9;
 }
 
-.cuenta-table-ultra :deep(.ant-table-tbody .ant-table-cell-fix-left:hover) {
-    background: #f8faff;
+.filtros-grid-ultra-full {
+    display: grid;
+    grid-template-columns: 8% 14% 24% 12% 18% 12% 12%;
+    gap: 4px;
+    align-items: end;
+    width: 100%;
+}
+
+@media (max-width: 1400px) {
+    .filtros-grid-ultra-full {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 6px;
+    }
+    .filtro-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 992px) {
+    .filtros-grid-ultra-full {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+    }
+    .filtro-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .filtros-grid-ultra-full {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    .filtro-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 480px) {
+    .filtros-grid-ultra-full {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    .filtro-actions {
+        grid-column: 1;
+    }
+}
+
+.filtro-item-ultra {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.filtro-item-ultra :deep(.input-label) {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 0 !important;
+}
+
+.filtro-item-ultra :deep(.text-input) {
+    height: 36px !important;
+    font-size: 12px !important;
+    padding: 0 10px !important;
+    border-radius: 0px !important;
+    border: 2px solid #d1d5db !important;
+    width: 100% !important;
+}
+
+.filtro-item-ultra :deep(.text-input:focus) {
+    border-color: #1a3a5c !important;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
+}
+
+.filtro-actions {
+    min-width: 90px;
+}
+
+.filtro-select-ultra {
+    width: 100% !important;
+}
+
+.filtro-select-ultra :deep(.ant-select-selector) {
+    border-radius: 0px !important;
+    border: 2px solid #d1d5db !important;
+    transition: all 0.3s ease !important;
+    background: #ffffff !important;
+    height: 36px !important;
+    font-size: 12px !important;
+    width: 100% !important;
+    box-shadow: none !important;
+}
+
+.filtro-select-ultra :deep(.ant-select-selector:hover) {
+    border-color: #1a3a5c !important;
+    background: #fafbfc !important;
+}
+
+.filtro-select-ultra :deep(.ant-select-focused .ant-select-selector) {
+    border-color: #1a3a5c !important;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
+    background: #fafbfc !important;
+}
+
+.filtro-select-ultra :deep(.ant-select-selection-item) {
+    line-height: 34px !important;
+}
+
+.btn-clear-ultra {
+    border-radius: 0px !important;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282) !important;
+    border: none !important;
+    color: white !important;
+    height: 36px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
+}
+
+.btn-clear-ultra:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3) !important;
+}
+
+.btn-no-filtros-ultra {
+    border-radius: 0px !important;
+    background: #f8fafc !important;
+    border: 2px dashed #d1d5db !important;
+    cursor: not-allowed !important;
+    height: 36px !important;
+    font-size: 12px !important;
+}
+
+.no-filtros-text-ultra {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* ===== FILTROS MODAL INACTIVAS ===== */
+.filtros-ultra-full-modal {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px solid #f1f5f9;
+}
+
+.filtros-grid-ultra-full-modal {
+    display: grid;
+    grid-template-columns: 12% 18% 32% 25% 13%;
+    gap: 4px;
+    align-items: end;
+    width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .filtros-grid-ultra-full-modal {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+    }
+    .filtro-actions-modal {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .filtros-grid-ultra-full-modal {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    .filtro-actions-modal {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 480px) {
+    .filtros-grid-ultra-full-modal {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    .filtro-actions-modal {
+        grid-column: 1;
+    }
+}
+
+.filtro-item-ultra-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.filtro-item-ultra-modal :deep(.input-label) {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 0 !important;
+}
+
+.filtro-item-ultra-modal :deep(.text-input) {
+    height: 36px !important;
+    font-size: 12px !important;
+    padding: 0 10px !important;
+    border-radius: 0px !important;
+    border: 2px solid #d1d5db !important;
+    width: 100% !important;
+}
+
+.filtro-item-ultra-modal :deep(.text-input:focus) {
+    border-color: #1a3a5c !important;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
+}
+
+.filtro-actions-modal {
+    min-width: 90px;
 }
 
 /* ===== CELDAS ===== */
@@ -1405,48 +1574,6 @@ onMounted(() => {
     font-weight: 500;
 }
 
-.nivel-cell-ultra {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.nivel-badge {
-    display: inline-block;
-    padding: 3px 12px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.5px;
-}
-
-.nivel-badge.nivel-1 {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.nivel-badge.nivel-2 {
-    background: #d1fae5;
-    color: #059669;
-}
-
-.nivel-badge.nivel-3 {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.nivel-badge.nivel-4 {
-    background: #ede9fe;
-    color: #7c3aed;
-}
-
-.nivel-badge.nivel-5 {
-    background: #fce4ec;
-    color: #dc2626;
-}
-
 .indice-cell-ultra {
     display: flex;
     align-items: center;
@@ -1467,38 +1594,6 @@ onMounted(() => {
     font-size: 12px;
     color: #475569;
     font-weight: 400;
-}
-
-.fondo-cell-ultra {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.fondo-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.fondo-badge.fondeadora {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.fondo-badge.resultado {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.fondo-badge.orden {
-    background: #f3e8ff;
-    color: #7c3aed;
 }
 
 .naturaleza-cell-ultra {
@@ -1528,7 +1623,6 @@ onMounted(() => {
     color: #991b1b;
 }
 
-/* ===== FONDEADORA ===== */
 .fondeadora-cell-ultra {
     display: flex;
     align-items: center;
@@ -1580,169 +1674,6 @@ onMounted(() => {
     background: #ecfdf5;
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-}
-
-/* ===== FILTROS ===== */
-.filtros-ultra {
-    background: #ffffff;
-    padding: 20px 0 0 0;
-    border-top: 2px solid #f1f5f9;
-}
-
-.filtros-grid-ultra {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr;
-    gap: 12px;
-    align-items: end;
-}
-
-@media (max-width: 1200px) {
-    .filtros-grid-ultra {
-        grid-template-columns: 1fr 1fr 1fr 1fr;
-        gap: 10px;
-    }
-}
-
-@media (max-width: 992px) {
-    .filtros-grid-ultra {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-    }
-}
-
-@media (max-width: 768px) {
-    .filtros-grid-ultra {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .filtros-grid-ultra {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-}
-
-.filtro-item-ultra {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-
-.filtro-item-ultra :deep(.input-label) {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    color: #475569 !important;
-    margin-bottom: 0 !important;
-}
-
-.filtro-item-ultra :deep(.text-input) {
-    height: 36px !important;
-    font-size: 12px !important;
-    padding: 0 10px !important;
-    border-radius: 0px !important;
-    border: 2px solid #d1d5db !important;
-}
-
-.filtro-item-ultra :deep(.text-input:focus) {
-    border-color: #1a3a5c !important;
-    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
-}
-
-.filtro-actions {
-    min-width: 100px;
-}
-
-.filtro-select-ultra :deep(.ant-select-selector) {
-    border-radius: 0px !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    background: #ffffff !important;
-    height: 36px !important;
-    font-size: 12px !important;
-    width: 100% !important;
-    box-shadow: none !important;
-}
-
-.filtro-select-ultra :deep(.ant-select-selector:hover) {
-    border-color: #1a3a5c !important;
-    background: #fafbfc !important;
-}
-
-.filtro-select-ultra :deep(.ant-select-focused .ant-select-selector) {
-    border-color: #1a3a5c !important;
-    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
-    background: #fafbfc !important;
-}
-
-.filtro-select-ultra :deep(.ant-select-selection-item) {
-    line-height: 34px !important;
-}
-
-/* ===== BOTONES ===== */
-.btn-clear-ultra {
-    border-radius: 0px !important;
-    background: linear-gradient(135deg, #1a3a5c, #2c5282) !important;
-    border: none !important;
-    color: white !important;
-    height: 36px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
-}
-
-.btn-clear-ultra:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3) !important;
-}
-
-.btn-no-filtros-ultra {
-    border-radius: 0px !important;
-    background: #f8fafc !important;
-    border: 2px dashed #d1d5db !important;
-    cursor: not-allowed !important;
-    height: 36px !important;
-    font-size: 12px !important;
-}
-
-.no-filtros-text-ultra {
-    color: #94a3b8;
-    font-weight: 600;
-}
-
-/* ===== PAGINACION ===== */
-.pagination-ultra {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 2px solid #f1f5f9;
-}
-
-@media (min-width: 640px) {
-    .pagination-ultra {
-        flex-direction: row;
-    }
-}
-
-.pagination-info-ultra {
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 500;
-}
-
-.pagination-highlight-ultra {
-    font-weight: 700;
-    color: #1a3a5c;
-    padding: 2px 8px;
-    background: #f1f4f9;
-    border-radius: 4px;
 }
 
 /* ===== MODAL INACTIVAS ===== */
@@ -1818,7 +1749,7 @@ onMounted(() => {
     border-color: #1a3a5c !important;
 }
 
-/* ===== FILTROS DEL MODAL INACTIVAS ===== */
+/* ===== TABLA SCROLL MODAL ===== */
 .table-scroll-container-modal {
     overflow: hidden;
     border-radius: 8px;
@@ -1849,76 +1780,45 @@ onMounted(() => {
     background: #94a3b8;
 }
 
-.filtros-ultra-modal {
-    background: #ffffff;
-    padding: 12px 0 0 0;
+.table-scroll-container-modal :deep(.ant-table-thead > tr > th) {
+    padding: 8px 10px !important;
+}
+
+.table-scroll-container-modal :deep(.ant-table-cell) {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+}
+
+/* ===== PAGINACIÓN ===== */
+.pagination-ultra {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
     border-top: 2px solid #f1f5f9;
 }
 
-.filtros-grid-ultra-modal {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 0.6fr;
-    gap: 10px;
-    align-items: end;
-}
-
-@media (max-width: 1200px) {
-    .filtros-grid-ultra-modal {
-        grid-template-columns: 1fr 1fr 1fr 1fr;
-        gap: 8px;
+@media (min-width: 640px) {
+    .pagination-ultra {
+        flex-direction: row;
     }
 }
 
-@media (max-width: 992px) {
-    .filtros-grid-ultra-modal {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 8px;
-    }
+.pagination-info-ultra {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
 }
 
-@media (max-width: 768px) {
-    .filtros-grid-ultra-modal {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-}
-
-@media (max-width: 480px) {
-    .filtros-grid-ultra-modal {
-        grid-template-columns: 1fr;
-        gap: 6px;
-    }
-}
-
-.filtro-item-ultra-modal {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-
-.filtro-item-ultra-modal :deep(.input-label) {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    color: #475569 !important;
-    margin-bottom: 0 !important;
-}
-
-.filtro-item-ultra-modal :deep(.text-input) {
-    height: 32px !important;
-    font-size: 12px !important;
-    padding: 0 8px !important;
-    border-radius: 0px !important;
-    border: 2px solid #d1d5db !important;
-}
-
-.filtro-item-ultra-modal :deep(.text-input:focus) {
-    border-color: #1a3a5c !important;
-    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
-}
-
-.filtro-actions-modal {
-    min-width: 80px;
+.pagination-highlight-ultra {
+    font-weight: 700;
+    color: #1a3a5c;
+    padding: 2px 8px;
+    background: #f1f4f9;
+    border-radius: 4px;
 }
 
 /* ===== ANIMACIONES ===== */
@@ -1929,30 +1829,13 @@ onMounted(() => {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-    .header-premium {
-        padding: 16px 20px;
-    }
-    
-    .header-title-premium {
-        font-size: 20px;
-    }
-    
-    .header-icon-wrapper {
-        width: 44px;
-        height: 44px;
-    }
-    
-    .header-icon-svg {
-        width: 22px;
-        height: 22px;
-    }
-    
     .table-wrapper-premium {
         padding: 12px;
     }
     
-    .table-scroll-container {
+    .table-scroll-container-full {
         border-radius: 6px;
+        max-height: 300px;
     }
 
     .modal-inactivas-footer {
@@ -1960,25 +1843,5 @@ onMounted(() => {
         gap: 8px;
         align-items: stretch;
     }
-}
-
-/* ===== SCROLLBAR PERSONALIZADA ===== */
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
 }
 </style>

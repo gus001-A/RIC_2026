@@ -76,7 +76,8 @@ Route::middleware(['auth'])->group(function () {
     ->name('movimientos.imprimir');
     Route::post('/movimientos/{id}/archivos', [MovimientoController::class, 'subirArchivo'])
     ->name('movimientos.archivos.subir');
-
+        Route::get('/movimientos/cuentas-activas', [MovimientoController::class, 'obtenerCuentasActivas'])
+        ->name('movimientos.cuentas-activas');
     Route::get('/movimientos/archivos/{id}', [MovimientoController::class, 'verArchivo'])
         ->name('movimientos.archivos.ver');
     Route::delete('/movimientos/archivos/{id}', [MovimientoController::class, 'eliminarArchivo'])

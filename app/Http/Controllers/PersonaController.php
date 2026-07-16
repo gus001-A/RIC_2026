@@ -15,10 +15,7 @@ use Carbon\Carbon;
 
 class PersonaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+   public function index(Request $request)
     {
         // ✅ Verificar permiso para ver personas
         if (!Gate::allows('ver-personas')) {
@@ -27,6 +24,7 @@ class PersonaController extends Controller
         }
 
         try {
+            // 🔥 CONSTRUIR QUERY BASE
             $query = Persona::query();
 
             // Búsqueda
@@ -39,7 +37,7 @@ class PersonaController extends Controller
                 $query->where('tipo_persona', $request->tipo_persona);
             }
 
-            // Filtro de estado (activo/inactivo) - SOLO UNA VEZ
+            // Filtro de estado
             if ($request->filled('estado')) {
                 $estado = $request->estado;
                 if ($estado === 'activo') {
@@ -49,7 +47,7 @@ class PersonaController extends Controller
                 }
             }
 
-            // ✅ NUEVO: Filtro por empleado
+            // Filtro por empleado
             if ($request->filled('empleado')) {
                 $empleado = $request->empleado;
                 if ($empleado === 'si') {
@@ -64,12 +62,12 @@ class PersonaController extends Controller
                 $query->where('ciudad', $request->ciudad);
             }
 
-            // Filtro por representante - CORREGIDO (son campos directos, no relación)
+            // Filtro por representante
             if ($request->filled('representante')) {
                 $query->where(function($q) use ($request) {
                     $q->where('representante_nombre', 'LIKE', '%' . $request->representante . '%')
-                    ->orWhere('representante_paterno', 'LIKE', '%' . $request->representante . '%')
-                    ->orWhere('representante_materno', 'LIKE', '%' . $request->representante . '%');
+                        ->orWhere('representante_paterno', 'LIKE', '%' . $request->representante . '%')
+                        ->orWhere('representante_materno', 'LIKE', '%' . $request->representante . '%');
                 });
             }
 
@@ -77,49 +75,142 @@ class PersonaController extends Controller
             $sortBy = $request->get('sort_by', 'id_persona');
             $sortOrder = $request->get('sort_order', 'desc');
             
-            $allowedSorts = ['id_persona', 'Nombre', 'Paterno', 'rfc', 'email', 'created_at', 'empleado'];
+            $allowedSorts = ['id_persona', 'Nombre', 'Paterno', 'rfc', 'email', 'created_at', 'empleado', 'activo'];
             if (in_array($sortBy, $allowedSorts)) {
                 $query->orderBy($sortBy, $sortOrder);
             } else {
                 $query->orderBy('id_persona', 'desc');
             }
 
+            // 🔥 PAGINACIÓN
             $perPage = $request->get('per_page', 15);
             $personas = $query->paginate($perPage)->withQueryString();
 
-            // ESTADÍSTICAS ACTUALIZADAS
+            // 🔥 TRANSFORMAR DATOS - INCLUIR TODOS LOS CAMPOS NECESARIOS
+            $items = [];
+            foreach ($personas->items() as $persona) {
+                $items[] = [
+                    // 🔥 CAMPOS OBLIGATORIOS PARA LA TABLA
+                    'id_persona' => $persona->id_persona,
+                    
+                    // Datos personales
+                    'Nombre' => $persona->Nombre,
+                    'Paterno' => $persona->Paterno,
+                    'Materno' => $persona->Materno,
+                    'nombre_completo' => $persona->nombre_completo,
+                    'razon_social_display' => $persona->razon_social_display,
+                    
+                    // Datos fiscales
+                    'rfc' => $persona->rfc,
+                    'curp' => $persona->curp,
+                    'email' => $persona->email,
+                    
+                    // Tipo y estado
+                    'tipo_persona' => $persona->tipo_persona,
+                    'activo' => $persona->activo,
+                    'empleado' => $persona->empleado,
+                    
+                    // Ubicación
+                    'ciudad' => $persona->ciudad,
+                    'estado' => $persona->estado,
+                    'municipio' => $persona->municipio,
+                    'codigo_postal' => $persona->codigo_postal,
+                    
+                    // Contacto
+                    'telefono_particular' => $persona->telefono_particular,
+                    'telefono_trabajo' => $persona->telefono_trabajo,
+                    'extension_trabajo' => $persona->extension_trabajo,
+                    
+                    // Representante
+                    'representante_nombre' => $persona->representante_nombre,
+                    'representante_paterno' => $persona->representante_paterno,
+                    'representante_materno' => $persona->representante_materno,
+                    'representante_nombre_completo' => $persona->representante_nombre_completo,
+                    
+                    // Fechas
+                    'Fecha_nacimiento' => $persona->Fecha_nacimiento,
+                    'created_at' => $persona->created_at,
+                    'updated_at' => $persona->updated_at,
+                    
+                    // Notas y otros
+                    'notas' => $persona->notas,
+                    'direccion' => $persona->direccion,
+                    'calle' => $persona->calle,
+                    'numero_exterior' => $persona->numero_exterior,
+                    'numero_interior' => $persona->numero_interior,
+                    'colonia' => $persona->colonia,
+                    
+                    // Estructura para la tabla
+                    'razon_social' => $persona->razon_social_display,
+                    'tipo_persona_texto' => $persona->tipo_persona === 'FISICA' ? 'Física' : 'Moral',
+                    'estado_texto' => $persona->activo ? 'Activo' : 'Inactivo',
+                    
+                    // 🔥 Campo para la clave de la tabla en Vue
+                    'key' => $persona->id_persona,
+                ];
+            }
+
+            $personasData = [
+                'data' => $items,
+                'current_page' => $personas->currentPage(),
+                'last_page' => $personas->lastPage(),
+                'per_page' => $personas->perPage(),
+                'total' => $personas->total(),
+                'from' => $personas->firstItem(),
+                'to' => $personas->lastItem(),
+                'links' => $personas->linkCollection()->toArray(),
+                'path' => $personas->path(),
+            ];
+
+            // 🔥 ESTADÍSTICAS
             $stats = [
                 'total' => Persona::count(),
                 'fisicas' => Persona::where('tipo_persona', 'FISICA')->count(),
                 'morales' => Persona::where('tipo_persona', 'MORAL')->count(),
                 'activas' => Persona::where('activo', true)->count(),
                 'inactivas' => Persona::where('activo', false)->count(),
-                'empleados' => Persona::where('empleado', true)->count(), // ✅ NUEVO
-                'no_empleados' => Persona::where('empleado', false)->count(), // ✅ NUEVO
+                'empleados' => Persona::where('empleado', true)->count(),
+                'no_empleados' => Persona::where('empleado', false)->count(),
             ];
 
-            // ✅ RECOPILAR FLASH MESSAGES
-            $flash = [];
-            $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
-            foreach ($flashTypes as $type) {
-                if (session()->has($type)) {
-                    $flash[$type] = session($type);
-                }
-            }
+            // 🔥 LOG PARA DEPURAR
+            \Log::info('Personas encontradas: ' . $personas->total());
+            \Log::info('Primera persona: ' . json_encode($items[0] ?? []));
 
             return Inertia::render('Personas/Index', [
-                'personas' => $personas,
+                'personas' => $personasData,
                 'stats' => $stats,
                 'filtros' => $request->only(['search', 'tipo_persona', 'estado', 'ciudad', 'representante', 'empleado']),
-                'flash' => $flash,
+                'flash' => session()->all(),
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error en Personas/index: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
             return Inertia::render('Personas/Index', [
-                'personas' => (object) ['data' => [], 'links' => [], 'total' => 0, 'from' => 0, 'to' => 0],
-                'stats' => ['total' => 0, 'fisicas' => 0, 'morales' => 0, 'activas' => 0, 'inactivas' => 0, 'empleados' => 0, 'no_empleados' => 0],
+                'personas' => [
+                    'data' => [],
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => 15,
+                    'total' => 0,
+                    'from' => 0,
+                    'to' => 0,
+                    'links' => [],
+                    'path' => $request->url(),
+                ],
+                'stats' => [
+                    'total' => 0,
+                    'fisicas' => 0,
+                    'morales' => 0,
+                    'activas' => 0,
+                    'inactivas' => 0,
+                    'empleados' => 0,
+                    'no_empleados' => 0,
+                ],
                 'filtros' => [],
-                'flash' => session()->get('flash') ?? [],
+                'flash' => session()->all(),
                 'error' => 'Error al cargar las personas: ' . $e->getMessage()
             ]);
         }
@@ -136,7 +227,6 @@ class PersonaController extends Controller
                 ->with('error', 'No tienes permiso para crear personas');
         }
 
-        // ✅ RECOPILAR FLASH MESSAGES
         $flash = [];
         $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
         foreach ($flashTypes as $type) {
@@ -163,20 +253,25 @@ class PersonaController extends Controller
 
         try {
             $validated = $this->validatePersona($request);
-
-            // Construir el array de datos
             $data = $this->buildPersonaData($validated);
-
             $persona = Persona::create($data);
+
+            \Log::info('Persona creada: ID ' . $persona->id_persona . ' - ' . $persona->Nombre . ' ' . $persona->Paterno);
 
             return redirect()->route('personas.index')
                 ->with('success', 'Persona creada exitosamente');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = $field . ': ' . implode(', ', $messages);
+            }
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
                 ->withInput();
         } catch (\Exception $e) {
+            \Log::error('Error al crear persona: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al crear la persona: ' . $e->getMessage())
                 ->withInput();
@@ -197,7 +292,6 @@ class PersonaController extends Controller
         try {
             $persona = Persona::with(['polizas', 'documentos'])->findOrFail($id);
 
-            // ✅ RECOPILAR FLASH MESSAGES
             $flash = [];
             $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
             foreach ($flashTypes as $type) {
@@ -234,7 +328,6 @@ class PersonaController extends Controller
         try {
             $persona = Persona::findOrFail($id);
 
-            // ✅ RECOPILAR FLASH MESSAGES
             $flash = [];
             $flashTypes = ['success', 'error', 'info', 'warning', 'updated', 'created', 'deleted'];
             foreach ($flashTypes as $type) {
@@ -270,13 +363,11 @@ class PersonaController extends Controller
 
         try {
             $persona = Persona::findOrFail($id);
-
             $validated = $this->validatePersona($request, $persona->id_persona);
-
-            // Construir el array de datos
             $data = $this->buildPersonaData($validated);
-
             $persona->update($data);
+
+            \Log::info('Persona actualizada: ID ' . $persona->id_persona);
 
             return redirect()->route('personas.index')
                 ->with('success', 'Persona actualizada exitosamente');
@@ -286,10 +377,16 @@ class PersonaController extends Controller
                 ->with('error', 'Persona no encontrada')
                 ->withInput();
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = $field . ': ' . implode(', ', $messages);
+            }
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
                 ->withInput();
         } catch (\Exception $e) {
+            \Log::error('Error al actualizar persona: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al actualizar la persona: ' . $e->getMessage())
                 ->withInput();
@@ -301,7 +398,7 @@ class PersonaController extends Controller
      */
     public function destroy(string $id)
     {
-        // ✅ Verificar permiso para eliminar personas (usamos el mismo que eliminar movimientos)
+        // ✅ Verificar permiso para eliminar personas
         if (!Gate::allows('eliminar-movimientos')) {
             return redirect()->route('personas.index')
                 ->with('error', 'No tienes permiso para eliminar personas');
@@ -310,7 +407,6 @@ class PersonaController extends Controller
         try {
             $persona = Persona::findOrFail($id);
             
-            // Verificar si ya está inactiva
             if (!$persona->activo) {
                 return redirect()->back()
                     ->with('warning', 'La persona ya está inactiva');
@@ -337,8 +433,9 @@ class PersonaController extends Controller
                     ->with('error', $mensaje);
             }
 
-            // 🟢 ELIMINACIÓN LÓGICA: Cambiar activo a false
             $persona->update(['activo' => false]);
+
+            \Log::info('Persona desactivada: ID ' . $persona->id_persona);
 
             return redirect()->route('personas.index')
                 ->with('success', 'Persona desactivada exitosamente');
@@ -347,6 +444,7 @@ class PersonaController extends Controller
             return redirect()->back()
                 ->with('error', 'Persona no encontrada');
         } catch (\Exception $e) {
+            \Log::error('Error al desactivar persona: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al desactivar la persona: ' . $e->getMessage());
         }
@@ -366,7 +464,6 @@ class PersonaController extends Controller
         try {
             $persona = Persona::findOrFail($id);
             
-            // Si está activo, verificar relaciones
             if ($persona->activo) {
                 $polizasCount = $persona->polizas()->count();
                 $documentosCount = $persona->documentos()->count();
@@ -394,14 +491,16 @@ class PersonaController extends Controller
             
             $estadoTexto = $nuevoEstado ? 'activada' : 'desactivada';
             
+            \Log::info('Persona ' . $estadoTexto . ': ID ' . $persona->id_persona);
+            
             return redirect()->back()
                 ->with('success', "Persona {$estadoTexto} exitosamente");
                 
         } catch (ModelNotFoundException $e) {
             return redirect()->back()
                 ->with('error', 'Persona no encontrada');
-                
         } catch (\Exception $e) {
+            \Log::error('Error al cambiar estado de persona: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error: ' . $e->getMessage());
         }
@@ -425,14 +524,16 @@ class PersonaController extends Controller
             
             $estadoTexto = $nuevoEstado ? 'marcado como empleado' : 'desmarcado como empleado';
             
+            \Log::info('Persona ' . $estadoTexto . ': ID ' . $persona->id_persona);
+            
             return redirect()->back()
                 ->with('success', "Persona {$estadoTexto} exitosamente");
                 
         } catch (ModelNotFoundException $e) {
             return redirect()->back()
                 ->with('error', 'Persona no encontrada');
-                
         } catch (\Exception $e) {
+            \Log::error('Error al cambiar estado de empleado: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error: ' . $e->getMessage());
         }
@@ -443,7 +544,6 @@ class PersonaController extends Controller
      */
     public function generarRFC(Request $request)
     {
-        // ✅ Verificar permiso para ver/crear personas (generar RFC es una función auxiliar)
         if (!Gate::allows('ver-personas')) {
             return response()->json([
                 'success' => false,
@@ -475,11 +575,17 @@ class PersonaController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = $field . ': ' . implode(', ', $messages);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validación: ' . implode(', ', $e->errors())
+                'message' => 'Error de validación: ' . implode(' | ', $errorMessages)
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Error al generar RFC: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al generar el RFC: ' . $e->getMessage()
@@ -496,7 +602,6 @@ class PersonaController extends Controller
      */
     public function getDocumentos($id)
     {
-        // ✅ Verificar permiso para ver personas (y sus documentos)
         if (!Gate::allows('ver-personas')) {
             return response()->json([
                 'success' => false,
@@ -528,6 +633,7 @@ class PersonaController extends Controller
                 'message' => 'Persona no encontrada'
             ], 404);
         } catch (\Exception $e) {
+            \Log::error('Error al obtener documentos: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener los documentos: ' . $e->getMessage()
@@ -540,7 +646,6 @@ class PersonaController extends Controller
      */
     public function subirDocumento(Request $request, $id)
     {
-        // ✅ Verificar permiso para editar personas (subir documentos es parte de editar)
         if (!Gate::allows('crear-personas')) {
             return redirect()->back()
                 ->with('error', 'No tienes permiso para subir documentos');
@@ -578,6 +683,8 @@ class PersonaController extends Controller
                 'id_usuario_subio' => Auth::id() ?? 1,
             ]);
 
+            \Log::info('Documento subido: ID ' . $documento->id . ' para persona ' . $id);
+
             return redirect()->back()
                 ->with('success', 'Documento subido exitosamente');
 
@@ -585,10 +692,16 @@ class PersonaController extends Controller
             return redirect()->back()
                 ->with('error', 'Persona no encontrada');
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = $field . ': ' . implode(', ', $messages);
+            }
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
                 ->withInput();
         } catch (\Exception $e) {
+            \Log::error('Error al subir documento: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al subir el documento: ' . $e->getMessage())
                 ->withInput();
@@ -600,7 +713,6 @@ class PersonaController extends Controller
      */
     public function descargarDocumento($id)
     {
-        // ✅ Verificar permiso para ver personas (y descargar sus documentos)
         if (!Gate::allows('ver-personas')) {
             return redirect()->back()
                 ->with('error', 'No tienes permiso para descargar documentos');
@@ -621,6 +733,7 @@ class PersonaController extends Controller
             return redirect()->back()
                 ->with('error', 'Documento no encontrado');
         } catch (\Exception $e) {
+            \Log::error('Error al descargar documento: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al descargar el documento: ' . $e->getMessage());
         }
@@ -631,7 +744,6 @@ class PersonaController extends Controller
      */
     public function eliminarDocumento($id)
     {
-        // ✅ Verificar permiso para editar personas (eliminar documentos es parte de editar)
         if (!Gate::allows('crear-personas')) {
             return redirect()->back()
                 ->with('error', 'No tienes permiso para eliminar documentos');
@@ -646,6 +758,8 @@ class PersonaController extends Controller
 
             $documento->delete();
 
+            \Log::info('Documento eliminado: ID ' . $id);
+
             return redirect()->back()
                 ->with('success', 'Documento eliminado exitosamente');
 
@@ -653,6 +767,7 @@ class PersonaController extends Controller
             return redirect()->back()
                 ->with('error', 'Documento no encontrado');
         } catch (\Exception $e) {
+            \Log::error('Error al eliminar documento: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al eliminar el documento: ' . $e->getMessage());
         }
@@ -663,7 +778,6 @@ class PersonaController extends Controller
      */
     public function toggleFinalizado($id)
     {
-        // ✅ Verificar permiso para editar personas
         if (!Gate::allows('crear-personas')) {
             return redirect()->back()
                 ->with('error', 'No tienes permiso para actualizar documentos');
@@ -674,6 +788,9 @@ class PersonaController extends Controller
             $documento->update(['finalizado' => !$documento->finalizado]);
 
             $estado = $documento->finalizado ? 'finalizado' : 'pendiente';
+            
+            \Log::info('Documento ' . $estado . ': ID ' . $id);
+
             return redirect()->back()
                 ->with('success', "Documento marcado como {$estado}");
 
@@ -681,6 +798,7 @@ class PersonaController extends Controller
             return redirect()->back()
                 ->with('error', 'Documento no encontrado');
         } catch (\Exception $e) {
+            \Log::error('Error al actualizar documento: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Error al actualizar el documento: ' . $e->getMessage());
         }
@@ -691,32 +809,25 @@ class PersonaController extends Controller
     // ============================================
 
     /**
-     * Validar los datos de la persona - MISMOS CAMPOS PARA AMBOS TIPOS
+     * Validar los datos de la persona
      */
     private function validatePersona(Request $request, $id = null)
     {
         $rules = [
-            // Tipo de persona (solo para saber si es física o moral)
             'tipo_persona' => ['required', 'in:FISICA,MORAL'],
             'activo' => 'boolean',
-            'empleado' => 'boolean', // ✅ NUEVO: validación para empleado
-            
-            // MISMOS CAMPOS PARA AMBOS TIPOS
+            'empleado' => 'boolean',
             'Nombre' => 'required|string|max:200',
             'Paterno' => 'required|string|max:100',
             'Materno' => 'nullable|string|max:100',
             'Fecha_nacimiento' => 'required|date|before:today',
             'sexo' => 'required|in:MASCULINO,FEMENINO,NO_ESPECIFICADO',
-            
-            // Datos fiscales y contacto
             'rfc' => 'nullable|string|max:20|unique:personas,rfc,' . $id . ',id_persona',
             'curp' => 'nullable|string|max:18|unique:personas,curp,' . $id . ',id_persona',
             'email' => 'nullable|email|max:100|unique:personas,email,' . $id . ',id_persona',
             'telefono_particular' => 'nullable|string|max:20',
             'telefono_trabajo' => 'nullable|string|max:20',
             'extension_trabajo' => 'nullable|string|max:10',
-            
-            // Dirección
             'direccion' => 'nullable|string',
             'calle' => 'nullable|string|max:150',
             'numero_exterior' => 'nullable|string|max:20',
@@ -726,8 +837,6 @@ class PersonaController extends Controller
             'municipio' => 'nullable|string|max:100',
             'estado' => 'nullable|string|max:100',
             'codigo_postal' => 'nullable|string|max:10',
-            
-            // Representante Legal (para ambos tipos)
             'representante_nombre' => 'nullable|string|max:100',
             'representante_paterno' => 'nullable|string|max:100',
             'representante_materno' => 'nullable|string|max:100',
@@ -737,12 +846,9 @@ class PersonaController extends Controller
             'representante_telefono_particular' => 'nullable|string|max:20',
             'representante_telefono_trabajo' => 'nullable|string|max:20',
             'representante_extension_trabajo' => 'nullable|string|max:10',
-            
-            // Notas
             'notas' => 'nullable|string',
         ];
 
-        // Si se captura el representante, algunos campos se vuelven obligatorios
         if ($request->has('representante_nombre') && $request->representante_nombre) {
             $rules['representante_paterno'] = 'required|string|max:100';
             $rules['representante_fecha_nacimiento'] = 'required|date|before:today';
@@ -769,27 +875,21 @@ class PersonaController extends Controller
      */
     private function buildPersonaData($validated)
     {
-        $data = [
+        return [
             'tipo_persona' => $validated['tipo_persona'],
             'activo' => $validated['activo'] ?? true,
-            'empleado' => $validated['empleado'] ?? false, // ✅ NUEVO: campo empleado
-            
-            // MISMOS CAMPOS PARA AMBOS TIPOS
+            'empleado' => $validated['empleado'] ?? false,
             'Nombre' => $validated['Nombre'] ?? null,
             'Paterno' => $validated['Paterno'] ?? null,
             'Materno' => $validated['Materno'] ?? null,
             'Fecha_nacimiento' => $validated['Fecha_nacimiento'] ?? null,
             'sexo' => $validated['sexo'] ?? 'NO_ESPECIFICADO',
-            
-            // Datos fiscales y contacto
             'rfc' => $validated['rfc'] ?? null,
             'curp' => $validated['curp'] ?? null,
             'email' => $validated['email'] ?? null,
             'telefono_particular' => $validated['telefono_particular'] ?? null,
             'telefono_trabajo' => $validated['telefono_trabajo'] ?? null,
             'extension_trabajo' => $validated['extension_trabajo'] ?? null,
-            
-            // Dirección
             'direccion' => $validated['direccion'] ?? null,
             'calle' => $validated['calle'] ?? null,
             'numero_exterior' => $validated['numero_exterior'] ?? null,
@@ -799,8 +899,6 @@ class PersonaController extends Controller
             'municipio' => $validated['municipio'] ?? null,
             'estado' => $validated['estado'] ?? null,
             'codigo_postal' => $validated['codigo_postal'] ?? null,
-            
-            // Representante Legal
             'representante_nombre' => $validated['representante_nombre'] ?? null,
             'representante_paterno' => $validated['representante_paterno'] ?? null,
             'representante_materno' => $validated['representante_materno'] ?? null,
@@ -810,12 +908,8 @@ class PersonaController extends Controller
             'representante_telefono_particular' => $validated['representante_telefono_particular'] ?? null,
             'representante_telefono_trabajo' => $validated['representante_telefono_trabajo'] ?? null,
             'representante_extension_trabajo' => $validated['representante_extension_trabajo'] ?? null,
-            
-            // Notas
             'notas' => $validated['notas'] ?? null,
         ];
-
-        return $data;
     }
 
     /**
@@ -864,7 +958,6 @@ class PersonaController extends Controller
             
             return $rfc;
         } else {
-            // Persona Moral - usa el nombre completo como razón social
             $razonSocial = $this->limpiarTexto($nombre . ' ' . $apellidoPaterno . ' ' . $apellidoMaterno);
             $rfc = '';
             $rfc .= substr($razonSocial, 0, 1);

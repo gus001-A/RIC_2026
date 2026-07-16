@@ -259,4 +259,44 @@ class Cuenta extends Model
         return $query->where('cuenta_resultados', $cuentaResultadosId)
                      ->where('en_uso', true);
     }
+
+
+
+
+/**
+ * Scope para excluir cuentas fondeadoras
+ */
+public function scopeNoFondeadoras($query)
+{
+    return $query->where(function($q) {
+        $q->where('fondeo_c', '!=', 1)
+          ->orWhereNull('fondeo_c')
+          ->where('tipo_cuenta', '!=', 'FONDEADORA');
+    });
+}
+
+// En tu modelo Cuenta.php
+
+/**
+ * Scope para cuentas activas
+ */
+public function scopeActivas($query)
+{
+    return $query->where('en_uso', true);
+}
+
+/**
+ * Scope para cuentas fondeadoras
+ */
+public function scopeFondeadoras($query)
+{
+    return $query->where(function($q) {
+        $q->where('fondeo_c', 1)
+          ->orWhere('tipo_cuenta', 'FONDEADORA');
+    });
+}
+
+
+
+
 }

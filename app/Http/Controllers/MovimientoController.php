@@ -362,108 +362,162 @@ public function index(Request $request)
         'contadores' => $contadores,
     ]);
 }
-
-  // ============================================
-    // 📄 CREATE - FORMULARIO DE CREACIÓN
-    // ============================================
-    public function create()
-    {
-        if (!Gate::allows('crear-movimientos')) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes permiso para crear movimientos');
-        }
-
-        $empresaId = session('empresa_movimientos');
-        
-        if (!$empresaId) {
-            $empresa = auth()->user()->empresas()->first();
-            $empresaId = $empresa ? $empresa->id : null;
-        }
-
-        if (!$empresaId) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes una empresa seleccionada.');
-        }
-
-        // 🔥 CUENTAS FONDEADORAS (solo activas)
-        $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->where('fondeo_c', 1)
-            ->orderBy('nombre_cuenta')
-            ->get()
-            ->map(function($cuenta) {
-                return [
-                    'id_cuenta' => $cuenta->id_cuenta,
-                    'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'saldo' => (float) ($cuenta->saldo_inicial ?? 0)
-                ];
-            });
-
-        // 🔥 CUENTAS PARA EGRESOS (DEUDORAS o sin naturaleza)
-        $cuentasEgreso = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->puedeRecibirDebito()
-            ->orderBy('nombre_cuenta')
-            ->get()
-            ->map(function($cuenta) {
-                return [
-                    'id_cuenta' => $cuenta->id_cuenta,
-                    'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'Naturaleza' => $cuenta->Naturaleza,
-                    'es_cuenta_resultados' => $cuenta->es_cuenta_resultados,
-                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
-                ];
-            });
-
-        // 🔥 CUENTAS PARA INGRESOS (ACREEDORAS o sin naturaleza)
-        $cuentasIngreso = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->puedeRecibirCredito()
-            ->orderBy('nombre_cuenta')
-            ->get()
-            ->map(function($cuenta) {
-                return [
-                    'id_cuenta' => $cuenta->id_cuenta,
-                    'nombre_cuenta' => $cuenta->nombre_cuenta,
-                    'Naturaleza' => $cuenta->Naturaleza,
-                    'es_cuenta_resultados' => $cuenta->es_cuenta_resultados,
-                    'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0)
-                ];
-            });
-
-        $marcadores = Marcador::where('activo', true)
-            ->orderBy('nombre_marcador')
-            ->get()
-            ->map(function($marcador) {
-                return [
-                    'id' => $marcador->id,
-                    'nombre_marcador' => $marcador->nombre_marcador,
-                    'descripcion' => $marcador->descripcion
-                ];
-            });
-
-        $tiposIva = TipoIva::where('activo', true)
-            ->orderBy('porcentaje')
-            ->get()
-            ->map(function($iva) {
-                return [
-                    'id' => $iva->id,
-                    'nombre' => $iva->nombre,
-                    'porcentaje' => $iva->porcentaje,
-                    'porcentaje_formateado' => $iva->porcentaje . '%'
-                ];
-            });
-
-        return Inertia::render('Movimientos/Create', [
-            'empresa_id' => (int) $empresaId,
-            'cuentas_egreso' => $cuentasEgreso,
-            'cuentas_ingreso' => $cuentasIngreso,
-            'cuentas_fondeadoras' => $cuentasFondeadoras,
-            'tipos_iva' => $tiposIva,
-            'marcadores' => $marcadores
-        ]);
+public function create()
+{
+    if (!Gate::allows('crear-movimientos')) {
+        return redirect()->route('movimientos.index')
+            ->with('error', 'No tienes permiso para crear movimientos');
     }
 
+    // 🔥 OBTENER EMPRESA DE SESIÓN (usando ambas claves)
+    $empresaId = session('empresa_movimientos') ?? session('empresa_seleccionada');
+    
+    if (!$empresaId) {
+        $empresa = auth()->user()->empresas()->first();
+        $empresaId = $empresa ? $empresa->id : null;
+    }
+
+    if (!$empresaId) {
+        return redirect()->route('movimientos.index')
+            ->with('error', 'No tienes una empresa seleccionada.');
+    }
+
+    // Guardar en sesión para consistencia
+    session(['empresa_movimientos' => $empresaId]);
+    session(['empresa_seleccionada' => $empresaId]);
+
+    // 🔥 CUENTAS FONDEADORAS (solo fondeo_c = 1 y activas)
+    $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+        ->where('en_uso', true)
+        ->where('fondeo_c', 1)
+        ->orderBy('nombre_cuenta')
+        ->get()
+        ->map(function($cuenta) {
+            return [
+                'id_cuenta' => $cuenta->id_cuenta,
+                'nombre_cuenta' => $cuenta->nombre_cuenta,
+                'codigo_cuenta' => $cuenta->codigo_cuenta,
+                'fondeo_c' => (int) ($cuenta->fondeo_c ?? 0),
+                'saldo' => (float) ($cuenta->saldo_inicial ?? 0),
+                'Naturaleza' => $cuenta->Naturaleza,
+                'tipo' => 'fondeadora'
+            ];
+        });
+
+    // 🔥 CUENTAS PARA EGRESOS (DÉBITO) - NO fondeadoras
+    $cuentasEgreso = Cuenta::where('id_empresa', $empresaId)
+        ->where('en_uso', true)
+        ->where(function($query) {
+            // Excluir fondeadoras
+            $query->where('fondeo_c', '!=', 1)
+                  ->orWhereNull('fondeo_c');
+        })
+        ->where(function($query) {
+            // Pueden recibir débito
+            $query->where('es_cuenta_resultados', true)
+                  ->orWhereNull('Naturaleza')
+                  ->orWhere('Naturaleza', 'DEUDORA');
+        })
+        ->orderBy('nombre_cuenta')
+        ->get()
+        ->map(function($cuenta) {
+            return [
+                'id_cuenta' => $cuenta->id_cuenta,
+                'nombre_cuenta' => $cuenta->nombre_cuenta,
+                'codigo_cuenta' => $cuenta->codigo_cuenta,
+                'Naturaleza' => $cuenta->Naturaleza ?? 'SIN NATURALEZA',
+                'es_cuenta_resultados' => (bool) $cuenta->es_cuenta_resultados,
+                'fondeo_c' => (int) ($cuenta->fondeo_c ?? 0),
+                'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0),
+                'tipo_movimiento' => 'egreso'
+            ];
+        });
+
+    // 🔥 CUENTAS PARA INGRESOS (CRÉDITO) - NO fondeadoras
+    $cuentasIngreso = Cuenta::where('id_empresa', $empresaId)
+        ->where('en_uso', true)
+        ->where(function($query) {
+            // Excluir fondeadoras
+            $query->where('fondeo_c', '!=', 1)
+                  ->orWhereNull('fondeo_c');
+        })
+        ->where(function($query) {
+            // Pueden recibir crédito
+            $query->where('es_cuenta_resultados', true)
+                  ->orWhereNull('Naturaleza')
+                  ->orWhere('Naturaleza', 'ACREEDORA');
+        })
+        ->orderBy('nombre_cuenta')
+        ->get()
+        ->map(function($cuenta) {
+            return [
+                'id_cuenta' => $cuenta->id_cuenta,
+                'nombre_cuenta' => $cuenta->nombre_cuenta,
+                'codigo_cuenta' => $cuenta->codigo_cuenta,
+                'Naturaleza' => $cuenta->Naturaleza ?? 'SIN NATURALEZA',
+                'es_cuenta_resultados' => (bool) $cuenta->es_cuenta_resultados,
+                'fondeo_c' => (int) ($cuenta->fondeo_c ?? 0),
+                'saldo_inicial' => (float) ($cuenta->saldo_inicial ?? 0),
+                'tipo_movimiento' => 'ingreso'
+            ];
+        });
+
+    // 🔥 OBTENER PERSONAS - CORREGIDO CON LOS NOMBRES CORRECTOS DE COLUMNAS
+    $personas = \App\Models\Persona::where('activo', true)
+        ->orderBy('Nombre')  // ← CORREGIDO: 'Nombre' con mayúscula
+        ->get(['id_persona', 'Nombre', 'Paterno', 'Materno'])  // ← CORREGIDO: nombres de columnas correctos
+        ->map(function($persona) {
+            // Construir nombre completo
+            $nombreCompleto = $persona->Nombre;
+            if ($persona->Paterno) {
+                $nombreCompleto .= ' ' . $persona->Paterno;
+            }
+            if ($persona->Materno) {
+                $nombreCompleto .= ' ' . $persona->Materno;
+            }
+            
+            return [
+                'id_persona' => $persona->id_persona,
+                'nombre_completo' => $nombreCompleto,
+                'nombre' => $persona->Nombre,
+                'paterno' => $persona->Paterno,
+                'materno' => $persona->Materno
+            ];
+        });
+
+    $marcadores = Marcador::where('activo', true)
+        ->orderBy('nombre_marcador')
+        ->get()
+        ->map(function($marcador) {
+            return [
+                'id' => $marcador->id,
+                'nombre_marcador' => $marcador->nombre_marcador,
+                'descripcion' => $marcador->descripcion
+            ];
+        });
+
+    $tiposIva = TipoIva::where('activo', true)
+        ->orderBy('porcentaje')
+        ->get()
+        ->map(function($iva) {
+            return [
+                'id' => $iva->id,
+                'nombre' => $iva->nombre,
+                'porcentaje' => $iva->porcentaje,
+                'porcentaje_formateado' => $iva->porcentaje . '%'
+            ];
+        });
+
+    return Inertia::render('Movimientos/Create', [
+        'empresa_id' => (int) $empresaId,
+        'cuentas_egreso' => $cuentasEgreso,
+        'cuentas_ingreso' => $cuentasIngreso,
+        'cuentas_fondeadoras' => $cuentasFondeadoras,
+        'tipos_iva' => $tiposIva,
+        'marcadores' => $marcadores,
+        'personas' => $personas
+    ]);
+}
    // ============================================
 // 📄 STORE - CREAR PÓLIZA CON VALIDACIÓN DE NATURALEZA
 // ============================================
