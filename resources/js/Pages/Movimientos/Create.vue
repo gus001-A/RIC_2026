@@ -508,6 +508,7 @@
                                 </div>
                             </div>
 
+                            <!-- 🔥 MODIFICADO: USAR SOLO CUENTAS FONDEADORAS PARA ORIGEN Y DESTINO -->
                             <!-- FILA 2: CUENTA ORIGEN, CUENTA DESTINO, MONTO -->
                             <div class="form-row">
                                 <div class="form-group">
@@ -864,7 +865,8 @@ const pdfInputTraspaso = ref(null);
 const xmlInputTraspaso = ref(null);
 const personas = ref(props.personas || []);
 const cuentaFondeadoraSeleccionada = ref(null);
-const fechaActual = ref(new Date().toISOString().split('T')[0]);
+// 🔥 CORRECCIÓN DE FECHA - Usar zona horaria de México
+const fechaActual = ref(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }));
 const modalMarcadorVisible = ref(false);
 const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
@@ -891,23 +893,33 @@ const ivasSeleccionados = ref([]);
 const ivasSeleccionadosTraspaso = ref([]);
 
 // ============================================
-// COMPUTED - FILTROS DE TRASPASO
+// 🔥 COMPUTED - FILTROS DE TRASPASO (SOLO CUENTAS FONDEADORAS)
 // ============================================
 
-// Cuentas que pueden ser ORIGEN de traspaso (DEUDORAS o sin naturaleza)
+// 🔥 AMBOS ORIGEN Y DESTINO USAN LAS MISMAS CUENTAS FONDEADORAS
+// Solo se filtran por Naturaleza para determinar qué tipo de cuenta es
 const cuentasOrigenTraspaso = computed(() => {
-    return cuentasFondeadoras.value.filter(cuenta => {
+    console.log('Cuentas fondeadoras disponibles:', cuentasFondeadoras.value);
+    const filtradas = cuentasFondeadoras.value.filter(cuenta => {
+        // Si no tiene Naturaleza, se muestra en ambos
         if (!cuenta.Naturaleza) return true;
+        // DEUDORAS para origen
         return cuenta.Naturaleza === 'DEUDORA';
     });
+    console.log('Cuentas origen (DEUDORAS):', filtradas);
+    return filtradas;
 });
 
-// Cuentas que pueden ser DESTINO de traspaso (ACREEDORAS o sin naturaleza)
+// 🔥 AMBOS ORIGEN Y DESTINO USAN LAS MISMAS CUENTAS FONDEADORAS
 const cuentasDestinoTraspaso = computed(() => {
-    return cuentasFondeadoras.value.filter(cuenta => {
+    const filtradas = cuentasFondeadoras.value.filter(cuenta => {
+        // Si no tiene Naturaleza, se muestra en ambos
         if (!cuenta.Naturaleza) return true;
+        // ACREEDORAS para destino
         return cuenta.Naturaleza === 'ACREEDORA';
     });
+    console.log('Cuentas destino (ACREEDORAS):', filtradas);
+    return filtradas;
 });
 
 // ============================================
@@ -917,17 +929,13 @@ const cuentasDestinoTraspaso = computed(() => {
 // 🔥 VALIDACION DE IVA VS MONTO (SOLO SI HAY IVAS SELECCIONADOS)
 const isIvaValid = computed(() => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
-        // Si no hay IVAs seleccionados, es válido
         if (ivasSeleccionados.value.length === 0) return true;
-        // Si hay IVAs, validar que no excedan el monto
         if (form.monto_directo > 0) {
             return totalConIvaCalculado.value <= form.monto_directo;
         }
         return true;
     } else {
-        // Si no hay IVAs seleccionados, es válido
         if (ivasSeleccionadosTraspaso.value.length === 0) return true;
-        // Si hay IVAs, validar que no excedan el monto
         if (formTraspaso.monto_directo > 0) {
             return totalConIvaTraspasoCalculado.value <= formTraspaso.monto_directo;
         }
@@ -943,34 +951,27 @@ const isFormValid = computed(() => {
         if (!form.id_cuenta) return false;
         if (!form.monto_directo || form.monto_directo <= 0) return false;
         
-        // 🔥 IVA ES OPCIONAL - no validamos que tenga IVA seleccionado
-        
-        // 🔥 Validar IVA vs MONTO (solo si hay IVAs)
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
             return false;
         }
         
-        // 🔥 VALIDAR SALDO SOLO SI NO ES POR PAGAR
         if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
             if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) return false;
         }
         return true;
     } else {
+        // 🔥 VALIDACIONES PARA TRASPASO
         if (!formTraspaso.fecha_poliza) return false;
         if (!formTraspaso.id_cuenta_origen) return false;
         if (!formTraspaso.id_cuenta_destino) return false;
         if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) return false;
         if (!formTraspaso.monto_directo || formTraspaso.monto_directo <= 0) return false;
         
-        // 🔥 IVA ES OPCIONAL - no validamos que tenga IVA seleccionado
-        
-        // 🔥 Validar IVA vs MONTO (solo si hay IVAs)
         if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) {
             return false;
         }
         
-        // Validar saldo
         const montoTotal = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
         if (montoTotal > saldoCuentaOrigen.value) return false;
         return true;
@@ -989,11 +990,9 @@ const errorCount = computed(() => {
     return count;
 });
 
-// Required fields - IVA ya no es requerido
 const requiredFields = computed(() => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
         const fields = ['fecha_poliza', 'id_persona', 'tipo_poliza', 'id_cuenta', 'monto_directo'];
-        // Si NO es por pagar, cuenta fondeadora es requerida
         if (!form.es_por_pagar) {
             fields.push('id_cuenta_fondeadora');
         }
@@ -1107,7 +1106,7 @@ const tituloPagina = computed(() => {
 const subtituloPagina = computed(() => {
     return tipoPolizaSeleccionado.value === 'INGRESO_EGRESO'
         ? 'Registra una poliza de ingreso o egreso'
-        : 'Registra un traspaso entre cuentas';
+        : 'Registra un traspaso entre cuentas fondeadoras';
 });
 
 // ============================================
@@ -1275,6 +1274,7 @@ const cambiarCuentaFondeadora = async () => {
     }
 };
 
+// 🔥 MODIFICADO: Obtener saldo de cuentas fondeadoras
 const obtenerSaldoCuenta = (idCuenta) => {
     if (!idCuenta) return 0;
     const cuenta = cuentasFondeadoras.value.find(c => c.id_cuenta === idCuenta);
@@ -1386,12 +1386,10 @@ const toggleFiscalTraspaso = () => {
 };
 
 const onEsPorPagarChange = () => {
-    // Si se marca como por pagar, limpiar cuenta fondeadora y saldo
     if (form.es_por_pagar) {
         form.id_cuenta_fondeadora = null;
         cuentaFondeadoraSeleccionada.value = null;
     } else {
-        // Si se desmarca, intentar restaurar la última cuenta fondeadora seleccionada
         if (cuentasFondeadoras.value.length > 0) {
             form.id_cuenta_fondeadora = cuentasFondeadoras.value[0].id_cuenta;
             cambiarCuentaFondeadora();
@@ -1549,7 +1547,6 @@ const formTraspaso = useForm({
 
 const submit = () => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
-        // 🔥 VALIDAR IVA VS MONTO (solo si hay IVAs)
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
             alertRef.value?.show({
                 type: 'error',
@@ -1580,7 +1577,6 @@ const submit = () => {
             return;
         }
         
-        // 🔥 VALIDAR SALDO SOLO SI NO ES POR PAGAR
         if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
             if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) {
@@ -1596,12 +1592,7 @@ const submit = () => {
 
         processing.value = true;
 
-        // 🔥 IMPORTANTE: Determinar el modo de IVA
         const modoIva = ivasSeleccionados.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
-        
-        // 🔥 IMPORTANTE: total_factura SIEMPRE debe ser el monto base
-        // Si hay IVA, es la suma de las bases de cada IVA
-        // Si no hay IVA, es el monto_directo
         const totalFactura = ivasSeleccionados.value.length > 0 ? totalBaseCalculado.value : form.monto_directo;
 
         const ivasArray = ivasSeleccionados.value.map(ivaId => ({
@@ -1621,10 +1612,7 @@ const submit = () => {
             }
         });
 
-        // 🔥 AGREGAR modo_iva
         formData.append('modo_iva', modoIva);
-        
-        // 🔥 AGREGAR total_factura SIEMPRE (requerido por el controlador)
         formData.append('total_factura', totalFactura);
 
         ivasArray.forEach((iva, index) => {
@@ -1635,7 +1623,6 @@ const submit = () => {
         if (archivos.value.pdf) formData.append('pdf_file', archivos.value.pdf);
         if (archivos.value.xml) formData.append('xml_file', archivos.value.xml);
 
-        // Estos campos son para el controlador
         formData.append('total_iva', totalIvaCalculado.value);
         formData.append('total_con_iva', totalConIvaCalculado.value);
 
@@ -1690,7 +1677,6 @@ const submit = () => {
         // ============================================
         // TRASPASO
         // ============================================
-        // 🔥 VALIDAR IVA VS MONTO TRASPASO (solo si hay IVAs)
         if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) {
             alertRef.value?.show({
                 type: 'error',
@@ -1754,7 +1740,6 @@ const submit = () => {
 
         processing.value = true;
 
-        // 🔥 IMPORTANTE: Determinar el modo de IVA para traspaso
         const modoIvaTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
         const totalFacturaTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? totalBaseTraspasoCalculado.value : formTraspaso.monto_directo;
 
@@ -1775,7 +1760,6 @@ const submit = () => {
             }
         });
 
-        // 🔥 AGREGAR modo_iva y total_factura para traspaso
         traspasoFormData.append('modo_iva', modoIvaTraspaso);
         traspasoFormData.append('total_factura', totalFacturaTraspaso);
 
@@ -1852,9 +1836,13 @@ watch(() => form.tipo_poliza, () => {
 // MOUNTED
 // ============================================
 onMounted(() => {
-    const hoy = new Date().toISOString().split('T')[0];
+    // 🔥 CORRECCIÓN DE FECHA - Usar zona horaria de México
+    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
     form.fecha_poliza = hoy;
     formTraspaso.fecha_poliza = hoy;
+
+    // 🔥 Las cuentas fondeadoras ya están en props.cuentas_fondeadoras
+    // No necesitamos combinarlas con nada más
 
     if (props.tipos_iva && props.tipos_iva.length > 0) {
         tiposIva.value = props.tipos_iva;
@@ -1862,6 +1850,7 @@ onMounted(() => {
 
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         cuentasFondeadoras.value = props.cuentas_fondeadoras;
+        console.log('Cuentas fondeadoras cargadas:', cuentasFondeadoras.value);
         if (!form.id_cuenta_fondeadora) {
             form.id_cuenta_fondeadora = props.cuentas_fondeadoras[0].id_cuenta;
             const primeraCuenta = props.cuentas_fondeadoras[0];
@@ -2627,6 +2616,15 @@ onMounted(() => {
 }
 
 .info-con-iva {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.7rem;
+}
+
+.info-auto-cargado {
     background: #d1fae5;
     color: #065f46;
     padding: 2px 10px;

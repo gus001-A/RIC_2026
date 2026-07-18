@@ -27,9 +27,7 @@ use Illuminate\Support\Facades\Gate;
 class MovimientoController extends Controller
 {
 
-    // ============================================
-// 📄 INDEX - LISTADO DE MOVIMIENTOS (CON TRASPASOS)
-// ============================================
+
 public function index(Request $request)
 {
     if (!Gate::allows('ver-movimientos')) {
@@ -93,6 +91,7 @@ public function index(Request $request)
         'poliza.usuarioCreador',
         'poliza.usuarioRevisor',
         'poliza.usuarioAutorizador',
+        'poliza.archivos', // 🔥 NUEVO: Cargar archivos adjuntos de la póliza
         'cuenta' => function($q) {
             $q->where('en_uso', true);
         },
@@ -271,6 +270,12 @@ public function index(Request $request)
             }
         }
 
+        // 🔥 OBTENER EL RECURSO (ARCHIVO ADJUNTO) DE LA PÓLIZA
+        $recurso = $movimiento->poliza->archivos->first(); // Solo el primer archivo
+        $tieneRecurso = $recurso ? true : false;
+        $recursoUrl = $recurso ? route('movimientos.archivos.ver', $recurso->id) : null;
+        $recursoTipo = $recurso ? $recurso->tipo_archivo : null;
+
         return [
             'id_movimiento' => $movimiento->id,
             'id_poliza' => $movimiento->id_poliza,
@@ -323,6 +328,10 @@ public function index(Request $request)
             'motivo_rechazo' => $movimiento->poliza->motivo_rechazo,
             'es_traspaso' => $esTraspaso,
             'cuenta_destino' => $cuentaDestino,
+            // 🔥 NUEVOS CAMPOS PARA EL RECURSO
+            'tiene_recurso' => $tieneRecurso,
+            'recurso_url' => $recursoUrl,
+            'recurso_tipo' => $recursoTipo,
         ];
     });
 
@@ -362,6 +371,7 @@ public function index(Request $request)
         'contadores' => $contadores,
     ]);
 }
+
 public function create()
 {
     if (!Gate::allows('crear-movimientos')) {
@@ -4464,6 +4474,67 @@ public function verArchivo($idArchivo)
     }
 
     return Storage::disk('public')->response($archivo->ruta, $archivo->nombre_original);
+}
+
+
+// ============================================
+// 📌 STORE MARCADOR - CREAR NUEVO MARCADOR
+// ============================================
+public function storeMarcador(Request $request)
+{
+    if (!Gate::allows('crear-movimientos')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso para crear marcadores'
+        ], 403);
+    }
+
+    $validator = Validator::make($request->all(), [
+        'nombre_marcador' => 'required|string|max:100|unique:marcadores,nombre_marcador',
+        'descripcion' => 'nullable|string|max:255',
+        'activo' => 'nullable|boolean'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        DB::beginTransaction();
+
+        $marcador = Marcador::create([
+            'nombre_marcador' => $request->nombre_marcador,
+            'descripcion' => $request->descripcion,
+            'activo' => $request->input('activo', true)
+        ]);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Marcador creado exitosamente',
+            'data' => [
+                'id' => $marcador->id,
+                'nombre_marcador' => $marcador->nombre_marcador,
+                'descripcion' => $marcador->descripcion,
+                'activo' => $marcador->activo
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error al crear marcador:', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al crear el marcador: ' . $e->getMessage()
+        ], 500);
+    }
 }
 
 } // FIN DEL CONTROLADOR

@@ -71,7 +71,6 @@
                                 type="date" 
                                 v-model="filtros.fecha_hasta"
                                 @change="onFechaHastaChange"
-                                :max="fechaActual"
                                 class="fecha-input-premium"
                             />
                         </div>

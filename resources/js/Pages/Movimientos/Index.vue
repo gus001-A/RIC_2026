@@ -61,10 +61,9 @@
                     </div>
                 </div>
 
-                <!-- BARRA SUPERIOR: FECHAS + EXCEL + PDF + CHECKBOX TODOS + FILTRO FISCAL -->
+                <!-- BARRA SUPERIOR -->
                 <div v-if="empresas.length > 0" class="filtros-superior-premium">
                     <div class="filtros-superior-content">
-                        <!-- Fechas -->
                         <div class="fecha-item">
                             <InputLabel>Desde</InputLabel>
                             <input 
@@ -81,85 +80,45 @@
                                 type="date" 
                                 v-model="filtros.fecha_hasta"
                                 @change="onFechaHastaChange"
-                                :max="fechaActual"
                                 class="fecha-input-premium"
                             />
                         </div>
                         <div class="fecha-item fecha-actions">
-                            <a-button 
-                                size="small" 
-                                class="btn-hoy-premium"
-                                @click="setFechaHoy"
-                            >
-                                <template #icon>
-                                    <CalendarOutlined />
-                                </template>
+                            <a-button size="small" class="btn-hoy-premium" @click="setFechaHoy">
+                                <template #icon><CalendarOutlined /></template>
                                 Hoy
                             </a-button>
-                            <a-button 
-                                v-if="filtros.fecha_desde || filtros.fecha_hasta" 
-                                size="small" 
-                                class="btn-limpiar-fechas"
-                                @click="limpiarFechas"
-                            >
-                                <template #icon>
-                                    <CloseOutlined />
-                                </template>
+                            <a-button v-if="filtros.fecha_desde || filtros.fecha_hasta" size="small" class="btn-limpiar-fechas" @click="limpiarFechas">
+                                <template #icon><CloseOutlined /></template>
                                 Limpiar
                             </a-button>
                         </div>
-
-                        <!-- Separador -->
                         <div class="filtros-separator"></div>
-
-                        <!-- FILTRO: SOLO FISCALES -->
                         <div class="fecha-item checkbox-fiscal-item">
                             <label class="checkbox-fiscal-label">
-                                <input 
-                                    type="checkbox" 
-                                    v-model="soloFiscales"
-                                    @change="aplicarFiltros"
-                                    class="checkbox-fiscal-input"
-                                />
+                                <input type="checkbox" v-model="soloFiscales" @change="aplicarFiltros" class="checkbox-fiscal-input" />
                                 <span class="checkbox-fiscal-text">
                                     <FilePdfOutlined style="font-size: 14px;" />
                                     Solo Fiscales
                                 </span>
                             </label>
                         </div>
-
-                        <!-- Separador -->
                         <div class="filtros-separator"></div>
-
-                        <!-- Botones Exportacion -->
                         <div class="fecha-item fecha-actions-export">
-                            <a-button 
-                                size="small" 
-                                class="btn-export-excel-mini"
-                                @click="exportarExcel"
-                            >
-                                <template #icon>
-                                    <FileExcelOutlined />
-                                </template>
+                            <a-button size="small" class="btn-export-excel-mini" @click="exportarExcel">
+                                <template #icon><FileExcelOutlined /></template>
                                 Excel
                             </a-button>
-                            <a-button 
-                                size="small" 
-                                class="btn-export-pdf-mini"
-                                @click="exportarPdf"
-                            >
-                                <template #icon>
-                                    <FilePdfOutlined />
-                                </template>
+                            <a-button size="small" class="btn-export-pdf-mini" @click="exportarPdf">
+                                <template #icon><FilePdfOutlined /></template>
                                 PDF
                             </a-button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tabla Premium -->
+                <!-- Tabla -->
                 <div v-if="empresas.length > 0" class="table-wrapper-premium">
-                    <!-- Header de la tabla -->
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
                             <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
@@ -173,30 +132,16 @@
                         </div>
                         <div class="table-header-right-ultra">
                             <div class="btn-group-actions">
-                                <!-- SELECTOR DE COLUMNAS -->
                                 <ColumnSelector 
                                     :columnas="columnasDisponibles"
                                     v-model="columnasActivas"
                                     :vista="vistaActual"
                                     storage-key="columnas_visibles"
                                 />
-
-                                <!-- NUEVA POLIZA -->
-                                <Link 
-                                    v-if="permisos?.puede_crear" 
-                                    :href="route('movimientos.create')" 
-                                    class="btn-nueva-poliza"
-                                >
-                                    <PlusOutlined />
-                                    Nueva Poliza
+                                <Link v-if="permisos?.puede_crear" :href="route('movimientos.create')" class="btn-nueva-poliza">
+                                    <PlusOutlined /> Nueva Poliza
                                 </Link>
-                                
-                                <!-- NOMINA -->
-                                <Link 
-                                    v-if="permisos?.puede_crear" 
-                                    :href="route('movimientos.nomina.create')" 
-                                    class="btn-nomina-poliza"
-                                >
+                                <Link v-if="permisos?.puede_crear" :href="route('movimientos.nomina.create')" class="btn-nomina-poliza">
                                     <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
@@ -206,7 +151,6 @@
                         </div>
                     </div>
 
-                    <!-- TABLA UNIFICADA -->
                     <div v-if="movimientos.data && movimientos.data.length > 0" class="table-scroll-container">
                         <a-table
                             :columns="columnasActuales"
@@ -224,22 +168,8 @@
                             <template #bodyCell="{ column, record }">
                                 <!-- REFERENCIA -->
                                 <template v-if="column.key === 'referencia'">
-                                    <Link 
-                                        :href="route('movimientos.show', record.id_movimiento)" 
-                                        class="referencia-link"
-                                    >
+                                    <Link :href="route('movimientos.show', record.id_movimiento)" class="referencia-link">
                                         <span class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
-                                        <span v-if="record.referencia_adicional" class="referencia-extra-ultra">
-                                            {{ record.referencia_adicional }}
-                                        </span>
-                                        <span v-if="record.es_fiscal" class="fiscal-icon" title="Poliza Fiscal">
-                                            <FilePdfOutlined style="font-size: 12px; color: #10b981;" />
-                                        </span>
-                                        <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
-                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #8b5cf6;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                            </svg>
-                                        </span>
                                     </Link>
                                 </template>
 
@@ -250,7 +180,7 @@
                                     </span>
                                 </template>
 
-                                <!-- CUENTA DESTINO (para traspasos) -->
+                                <!-- CUENTA DESTINO -->
                                 <template v-if="column.key === 'cuenta_destino'">
                                     <span class="cuenta-text-ultra">
                                         <span v-if="record.es_traspaso">
@@ -303,9 +233,6 @@
                                     <span class="monto-text-ultra" :class="getMontoClass(record.monto)">
                                         ${{ formatNumber(Math.abs(record.monto)) }}
                                     </span>
-                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Monto del traspaso">
-                                        🔄
-                                    </span>
                                 </template>
 
                                 <!-- ABONADO -->
@@ -340,30 +267,40 @@
                                     </div>
                                 </template>
 
-                                <!-- PDF FISCAL -->
-                                <template v-if="column.key === 'pdf'">
-                                    <div class="pdf-cell">
-                                        <a-button 
-                                            size="small" 
-                                            type="link" 
-                                            @click="verPdf(record)"
-                                            :disabled="!record.tiene_pdf_fiscal"
-                                            class="btn-pdf"
-                                            :title="record.tiene_pdf_fiscal ? 'Abrir Comprobante Fiscal PDF' : 'Sin PDF Fiscal'"
+                                <!-- RECURSO -->
+                                <template v-if="column.key === 'recurso'">
+                                    <div class="recurso-cell">
+                                        <!-- Si tiene recurso -->
+                                        <button 
+                                            v-if="record.tiene_recurso"
+                                            class="btn-recurso btn-recurso-verde"
+                                            @click="verRecurso(record)"
+                                            title="Ver recurso adjunto"
                                         >
-                                            <FilePdfOutlined :style="{ 
-                                                color: getPdfColor(record),
-                                                fontSize: '18px',
-                                                transition: 'color 0.3s ease'
-                                            }" />
-                                        </a-button>
+                                            <svg class="btn-recurso-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            <span class="btn-recurso-texto">Ver</span>
+                                        </button>
+                                        <!-- Si NO tiene recurso -->
+                                        <button 
+                                            v-else
+                                            class="btn-recurso btn-recurso-azul"
+                                            @click="abrirModalSubir(record)"
+                                            title="Subir recurso (PDF o imagen)"
+                                        >
+                                            <svg class="btn-recurso-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                            </svg>
+                                            <span class="btn-recurso-texto">Subir</span>
+                                        </button>
                                     </div>
                                 </template>
 
                                 <!-- ACCIONES -->
                                 <template v-if="column.key === 'acciones'">
                                     <div class="acciones-cell">
-                                        
                                         <button 
                                             v-if="permisos?.puede_autorizar && record.es_por_pagar && record.saldo_pendiente > 0"
                                             class="btn-accion abonar" 
@@ -376,7 +313,6 @@
                                             </svg>
                                             Abonar
                                         </button>
-                                        
                                         <button 
                                             v-if="permisos?.puede_editar"
                                             class="btn-accion editar" 
@@ -388,7 +324,6 @@
                                             </svg>
                                             Editar
                                         </button>
-                                        
                                         <button 
                                             v-if="!permisos?.puede_editar"
                                             class="btn-accion ver" 
@@ -407,7 +342,6 @@
                         </a-table>
                     </div>
 
-                    <!-- Mensaje si no hay movimientos -->
                     <div v-if="(!movimientos.data || movimientos.data.length === 0) && !loading" class="text-center py-12">
                         <div class="text-6xl mb-4">📭</div>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay movimientos</h3>
@@ -419,86 +353,40 @@
                         <div class="filtros-inferior-grid">
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Referencia</label>
-                                <input 
-                                    v-model="filtros.referencia"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    class="filtro-inferior-input"
-                                />
+                                <input v-model="filtros.referencia" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
                             </div>
-
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Estatus</label>
-                                <select 
-                                    v-model="filtros.estatus"
-                                    @change="aplicarFiltros"
-                                    class="filtro-inferior-select"
-                                >
+                                <select v-model="filtros.estatus" @change="aplicarFiltros" class="filtro-inferior-select">
                                     <option value="">Todos</option>
                                     <option value="PENDIENTE">Pendiente</option>
                                     <option value="ABONADO">Abonado</option>
                                     <option value="LIQUIDADO">Liquidado</option>
                                 </select>
                             </div>
-
                             <div class="filtro-inferior-item">
                                 <label class="filtro-inferior-label">Persona</label>
-                                <input 
-                                    v-model="filtros.persona"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    class="filtro-inferior-input"
-                                />
+                                <input v-model="filtros.persona" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
                             </div>
-
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
                                 <label class="filtro-inferior-label">Cuenta</label>
-                                <input 
-                                    v-model="filtros.cuenta"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    class="filtro-inferior-input"
-                                />
+                                <input v-model="filtros.cuenta" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
                             </div>
-
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
                                 <label class="filtro-inferior-label">Cta. Fondeo</label>
-                                <input 
-                                    v-model="filtros.cuenta_fondeadora"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    class="filtro-inferior-input"
-                                />
+                                <input v-model="filtros.cuenta_fondeadora" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
                             </div>
-
                             <div class="filtro-inferior-item">
                                 <label class="filtro-inferior-label">Nota</label>
-                                <input 
-                                    v-model="filtros.nota"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    class="filtro-inferior-input"
-                                />
+                                <input v-model="filtros.nota" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
                             </div>
-
                             <div class="filtro-inferior-item" v-if="vistaActual === 'diferidas' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Usuario</label>
-                                <input 
-                                    v-model="filtros.usuario"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    class="filtro-inferior-input"
-                                />
+                                <input v-model="filtros.usuario" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
                             </div>
-
                             <div class="filtro-inferior-item filtro-inferior-actions">
-                                <button 
-                                    v-if="filtrosActivos" 
-                                    class="btn-limpiar-filtros-inferior"
-                                    @click="limpiarFiltros"
-                                >
-                                    <CloseOutlined />
-                                    Limpiar filtros
+                                <button v-if="filtrosActivos" class="btn-limpiar-filtros-inferior" @click="limpiarFiltros">
+                                    <CloseOutlined /> Limpiar filtros
                                 </button>
                             </div>
                         </div>
@@ -522,7 +410,6 @@
                                         <span class="total-value-grande ingresos-value">${{ formatNumber(totalIngresos) }}</span>
                                     </div>
                                 </div>
-
                                 <div class="total-item-grande total-egresos">
                                     <div class="total-icon-grande">
                                         <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,7 +421,6 @@
                                         <span class="total-value-grande egresos-value">-${{ formatNumber(totalEgresos) }}</span>
                                     </div>
                                 </div>
-
                                 <div class="total-item-grande total-traspasos" v-if="vistaActual === 'traspasos'">
                                     <div class="total-icon-grande traspaso-icon">
                                         <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -546,7 +432,6 @@
                                         <span class="total-value-grande traspaso-value">${{ formatNumber(totalTraspasos) }}</span>
                                     </div>
                                 </div>
-
                                 <div class="total-item-grande total-saldo-neto">
                                     <div class="total-icon-grande saldo-icon">
                                         <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,7 +458,6 @@
                     </div>
                 </div>
 
-                <!-- Mensaje si no hay empresas -->
                 <div v-else class="table-wrapper-premium">
                     <div class="text-center py-12">
                         <div class="text-6xl mb-4">🏢</div>
@@ -584,16 +468,105 @@
             </div>
         </div>
 
-        <!-- MODAL DE ALERTAS -->
         <ModalAlert ref="modalAlert" />
+        <ModalLiquidacion ref="modalLiquidacion" :movimiento="movimientoSeleccionado" :cuentas-fondeadoras="cuentasFondeadorasDisponibles" @liquidado="onLiquidado" />
 
-        <!-- MODAL DE LIQUIDACIÓN -->
-        <ModalLiquidacion 
-            ref="modalLiquidacion"
-            :movimiento="movimientoSeleccionado"
-            :cuentas-fondeadoras="cuentasFondeadorasDisponibles"
-            @liquidado="onLiquidado"
-        />
+        <!-- MODAL PARA SUBIR/VER RECURSO -->
+        <a-modal
+            v-model:open="modalRecursoVisible"
+            :title="modalRecursoTitulo"
+            width="90%"
+            :footer="null"
+            class="modal-recurso-premium"
+            :style="{ maxWidth: '900px' }"
+        >
+            <div class="modal-recurso-content">
+                <!-- Si es para ver -->
+                <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
+                    <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
+                        <iframe :src="modalRecursoUrl" class="recurso-pdf" frameborder="0"></iframe>
+                    </div>
+                    <div v-else-if="modalRecursoTipo === 'image'" class="recurso-image-wrapper">
+                        <img :src="modalRecursoUrl" alt="Recurso adjunto" class="recurso-image" />
+                    </div>
+                    <div v-else class="recurso-other">
+                        <div class="recurso-other-icon">
+                            <svg class="recurso-other-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <p class="recurso-other-text">Vista previa no disponible para este tipo de archivo</p>
+                        <a :href="modalRecursoUrl" target="_blank" class="recurso-other-link">Descargar archivo</a>
+                    </div>
+                </div>
+
+                <!-- Si es para subir -->
+                <div v-if="modalRecursoModo === 'subir'" class="recurso-upload-wrapper">
+                    <div class="recurso-upload-info">
+                        <p>Sube un <strong>PDF</strong> o una <strong>imagen</strong> (JPG, PNG, GIF) para esta póliza.</p>
+                        <p class="recurso-upload-hint">Solo se permite un archivo por póliza.</p>
+                    </div>
+
+                    <form @submit.prevent="subirRecurso">
+                        <div class="recurso-drop-zone" 
+                             :class="{ 'recurso-drop-zone-dragover': dragging }"
+                             @dragover.prevent="dragging = true"
+                             @dragleave.prevent="dragging = false"
+                             @drop.prevent="onDrop"
+                             @click="$refs.recursoFileInput.click()"
+                        >
+                            <div class="recurso-drop-zone-content">
+                                <svg class="recurso-drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <span v-if="!archivoSeleccionado" class="recurso-drop-zone-text">
+                                    Arrastra y suelta tu archivo aquí, o haz clic para seleccionarlo
+                                </span>
+                                <span v-else class="recurso-drop-zone-text archivo-seleccionado">
+                                    <svg class="archivo-seleccionado-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    {{ archivoSeleccionado.name }} ({{ formatFileSize(archivoSeleccionado.size) }})
+                                </span>
+                                <span class="recurso-drop-zone-hint">Formatos permitidos: PDF, JPG, PNG, GIF, WEBP</span>
+                            </div>
+                            <input 
+                                type="file" 
+                                ref="recursoFileInput" 
+                                @change="onFileSelect" 
+                                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*"
+                                class="recurso-file-input-hidden"
+                            >
+                        </div>
+
+                        <div v-if="errorRecurso" class="recurso-error">
+                            <svg class="error-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ errorRecurso }}
+                        </div>
+
+                        <div class="recurso-modal-actions">
+                            <button type="button" class="btn-modal-cancel" @click="cerrarModalRecurso">Cancelar</button>
+                            <button type="submit" class="btn-modal-submit" :disabled="!archivoSeleccionado || subiendoRecurso">
+                                <span v-if="subiendoRecurso" class="spinner-border-sm"></span>
+                                <span v-else>Subir archivo</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div v-if="modalRecursoModo === 'ver'" class="recurso-footer">
+                <button class="btn-modal-cancel" @click="cerrarModalRecurso">Cerrar</button>
+                <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
+                    <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar
+                </a>
+            </div>
+        </a-modal>
     </AppLayout>
 </template>
 
@@ -620,9 +593,9 @@ import {
     Button as AButton,
     Table as ATable,
     Tag as ATag,
+    Modal as AModal,
 } from 'ant-design-vue';
 
-// ✅ IMPORTAR useEmpresa
 import { useEmpresa } from '@/composables/useEmpresa';
 
 // ============================================
@@ -666,25 +639,31 @@ const props = defineProps({
     }
 });
 
-// ============================================
-// ✅ USAR useEmpresa
-// ============================================
-const { 
-    empresaSeleccionada, 
-    cargarEmpresaGuardada, 
-    guardarEmpresa,
-    getEmpresaActual
-} = useEmpresa();
+const { empresaSeleccionada, cargarEmpresaGuardada, guardarEmpresa } = useEmpresa();
 
 // ============================================
-// REFS Y VARIABLES
+// REFS
 // ============================================
 const loading = ref(false);
 const modalAlert = ref(null);
 const modalLiquidacion = ref(null);
 const movimientoSeleccionado = ref(null);
 
-// FUNCION PARA OBTENER FECHA LOCAL CORRECTA
+// MODAL RECURSO
+const modalRecursoVisible = ref(false);
+const modalRecursoModo = ref('ver');
+const modalRecursoTitulo = ref('');
+const modalRecursoUrl = ref('');
+const modalRecursoTipo = ref('');
+const modalRecursoMovimiento = ref(null);
+
+// Archivos
+const archivoSeleccionado = ref(null);
+const subiendoRecurso = ref(false);
+const errorRecurso = ref('');
+const dragging = ref(false);
+const recursoFileInput = ref(null);
+
 const obtenerFechaLocal = () => {
     const hoy = new Date();
     const year = hoy.getFullYear();
@@ -700,9 +679,6 @@ const soloFiscales = ref(false);
 const columnasActivas = ref([]);
 let timeoutId = null;
 
-// ============================================
-// CUENTAS FONDEADORAS PARA EL MODAL
-// ============================================
 const cuentasFondeadorasDisponibles = computed(() => {
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         return props.cuentas_fondeadoras;
@@ -736,7 +712,7 @@ const getColumnasDisponibles = () => {
             { key: 'cuenta_destino', title: 'Cuenta Destino', required: true, visibleByDefault: true },
             { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
             { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
-            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
+            { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
         ];
     } else {
         return [
@@ -748,15 +724,16 @@ const getColumnasDisponibles = () => {
             { key: 'cuenta_fondeadora', title: 'Cta. Fondeo', required: false, visibleByDefault: true },
             { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
             { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
-            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
+            { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
         ];
     }
 };
 
 const columnasDisponibles = computed(() => getColumnasDisponibles());
 
+// 🔥 COLUMNAS CON ANCHO AJUSTADO - Referencia más angosta
 const columnasNormal = [
-    { title: 'Referencia', key: 'referencia', width: '180px', fixed: 'left' },
+    { title: 'Referencia', key: 'referencia', width: '100px', fixed: 'left' }, // 🔥 Reducido de 180px a 100px
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
     { title: 'Persona', key: 'persona', width: '180px' },
@@ -764,11 +741,11 @@ const columnasNormal = [
     { title: 'Cta. Fondeo', key: 'cuenta_fondeadora', width: '180px' },
     { title: 'Nota', key: 'nota', width: '200px' },
     { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
-    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
+    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' }
 ];
 
 const columnasTraspasos = [
-    { title: 'Referencia', key: 'referencia', width: '180px', fixed: 'left' },
+    { title: 'Referencia', key: 'referencia', width: '100px', fixed: 'left' }, // 🔥 Reducido de 180px a 100px
     { title: 'Tipo', key: 'tipo_poliza', width: '100px', align: 'center' },
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
@@ -777,7 +754,7 @@ const columnasTraspasos = [
     { title: 'Cuenta Destino', key: 'cuenta_destino', width: '180px' },
     { title: 'Nota', key: 'nota', width: '200px' },
     { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
-    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
+    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' }
 ];
 
 const columnasDiferidas = [
@@ -840,8 +817,6 @@ const saldoNeto = computed(() => {
 // ============================================
 // FILTROS
 // ============================================
-const hoy = obtenerFechaLocal();
-
 const filtros = ref({
     fecha_desde: props.filtros?.fecha_desde || '',
     fecha_hasta: props.filtros?.fecha_hasta || '',
@@ -859,7 +834,6 @@ const filtros = ref({
     solo_fiscales: false
 });
 
-// SINCRONIZAR CHECKBOXES CON PROPS PERO POR DEFECTO EN FALSE
 watch(mostrarTodos, (val) => { filtros.value.mostrar_todos = val; });
 watch(soloFiscales, (val) => { filtros.value.solo_fiscales = val; });
 
@@ -870,7 +844,7 @@ const filtrosActivos = computed(() => {
 });
 
 // ============================================
-// FUNCIONES DE FECHAS DINÁMICAS
+// FUNCIONES DE FECHAS
 // ============================================
 const onFechaHastaChange = () => {
     if (filtros.value.fecha_hasta) {
@@ -964,7 +938,7 @@ const handleTableChange = (pagination, filters, sorter) => {
 };
 
 // ============================================
-// ✅ CAMBIAR EMPRESA - USANDO useEmpresa
+// CAMBIAR EMPRESA
 // ============================================
 const cambiarEmpresa = () => {
     if (empresaSeleccionada.value) {
@@ -1051,12 +1025,6 @@ const getRowClassName = (record) => {
     return '';
 };
 
-const getPdfColor = (record) => {
-    if (record.es_fiscal && record.tiene_pdf_fiscal) return '#10b981';
-    if (record.es_fiscal && !record.tiene_pdf_fiscal) return '#f59e0b';
-    return '#d1d5db';
-};
-
 // ============================================
 // FORMATOS
 // ============================================
@@ -1076,6 +1044,131 @@ const formatFechaHora = (fecha) => {
     const d = new Date(fecha);
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
            ' | ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatFileSize = (bytes) => {
+    if (!bytes) return '—';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const value = bytes / Math.pow(1024, i);
+    return `${value.toFixed(i > 0 ? 1 : 0)} ${sizes[i]}`;
+};
+
+// ============================================
+// RECURSO - FUNCIONES DEL MODAL
+// ============================================
+const abrirModalSubir = (record) => {
+    modalRecursoMovimiento.value = record;
+    modalRecursoModo.value = 'subir';
+    modalRecursoTitulo.value = `Subir recurso - ${record.referencia || 'Póliza'}`;
+    modalRecursoUrl.value = '';
+    modalRecursoTipo.value = '';
+    archivoSeleccionado.value = null;
+    errorRecurso.value = '';
+    modalRecursoVisible.value = true;
+};
+
+const verRecurso = (record) => {
+    modalRecursoMovimiento.value = record;
+    modalRecursoModo.value = 'ver';
+    modalRecursoTitulo.value = `Póliza - ${record.referencia || 'Póliza'}`;
+    modalRecursoUrl.value = record.recurso_url || '';
+    
+    if (record.recurso_tipo) {
+        modalRecursoTipo.value = record.recurso_tipo;
+    } else {
+        const url = modalRecursoUrl.value.toLowerCase();
+        if (url.endsWith('.pdf')) {
+            modalRecursoTipo.value = 'pdf';
+        } else if (url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.gif') || url.endsWith('.webp')) {
+            modalRecursoTipo.value = 'image';
+        } else {
+            modalRecursoTipo.value = 'other';
+        }
+    }
+    
+    modalRecursoVisible.value = true;
+};
+
+const cerrarModalRecurso = () => {
+    modalRecursoVisible.value = false;
+    modalRecursoModo.value = 'ver';
+    modalRecursoMovimiento.value = null;
+    archivoSeleccionado.value = null;
+    errorRecurso.value = '';
+    dragging.value = false;
+};
+
+// === DROP ZONE ===
+const onDrop = (e) => {
+    dragging.value = false;
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        procesarArchivo(files[0]);
+    }
+};
+
+const onFileSelect = (e) => {
+    const files = e.target.files;
+    if (files.length > 0) {
+        procesarArchivo(files[0]);
+    }
+    e.target.value = '';
+};
+
+const procesarArchivo = (file) => {
+    const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const extensionesPermitidas = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    
+    const extension = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!tiposPermitidos.includes(file.type) && !extensionesPermitidas.includes(extension)) {
+        errorRecurso.value = 'Tipo de archivo no permitido. Solo PDF e imágenes (JPG, PNG, GIF, WEBP).';
+        archivoSeleccionado.value = null;
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        errorRecurso.value = 'El archivo no debe exceder 10 MB.';
+        archivoSeleccionado.value = null;
+        return;
+    }
+    
+    errorRecurso.value = '';
+    archivoSeleccionado.value = file;
+};
+
+// === SUBIR RECURSO ===
+const subirRecurso = async () => {
+    if (!archivoSeleccionado.value || !modalRecursoMovimiento.value) return;
+    
+    subiendoRecurso.value = true;
+    errorRecurso.value = '';
+    
+    const formData = new FormData();
+    formData.append('archivo', archivoSeleccionado.value);
+    formData.append('id_poliza', modalRecursoMovimiento.value.id_poliza || modalRecursoMovimiento.value.id_movimiento);
+    
+    try {
+        const response = await axios.post(
+            route('movimientos.archivos.subir', modalRecursoMovimiento.value.id_poliza || modalRecursoMovimiento.value.id_movimiento),
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        
+        if (response.data.success) {
+            mostrarModal('success', 'Éxito', 'Recurso subido correctamente');
+            cerrarModalRecurso();
+            router.reload({ only: ['movimientos'] });
+        } else {
+            throw new Error(response.data.message || 'Error al subir el recurso');
+        }
+    } catch (error) {
+        errorRecurso.value = error.response?.data?.message || error.message || 'Error al subir el recurso';
+        mostrarModal('error', 'Error', errorRecurso.value);
+    } finally {
+        subiendoRecurso.value = false;
+    }
 };
 
 // ============================================
@@ -1121,16 +1214,6 @@ const onLiquidado = (data) => {
 const accionEditar = (record) => router.get(route('movimientos.edit', record.id_movimiento));
 const accionVer = (record) => router.get(route('movimientos.show', record.id_movimiento));
 
-const verPdf = (record) => {
-    if (record.es_fiscal && record.tiene_pdf_fiscal && record.pdf_url) {
-        window.open(record.pdf_url, '_blank');
-    } else if (record.es_fiscal && !record.tiene_pdf_fiscal) {
-        mostrarModal('info', 'PDF no disponible', 'Esta poliza fiscal no tiene un PDF asociado.');
-    } else {
-        mostrarModal('info', 'Sin PDF Fiscal', 'Esta poliza no es fiscal.');
-    }
-};
-
 const exportarExcel = () => {
     if (!empresaSeleccionada.value) {
         mostrarModal('warning', 'Sin empresa', 'Selecciona una empresa primero');
@@ -1170,29 +1253,22 @@ const exportarPdf = () => {
 };
 
 // ============================================
-// ✅ LIFECYCLE - CON useEmpresa
+// LIFECYCLE
 // ============================================
 onMounted(() => {
-    // Inicializar columnas
     if (columnasActivas.value.length === 0) {
         const defaultKeys = getColumnasDisponibles().filter(col => col.visibleByDefault !== false).map(col => col.key);
         columnasActivas.value = defaultKeys;
     }
     
-    // ✅ Cargar empresa guardada desde localStorage
     const empresaGuardada = cargarEmpresaGuardada();
     
-    // ✅ Si hay empresa guardada y existe en la lista, usarla
     if (empresaGuardada && props.empresas.some(e => e.id === empresaGuardada)) {
         empresaSeleccionada.value = empresaGuardada;
-    } 
-    // ✅ Si viene desde props, usarla
-    else if (props.empresa_seleccionada) {
+    } else if (props.empresa_seleccionada) {
         empresaSeleccionada.value = parseInt(props.empresa_seleccionada);
         guardarEmpresa(props.empresa_seleccionada);
-    }
-    // ✅ Si no hay empresa seleccionada, usar la primera
-    else if (props.empresas && props.empresas.length > 0) {
+    } else if (props.empresas && props.empresas.length > 0) {
         empresaSeleccionada.value = props.empresas[0].id;
         guardarEmpresa(props.empresas[0].id);
     }
@@ -1229,6 +1305,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ========== ESTILOS COMPLETOS ========== */
 .empresa-selector-premium {
     background: #ffffff;
     border-radius: 12px;
@@ -1353,13 +1430,6 @@ onMounted(() => {
     flex-direction: column;
     gap: 4px;
     min-width: 120px;
-}
-
-.fecha-item :deep(.input-label) {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    color: #475569 !important;
-    margin-bottom: 0 !important;
 }
 
 .fecha-input-premium {
@@ -1685,7 +1755,6 @@ onMounted(() => {
     color: #166534;
 }
 
-/* --- ESTILOS DE LA TABLA --- */
 .movimiento-table-ultra {
     width: 100%;
 }
@@ -1770,6 +1839,7 @@ onMounted(() => {
     transition: all 0.3s ease;
     cursor: pointer;
     font-weight: 600;
+    max-width: 100%;
 }
 
 .referencia-link:hover {
@@ -1778,14 +1848,13 @@ onMounted(() => {
 }
 
 .referencia-text-ultra {
-    font-size: 13px;
+    font-size: 12px;
     color: inherit;
-}
-
-.referencia-extra-ultra {
-    font-size: 10px;
-    color: #94a3b8;
-    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+    display: inline-block;
 }
 
 .fecha-usuario-cell {
@@ -1916,34 +1985,335 @@ onMounted(() => {
     color: #94a3b8;
 }
 
-.pdf-cell {
+/* --- RECURSO --- */
+.recurso-cell {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.btn-recurso {
+    display: inline-flex;
+    align-items: center;
     gap: 4px;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.btn-pdf {
-    font-size: 16px !important;
-    padding: 0 4px !important;
-    height: 28px !important;
-    width: 28px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: all 0.3s ease !important;
+.btn-recurso-verde {
+    background: #dcfce7;
+    color: #166534;
+    border: 2px solid #86efac;
 }
 
-.btn-pdf:hover:not(:disabled) {
-    transform: scale(1.15);
-    background: rgba(16, 185, 129, 0.05) !important;
+.btn-recurso-verde:hover {
+    background: #bbf7d0;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(22, 101, 52, 0.15);
 }
 
-.btn-pdf:disabled {
+.btn-recurso-azul {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 2px solid #93c5fd;
+}
+
+.btn-recurso-azul:hover {
+    background: #bfdbfe;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.15);
+}
+
+.btn-recurso-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-recurso-texto {
+    font-size: 10px;
+}
+
+/* --- MODAL RECURSO --- */
+.modal-recurso-premium :deep(.ant-modal-header) {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+}
+
+.modal-recurso-premium :deep(.ant-modal-title) {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.modal-recurso-premium :deep(.ant-modal-close) {
+    color: white;
+}
+
+.modal-recurso-premium :deep(.ant-modal-close:hover) {
+    color: #fca5a5;
+}
+
+.modal-recurso-premium :deep(.ant-modal-body) {
+    padding: 0;
+}
+
+.modal-recurso-content {
+    min-height: 300px;
+    padding: 24px;
+}
+
+.recurso-pdf-wrapper {
+    width: 100%;
+    height: 70vh;
+    min-height: 400px;
+}
+
+.recurso-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.recurso-image-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.recurso-image {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.recurso-other {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 12px;
+}
+
+.recurso-other-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: #f3f4f6;
+    border-radius: 50%;
+}
+
+.recurso-other-svg {
+    width: 40px;
+    height: 40px;
+    color: #94a3b8;
+}
+
+.recurso-other-text {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.recurso-other-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.recurso-other-link:hover {
+    background: #eff6ff;
+}
+
+.recurso-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    background: white;
+    border-top: 1px solid #f3f4f6;
+}
+
+/* --- UPLOAD --- */
+.recurso-upload-wrapper {
+    padding: 8px 0;
+}
+
+.recurso-upload-info {
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.recurso-upload-info strong {
+    color: #0f172a;
+}
+
+.recurso-upload-hint {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.recurso-drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+}
+
+.recurso-drop-zone:hover {
+    border-color: #8b5cf6;
+    background: #f8f7ff;
+}
+
+.recurso-drop-zone-dragover {
+    border-color: #8b5cf6;
+    background: #ede9fe;
+    transform: scale(1.02);
+}
+
+.recurso-drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurso-drop-zone-icon {
+    width: 48px;
+    height: 48px;
+    color: #94a3b8;
+}
+
+.recurso-drop-zone-text {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.recurso-drop-zone-text.archivo-seleccionado {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.archivo-seleccionado-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.recurso-drop-zone-hint {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.recurso-file-input-hidden {
+    display: none;
+}
+
+.recurso-error {
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: #fee2e2;
+    border-radius: 6px;
+    color: #991b1b;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurso-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn-modal-cancel {
+    padding: 8px 24px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-modal-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 24px;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-modal-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.3);
+}
+
+.btn-modal-submit:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
-    transform: none !important;
 }
 
+.spinner-border-sm {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.75s linear infinite;
+}
+
+.error-icon-sm {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* --- ACCIONES --- */
 .acciones-cell {
     display: flex;
     align-items: center;
@@ -2307,6 +2677,10 @@ onMounted(() => {
     50% { opacity: 0.5; transform: scale(1.2); }
 }
 
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
     .filtros-superior-content {
@@ -2392,6 +2766,11 @@ onMounted(() => {
         width: 10px;
         height: 10px;
     }
+    
+    .recurso-pdf-wrapper {
+        height: 50vh;
+        min-height: 300px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -2462,6 +2841,15 @@ onMounted(() => {
     
     .checkbox-fiscal-text {
         font-size: 12px;
+    }
+    
+    .recurso-pdf-wrapper {
+        height: 40vh;
+        min-height: 250px;
+    }
+    
+    .recurso-image {
+        max-height: 50vh;
     }
 }
 </style>
