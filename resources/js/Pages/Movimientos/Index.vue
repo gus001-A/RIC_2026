@@ -61,9 +61,10 @@
                     </div>
                 </div>
 
-                <!-- BARRA SUPERIOR -->
+                <!-- BARRA SUPERIOR: FECHAS + EXCEL + PDF + CHECKBOX TODOS + FILTRO FISCAL -->
                 <div v-if="empresas.length > 0" class="filtros-superior-premium">
                     <div class="filtros-superior-content">
+                        <!-- Fechas -->
                         <div class="fecha-item">
                             <InputLabel>Desde</InputLabel>
                             <input 
@@ -84,41 +85,80 @@
                             />
                         </div>
                         <div class="fecha-item fecha-actions">
-                            <a-button size="small" class="btn-hoy-premium" @click="setFechaHoy">
-                                <template #icon><CalendarOutlined /></template>
+                            <a-button 
+                                size="small" 
+                                class="btn-hoy-premium"
+                                @click="setFechaHoy"
+                            >
+                                <template #icon>
+                                    <CalendarOutlined />
+                                </template>
                                 Hoy
                             </a-button>
-                            <a-button v-if="filtros.fecha_desde || filtros.fecha_hasta" size="small" class="btn-limpiar-fechas" @click="limpiarFechas">
-                                <template #icon><CloseOutlined /></template>
+                            <a-button 
+                                v-if="filtros.fecha_desde || filtros.fecha_hasta" 
+                                size="small" 
+                                class="btn-limpiar-fechas"
+                                @click="limpiarFechas"
+                            >
+                                <template #icon>
+                                    <CloseOutlined />
+                                </template>
                                 Limpiar
                             </a-button>
                         </div>
+
+                        <!-- Separador -->
                         <div class="filtros-separator"></div>
+
+                        <!-- FILTRO: SOLO FISCALES -->
                         <div class="fecha-item checkbox-fiscal-item">
                             <label class="checkbox-fiscal-label">
-                                <input type="checkbox" v-model="soloFiscales" @change="aplicarFiltros" class="checkbox-fiscal-input" />
+                                <input 
+                                    type="checkbox" 
+                                    v-model="soloFiscales"
+                                    @change="aplicarFiltros"
+                                    class="checkbox-fiscal-input"
+                                />
                                 <span class="checkbox-fiscal-text">
                                     <FilePdfOutlined style="font-size: 14px;" />
                                     Solo Fiscales
                                 </span>
                             </label>
                         </div>
+
+                        <!-- Separador -->
                         <div class="filtros-separator"></div>
+
+                        <!-- Botones Exportacion -->
                         <div class="fecha-item fecha-actions-export">
-                            <a-button size="small" class="btn-export-excel-mini" @click="exportarExcel">
-                                <template #icon><FileExcelOutlined /></template>
+                            <a-button 
+                                size="small" 
+                                class="btn-export-excel-mini"
+                                @click="exportarExcel"
+                            >
+                                <template #icon>
+                                    <FileExcelOutlined />
+                                </template>
                                 Excel
                             </a-button>
-                            <a-button size="small" class="btn-export-pdf-mini" @click="exportarPdf">
-                                <template #icon><FilePdfOutlined /></template>
+                            <a-button 
+                                size="small" 
+                                class="btn-export-pdf-mini"
+                                @click="exportarPdf"
+                            >
+                                <template #icon>
+                                    <FilePdfOutlined />
+                                </template>
                                 PDF
                             </a-button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tabla -->
+                <!-- Tabla Premium -->
                 <div v-if="empresas.length > 0" class="table-wrapper-premium">
+                    <!-- Header de la tabla -->
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
                             <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
@@ -132,16 +172,30 @@
                         </div>
                         <div class="table-header-right-ultra">
                             <div class="btn-group-actions">
+                                <!-- SELECTOR DE COLUMNAS -->
                                 <ColumnSelector 
                                     :columnas="columnasDisponibles"
                                     v-model="columnasActivas"
                                     :vista="vistaActual"
                                     storage-key="columnas_visibles"
                                 />
-                                <Link v-if="permisos?.puede_crear" :href="route('movimientos.create')" class="btn-nueva-poliza">
-                                    <PlusOutlined /> Nueva Poliza
+
+                                <!-- NUEVA POLIZA -->
+                                <Link 
+                                    v-if="permisos?.puede_crear" 
+                                    :href="route('movimientos.create')" 
+                                    class="btn-nueva-poliza"
+                                >
+                                    <PlusOutlined />
+                                    Nueva Poliza
                                 </Link>
-                                <Link v-if="permisos?.puede_crear" :href="route('movimientos.nomina.create')" class="btn-nomina-poliza">
+                                
+                                <!-- NOMINA -->
+                                <Link 
+                                    v-if="permisos?.puede_crear" 
+                                    :href="route('movimientos.nomina.create')" 
+                                    class="btn-nomina-poliza"
+                                >
                                     <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
@@ -151,6 +205,7 @@
                         </div>
                     </div>
 
+                    <!-- TABLA UNIFICADA -->
                     <div v-if="movimientos.data && movimientos.data.length > 0" class="table-scroll-container">
                         <a-table
                             :columns="columnasActuales"
@@ -166,10 +221,21 @@
                             :row-class-name="getRowClassName"
                         >
                             <template #bodyCell="{ column, record }">
-                                <!-- REFERENCIA -->
+                                <!-- 🔥 REFERENCIA - MODIFICADA: más compacta y sin texto gris -->
                                 <template v-if="column.key === 'referencia'">
-                                    <Link :href="route('movimientos.show', record.id_movimiento)" class="referencia-link">
+                                    <Link 
+                                        :href="route('movimientos.show', record.id_movimiento)" 
+                                        class="referencia-link"
+                                    >
                                         <span class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
+                                        <span v-if="record.es_fiscal" class="fiscal-icon" title="Poliza Fiscal">
+                                            <FilePdfOutlined style="font-size: 12px; color: #10b981;" />
+                                        </span>
+                                        <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
+                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #8b5cf6;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                            </svg>
+                                        </span>
                                     </Link>
                                 </template>
 
@@ -180,7 +246,7 @@
                                     </span>
                                 </template>
 
-                                <!-- CUENTA DESTINO -->
+                                <!-- CUENTA DESTINO (para traspasos) -->
                                 <template v-if="column.key === 'cuenta_destino'">
                                     <span class="cuenta-text-ultra">
                                         <span v-if="record.es_traspaso">
@@ -233,6 +299,9 @@
                                     <span class="monto-text-ultra" :class="getMontoClass(record.monto)">
                                         ${{ formatNumber(Math.abs(record.monto)) }}
                                     </span>
+                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Monto del traspaso">
+                                        🔄
+                                    </span>
                                 </template>
 
                                 <!-- ABONADO -->
@@ -270,7 +339,6 @@
                                 <!-- RECURSO -->
                                 <template v-if="column.key === 'recurso'">
                                     <div class="recurso-cell">
-                                        <!-- Si tiene recurso -->
                                         <button 
                                             v-if="record.tiene_recurso"
                                             class="btn-recurso btn-recurso-verde"
@@ -283,7 +351,6 @@
                                             </svg>
                                             <span class="btn-recurso-texto">Ver</span>
                                         </button>
-                                        <!-- Si NO tiene recurso -->
                                         <button 
                                             v-else
                                             class="btn-recurso btn-recurso-azul"
@@ -298,9 +365,32 @@
                                     </div>
                                 </template>
 
+                                <!-- PDF FISCAL -->
+                                <template v-if="column.key === 'pdf'">
+                                    <div class="pdf-cell">
+                                        <a-button 
+                                            size="small" 
+                                            type="link" 
+                                            @click="verPdf(record)"
+                                            :disabled="!record.tiene_pdf_fiscal"
+                                            class="btn-pdf"
+                                            :title="record.tiene_pdf_fiscal ? 'Abrir Comprobante Fiscal PDF' : 'Sin PDF Fiscal'"
+                                        >
+                                            <FilePdfOutlined :style="{ 
+                                                color: getPdfColor(record),
+                                                fontSize: '18px',
+                                                transition: 'color 0.3s ease'
+                                            }" />
+                                        </a-button>
+                                    </div>
+                                </template>
+
+                                <!-- ============================================ -->
                                 <!-- ACCIONES -->
+                                <!-- ============================================ -->
                                 <template v-if="column.key === 'acciones'">
                                     <div class="acciones-cell">
+                                        <!-- Botón Abonar (disponible en TODAS las vistas cuando corresponda) -->
                                         <button 
                                             v-if="permisos?.puede_autorizar && record.es_por_pagar && record.saldo_pendiente > 0"
                                             class="btn-accion abonar" 
@@ -313,6 +403,8 @@
                                             </svg>
                                             Abonar
                                         </button>
+                                        
+                                        <!-- Botón Editar (disponible en TODAS las vistas) -->
                                         <button 
                                             v-if="permisos?.puede_editar"
                                             class="btn-accion editar" 
@@ -324,6 +416,8 @@
                                             </svg>
                                             Editar
                                         </button>
+                                        
+                                        <!-- Botón Ver (si no tiene permiso de editar) -->
                                         <button 
                                             v-if="!permisos?.puede_editar"
                                             class="btn-accion ver" 
@@ -342,6 +436,7 @@
                         </a-table>
                     </div>
 
+                    <!-- Mensaje si no hay movimientos -->
                     <div v-if="(!movimientos.data || movimientos.data.length === 0) && !loading" class="text-center py-12">
                         <div class="text-6xl mb-4">📭</div>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay movimientos</h3>
@@ -353,40 +448,86 @@
                         <div class="filtros-inferior-grid">
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Referencia</label>
-                                <input v-model="filtros.referencia" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
+                                <input 
+                                    v-model="filtros.referencia"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    class="filtro-inferior-input"
+                                />
                             </div>
+
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Estatus</label>
-                                <select v-model="filtros.estatus" @change="aplicarFiltros" class="filtro-inferior-select">
+                                <select 
+                                    v-model="filtros.estatus"
+                                    @change="aplicarFiltros"
+                                    class="filtro-inferior-select"
+                                >
                                     <option value="">Todos</option>
                                     <option value="PENDIENTE">Pendiente</option>
                                     <option value="ABONADO">Abonado</option>
                                     <option value="LIQUIDADO">Liquidado</option>
                                 </select>
                             </div>
+
                             <div class="filtro-inferior-item">
                                 <label class="filtro-inferior-label">Persona</label>
-                                <input v-model="filtros.persona" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
+                                <input 
+                                    v-model="filtros.persona"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    class="filtro-inferior-input"
+                                />
                             </div>
+
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
                                 <label class="filtro-inferior-label">Cuenta</label>
-                                <input v-model="filtros.cuenta" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
+                                <input 
+                                    v-model="filtros.cuenta"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    class="filtro-inferior-input"
+                                />
                             </div>
+
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal'">
                                 <label class="filtro-inferior-label">Cta. Fondeo</label>
-                                <input v-model="filtros.cuenta_fondeadora" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
+                                <input 
+                                    v-model="filtros.cuenta_fondeadora"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    class="filtro-inferior-input"
+                                />
                             </div>
+
                             <div class="filtro-inferior-item">
                                 <label class="filtro-inferior-label">Nota</label>
-                                <input v-model="filtros.nota" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
+                                <input 
+                                    v-model="filtros.nota"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    class="filtro-inferior-input"
+                                />
                             </div>
+
                             <div class="filtro-inferior-item" v-if="vistaActual === 'diferidas' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Usuario</label>
-                                <input v-model="filtros.usuario" @input="aplicarFiltros" placeholder="Buscar..." class="filtro-inferior-input" />
+                                <input 
+                                    v-model="filtros.usuario"
+                                    @input="aplicarFiltros"
+                                    placeholder="Buscar..."
+                                    class="filtro-inferior-input"
+                                />
                             </div>
+
                             <div class="filtro-inferior-item filtro-inferior-actions">
-                                <button v-if="filtrosActivos" class="btn-limpiar-filtros-inferior" @click="limpiarFiltros">
-                                    <CloseOutlined /> Limpiar filtros
+                                <button 
+                                    v-if="filtrosActivos" 
+                                    class="btn-limpiar-filtros-inferior"
+                                    @click="limpiarFiltros"
+                                >
+                                    <CloseOutlined />
+                                    Limpiar filtros
                                 </button>
                             </div>
                         </div>
@@ -410,6 +551,7 @@
                                         <span class="total-value-grande ingresos-value">${{ formatNumber(totalIngresos) }}</span>
                                     </div>
                                 </div>
+
                                 <div class="total-item-grande total-egresos">
                                     <div class="total-icon-grande">
                                         <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,6 +563,7 @@
                                         <span class="total-value-grande egresos-value">-${{ formatNumber(totalEgresos) }}</span>
                                     </div>
                                 </div>
+
                                 <div class="total-item-grande total-traspasos" v-if="vistaActual === 'traspasos'">
                                     <div class="total-icon-grande traspaso-icon">
                                         <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,6 +575,7 @@
                                         <span class="total-value-grande traspaso-value">${{ formatNumber(totalTraspasos) }}</span>
                                     </div>
                                 </div>
+
                                 <div class="total-item-grande total-saldo-neto">
                                     <div class="total-icon-grande saldo-icon">
                                         <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,6 +602,7 @@
                     </div>
                 </div>
 
+                <!-- Mensaje si no hay empresas -->
                 <div v-else class="table-wrapper-premium">
                     <div class="text-center py-12">
                         <div class="text-6xl mb-4">🏢</div>
@@ -468,8 +613,16 @@
             </div>
         </div>
 
+        <!-- MODAL DE ALERTAS -->
         <ModalAlert ref="modalAlert" />
-        <ModalLiquidacion ref="modalLiquidacion" :movimiento="movimientoSeleccionado" :cuentas-fondeadoras="cuentasFondeadorasDisponibles" @liquidado="onLiquidado" />
+
+        <!-- MODAL DE LIQUIDACIÓN -->
+        <ModalLiquidacion 
+            ref="modalLiquidacion"
+            :movimiento="movimientoSeleccionado"
+            :cuentas-fondeadoras="cuentasFondeadorasDisponibles"
+            @liquidado="onLiquidado"
+        />
 
         <!-- MODAL PARA SUBIR/VER RECURSO -->
         <a-modal
@@ -699,6 +852,7 @@ const getColumnasDisponibles = () => {
             { key: 'abonado', title: 'Abonado', required: false, visibleByDefault: true },
             { key: 'saldo_pendiente', title: 'Saldo Pendiente', required: true, visibleByDefault: true },
             { key: 'usuario', title: 'Usuario', required: false, visibleByDefault: true },
+            { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
             { key: 'acciones', title: 'Acciones', required: true, visibleByDefault: true },
         ];
     } else if (vistaActual.value === 'traspasos') {
@@ -713,6 +867,7 @@ const getColumnasDisponibles = () => {
             { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
             { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
             { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
+            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
         ];
     } else {
         return [
@@ -725,15 +880,16 @@ const getColumnasDisponibles = () => {
             { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
             { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
             { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
+            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
         ];
     }
 };
 
 const columnasDisponibles = computed(() => getColumnasDisponibles());
 
-// 🔥 COLUMNAS CON ANCHO AJUSTADO - Referencia más angosta
+// 🔥 COLUMNAS CON REFERENCIA MÁS COMPACTA
 const columnasNormal = [
-    { title: 'Referencia', key: 'referencia', width: '100px', fixed: 'left' }, // 🔥 Reducido de 180px a 100px
+    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left' },
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
     { title: 'Persona', key: 'persona', width: '180px' },
@@ -741,11 +897,12 @@ const columnasNormal = [
     { title: 'Cta. Fondeo', key: 'cuenta_fondeadora', width: '180px' },
     { title: 'Nota', key: 'nota', width: '200px' },
     { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
-    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' }
+    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' },
+    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
 ];
 
 const columnasTraspasos = [
-    { title: 'Referencia', key: 'referencia', width: '100px', fixed: 'left' }, // 🔥 Reducido de 180px a 100px
+    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left' },
     { title: 'Tipo', key: 'tipo_poliza', width: '100px', align: 'center' },
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
@@ -754,7 +911,8 @@ const columnasTraspasos = [
     { title: 'Cuenta Destino', key: 'cuenta_destino', width: '180px' },
     { title: 'Nota', key: 'nota', width: '200px' },
     { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
-    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' }
+    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' },
+    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
 ];
 
 const columnasDiferidas = [
@@ -765,6 +923,7 @@ const columnasDiferidas = [
     { title: 'Abonado', key: 'abonado', width: '130px', align: 'right' },
     { title: 'Saldo Pendiente', key: 'saldo_pendiente', width: '150px', align: 'right' },
     { title: 'Usuario', key: 'usuario', width: '180px' },
+    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' },
     { title: 'Acciones', key: 'acciones', width: '280px', align: 'center', fixed: 'right' }
 ];
 
@@ -817,6 +976,8 @@ const saldoNeto = computed(() => {
 // ============================================
 // FILTROS
 // ============================================
+const hoy = obtenerFechaLocal();
+
 const filtros = ref({
     fecha_desde: props.filtros?.fecha_desde || '',
     fecha_hasta: props.filtros?.fecha_hasta || '',
@@ -1025,6 +1186,12 @@ const getRowClassName = (record) => {
     return '';
 };
 
+const getPdfColor = (record) => {
+    if (record.es_fiscal && record.tiene_pdf_fiscal) return '#10b981';
+    if (record.es_fiscal && !record.tiene_pdf_fiscal) return '#f59e0b';
+    return '#d1d5db';
+};
+
 // ============================================
 // FORMATOS
 // ============================================
@@ -1211,8 +1378,25 @@ const onLiquidado = (data) => {
     }, 1500);
 };
 
-const accionEditar = (record) => router.get(route('movimientos.edit', record.id_movimiento));
-const accionVer = (record) => router.get(route('movimientos.show', record.id_movimiento));
+const accionEditar = (record) => {
+    console.log('🟢 Editando póliza ID:', record.id_movimiento);
+    router.get(route('movimientos.edit', record.id_movimiento));
+};
+
+const accionVer = (record) => {
+    console.log('🔵 Viendo póliza ID:', record.id_movimiento);
+    router.get(route('movimientos.show', record.id_movimiento));
+};
+
+const verPdf = (record) => {
+    if (record.es_fiscal && record.tiene_pdf_fiscal && record.pdf_url) {
+        window.open(record.pdf_url, '_blank');
+    } else if (record.es_fiscal && !record.tiene_pdf_fiscal) {
+        mostrarModal('info', 'PDF no disponible', 'Esta poliza fiscal no tiene un PDF asociado.');
+    } else {
+        mostrarModal('info', 'Sin PDF Fiscal', 'Esta poliza no es fiscal.');
+    }
+};
 
 const exportarExcel = () => {
     if (!empresaSeleccionada.value) {
@@ -1430,6 +1614,13 @@ onMounted(() => {
     flex-direction: column;
     gap: 4px;
     min-width: 120px;
+}
+
+.fecha-item :deep(.input-label) {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 0 !important;
 }
 
 .fecha-input-premium {
@@ -1755,6 +1946,7 @@ onMounted(() => {
     color: #166534;
 }
 
+/* --- ESTILOS DE LA TABLA --- */
 .movimiento-table-ultra {
     width: 100%;
 }
@@ -1839,7 +2031,6 @@ onMounted(() => {
     transition: all 0.3s ease;
     cursor: pointer;
     font-weight: 600;
-    max-width: 100%;
 }
 
 .referencia-link:hover {
@@ -1848,13 +2039,18 @@ onMounted(() => {
 }
 
 .referencia-text-ultra {
-    font-size: 12px;
+    font-size: 13px;
     color: inherit;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 90px;
-    display: inline-block;
+}
+
+.fiscal-icon {
+    display: inline-flex;
+    margin-left: 4px;
+}
+
+.traspaso-icon {
+    display: inline-flex;
+    margin-left: 4px;
 }
 
 .fecha-usuario-cell {
@@ -2041,276 +2237,33 @@ onMounted(() => {
     font-size: 10px;
 }
 
-/* --- MODAL RECURSO --- */
-.modal-recurso-premium :deep(.ant-modal-header) {
-    background: linear-gradient(135deg, #1a3a5c, #2c5282);
-    border-radius: 8px 8px 0 0;
-    padding: 16px 24px;
-}
-
-.modal-recurso-premium :deep(.ant-modal-title) {
-    color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.modal-recurso-premium :deep(.ant-modal-close) {
-    color: white;
-}
-
-.modal-recurso-premium :deep(.ant-modal-close:hover) {
-    color: #fca5a5;
-}
-
-.modal-recurso-premium :deep(.ant-modal-body) {
-    padding: 0;
-}
-
-.modal-recurso-content {
-    min-height: 300px;
-    padding: 24px;
-}
-
-.recurso-pdf-wrapper {
-    width: 100%;
-    height: 70vh;
-    min-height: 400px;
-}
-
-.recurso-pdf {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
-
-.recurso-image-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 300px;
-    background: #f8fafc;
-    border-radius: 8px;
-}
-
-.recurso-image {
-    max-width: 100%;
-    max-height: 70vh;
-    object-fit: contain;
-    border-radius: 4px;
-}
-
-.recurso-other {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    gap: 12px;
-}
-
-.recurso-other-icon {
+/* --- PDF --- */
+.pdf-cell {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 80px;
-    height: 80px;
-    background: #f3f4f6;
-    border-radius: 50%;
+    gap: 4px;
 }
 
-.recurso-other-svg {
-    width: 40px;
-    height: 40px;
-    color: #94a3b8;
+.btn-pdf {
+    font-size: 16px !important;
+    padding: 0 4px !important;
+    height: 28px !important;
+    width: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
 }
 
-.recurso-other-text {
-    color: #64748b;
-    font-size: 0.95rem;
+.btn-pdf:hover:not(:disabled) {
+    transform: scale(1.15);
+    background: rgba(16, 185, 129, 0.05) !important;
 }
 
-.recurso-other-link {
-    color: #2563eb;
-    font-weight: 600;
-    text-decoration: none;
-    padding: 6px 16px;
-    border: 1px solid #2563eb;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-}
-
-.recurso-other-link:hover {
-    background: #eff6ff;
-}
-
-.recurso-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 24px;
-    background: white;
-    border-top: 1px solid #f3f4f6;
-}
-
-/* --- UPLOAD --- */
-.recurso-upload-wrapper {
-    padding: 8px 0;
-}
-
-.recurso-upload-info {
-    margin-bottom: 16px;
-    font-size: 0.9rem;
-    color: #475569;
-}
-
-.recurso-upload-info strong {
-    color: #0f172a;
-}
-
-.recurso-upload-hint {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin-top: 4px;
-}
-
-.recurso-drop-zone {
-    border: 2px dashed #d1d5db;
-    border-radius: 12px;
-    padding: 32px 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: #fafbfc;
-}
-
-.recurso-drop-zone:hover {
-    border-color: #8b5cf6;
-    background: #f8f7ff;
-}
-
-.recurso-drop-zone-dragover {
-    border-color: #8b5cf6;
-    background: #ede9fe;
-    transform: scale(1.02);
-}
-
-.recurso-drop-zone-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-
-.recurso-drop-zone-icon {
-    width: 48px;
-    height: 48px;
-    color: #94a3b8;
-}
-
-.recurso-drop-zone-text {
-    font-size: 0.9rem;
-    color: #64748b;
-}
-
-.recurso-drop-zone-text.archivo-seleccionado {
-    color: #10b981;
-    font-weight: 600;
-}
-
-.archivo-seleccionado-icon {
-    width: 20px;
-    height: 20px;
-    display: inline-block;
-    vertical-align: middle;
-    margin-right: 6px;
-}
-
-.recurso-drop-zone-hint {
-    font-size: 0.7rem;
-    color: #94a3b8;
-}
-
-.recurso-file-input-hidden {
-    display: none;
-}
-
-.recurso-error {
-    margin-top: 12px;
-    padding: 8px 14px;
-    background: #fee2e2;
-    border-radius: 6px;
-    color: #991b1b;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.recurso-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #f3f4f6;
-}
-
-.btn-modal-cancel {
-    padding: 8px 24px;
-    background: #f1f5f9;
-    color: #64748b;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-modal-cancel:hover {
-    background: #e2e8f0;
-}
-
-.btn-modal-submit {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 24px;
-    background: linear-gradient(135deg, #1a3a5c, #2c5282);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-}
-
-.btn-modal-submit:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.3);
-}
-
-.btn-modal-submit:disabled {
-    opacity: 0.6;
+.btn-pdf:disabled {
     cursor: not-allowed;
-}
-
-.spinner-border-sm {
-    display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    border: 0.15em solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spinner 0.75s linear infinite;
-}
-
-.error-icon-sm {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
+    transform: none !important;
 }
 
 /* --- ACCIONES --- */
@@ -2670,6 +2623,277 @@ onMounted(() => {
     padding: 2px 8px;
     background: #f1f4f9;
     border-radius: 4px;
+}
+
+/* --- MODAL RECURSO --- */
+.modal-recurso-premium :deep(.ant-modal-header) {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+}
+
+.modal-recurso-premium :deep(.ant-modal-title) {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.modal-recurso-premium :deep(.ant-modal-close) {
+    color: white;
+}
+
+.modal-recurso-premium :deep(.ant-modal-close:hover) {
+    color: #fca5a5;
+}
+
+.modal-recurso-premium :deep(.ant-modal-body) {
+    padding: 0;
+}
+
+.modal-recurso-content {
+    min-height: 300px;
+    padding: 24px;
+}
+
+.recurso-pdf-wrapper {
+    width: 100%;
+    height: 70vh;
+    min-height: 400px;
+}
+
+.recurso-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.recurso-image-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.recurso-image {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.recurso-other {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 12px;
+}
+
+.recurso-other-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: #f3f4f6;
+    border-radius: 50%;
+}
+
+.recurso-other-svg {
+    width: 40px;
+    height: 40px;
+    color: #94a3b8;
+}
+
+.recurso-other-text {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.recurso-other-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.recurso-other-link:hover {
+    background: #eff6ff;
+}
+
+.recurso-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    background: white;
+    border-top: 1px solid #f3f4f6;
+}
+
+.recurso-upload-wrapper {
+    padding: 8px 0;
+}
+
+.recurso-upload-info {
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.recurso-upload-info strong {
+    color: #0f172a;
+}
+
+.recurso-upload-hint {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.recurso-drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+}
+
+.recurso-drop-zone:hover {
+    border-color: #8b5cf6;
+    background: #f8f7ff;
+}
+
+.recurso-drop-zone-dragover {
+    border-color: #8b5cf6;
+    background: #ede9fe;
+    transform: scale(1.02);
+}
+
+.recurso-drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurso-drop-zone-icon {
+    width: 48px;
+    height: 48px;
+    color: #94a3b8;
+}
+
+.recurso-drop-zone-text {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.recurso-drop-zone-text.archivo-seleccionado {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.archivo-seleccionado-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.recurso-drop-zone-hint {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.recurso-file-input-hidden {
+    display: none;
+}
+
+.recurso-error {
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: #fee2e2;
+    border-radius: 6px;
+    color: #991b1b;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurso-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn-modal-cancel {
+    padding: 8px 24px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-modal-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-modal-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 24px;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-modal-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.3);
+}
+
+.btn-modal-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.spinner-border-sm {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.75s linear infinite;
+}
+
+.error-icon-sm {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 @keyframes pulse {

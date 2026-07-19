@@ -238,8 +238,6 @@
                             </div>
                         </div>
 
- 
-
                         <!-- ============================================ -->
                         <!-- IVA - IGUAL QUE CREATE -->
                         <!-- ============================================ -->
@@ -343,7 +341,8 @@
                                 </div>
                             </div>
                         </div>
-                                               <!-- ============================================ -->
+
+                        <!-- ============================================ -->
                         <!-- OBSERVACIONES -->
                         <!-- ============================================ -->
                         <div class="form-row observaciones-row">
@@ -356,6 +355,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <!-- ============================================ -->
                         <!-- BOTONES -->
                         <!-- ============================================ -->
@@ -427,6 +427,8 @@ const props = defineProps({
 const alertRef = ref(null);
 const processing = ref(false);
 const tiposIva = ref(props.tipos_iva || []);
+
+// IVAs seleccionados (se precargarán con los heredados de la póliza)
 const ivasSeleccionados = ref([]);
 
 // ============================================
@@ -576,7 +578,7 @@ const statusClass = computed(() => {
 });
 
 const tituloPagina = computed(() => {
-    return `Pólizas Diferidas - ${numeroAbono.value}° Abono`;
+    return `Abono - Póliza ${props.movimiento.referencia || 'S/N'}`;
 });
 
 const subtituloPagina = computed(() => {
@@ -827,20 +829,48 @@ watch(
 // MOUNTED
 // ============================================
 onMounted(() => {
+    // Fecha actual para el abono
+    if (!abonoForm.fecha_abono) {
+        abonoForm.fecha_abono = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    }
+
     if (abonoForm.monto_abonado) {
         abonoForm.monto_abonado = Math.round(abonoForm.monto_abonado * 100) / 100;
     }
     
     generarReferenciaInicial();
+
+    // ============================================
+    // 🔥 PRECARGAR IVAS HEREDADOS DE LA PÓLIZA ORIGINAL
+    // ============================================
+    const ivasHeredados = props.movimiento?.ivas_heredados || [];
     
-    if (tiposIva.value.length > 0) {
-        const ivasToSelect = tiposIva.value.slice(0, 2);
-        ivasToSelect.forEach(iva => {
+    if (ivasHeredados.length > 0) {
+        // Primero, limpiar selecciones anteriores
+        ivasSeleccionados.value = [];
+        abonoForm.ivas = {};
+        
+        // Seleccionar los IVAs heredados
+        ivasHeredados.forEach(iva => {
             ivasSeleccionados.value.push(iva.id);
             if (!abonoForm.ivas[iva.id]) {
                 abonoForm.ivas[iva.id] = { monto: 0 };
             }
         });
+    } else {
+        // 🔥 Si no hay IVAs heredados, seleccionar IVA por defecto (16%)
+        if (tiposIva.value.length > 0) {
+            const ivaDefecto = tiposIva.value.find(iva => iva.porcentaje === 16) || tiposIva.value[0];
+            ivasSeleccionados.value.push(ivaDefecto.id);
+            if (!abonoForm.ivas[ivaDefecto.id]) {
+                abonoForm.ivas[ivaDefecto.id] = { monto: 0 };
+            }
+        }
+    }
+
+    // 🔥 Si el abono es para liquidar completamente, sugerir el monto
+    if (props.movimiento.saldo_pendiente > 0) {
+        abonoForm.monto_abonado = Math.round(props.movimiento.saldo_pendiente * 100) / 100;
     }
 });
 </script>
@@ -1124,20 +1154,6 @@ onMounted(() => {
     color: #64748b;
     font-size: 0.9rem;
     z-index: 1;
-}
-
-/* --- ERROR TEXT --- */
-.error-text {
-    font-size: 0.7rem;
-    color: #dc2626;
-    font-weight: 500;
-    margin-top: 2px;
-}
-
-.hint-text {
-    font-size: 0.7rem;
-    color: #94a3b8;
-    margin-top: 2px;
 }
 
 /* --- BTN MAX --- */

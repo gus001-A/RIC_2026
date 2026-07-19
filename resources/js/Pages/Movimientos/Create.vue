@@ -219,12 +219,12 @@
                                     <label class="form-label">
                                         Fecha <span class="required-star">*</span>
                                     </label>
-                                    <div class="input-wrapper">
+                                    <div class="input-wrapper input-date-wrapper">
                                         <input type="date" v-model="form.fecha_poliza"
-                                               class="form-input"
+                                               class="form-input input-date"
                                                :class="{ error: form.errors.fecha_poliza }"
                                                :max="fechaActual">
-                                        <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
                                     </div>
@@ -321,7 +321,7 @@
                                     <div v-if="form.es_por_pagar" class="vencimiento-wrapper">
                                         <label class="vencimiento-label">Fecha Vencimiento</label>
                                         <input type="date" v-model="form.fecha_vencimiento"
-                                               class="form-input vencimiento-input"
+                                               class="form-input vencimiento-input input-date"
                                                :min="fechaActual"
                                                :class="{ error: form.errors.fecha_vencimiento }">
                                         <div v-if="form.errors.fecha_vencimiento" class="error-text">{{ form.errors.fecha_vencimiento }}</div>
@@ -363,12 +363,12 @@
                                 <div class="fiscal-grid">
                                     <div class="form-group">
                                         <label class="form-label">Fecha Factura</label>
-                                        <div class="input-wrapper">
+                                        <div class="input-wrapper input-date-wrapper">
                                             <input type="date" v-model="form.fecha_factura"
-                                                   class="form-input"
+                                                   class="form-input input-date"
                                                    :class="{ error: form.errors.fecha_factura }"
                                                    :max="fechaActual">
-                                            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
                                         </div>
@@ -470,12 +470,12 @@
                                     <label class="form-label">
                                         Fecha <span class="required-star">*</span>
                                     </label>
-                                    <div class="input-wrapper">
+                                    <div class="input-wrapper input-date-wrapper">
                                         <input type="date" v-model="formTraspaso.fecha_poliza"
-                                               class="form-input"
+                                               class="form-input input-date"
                                                :class="{ error: formTraspaso.errors.fecha_poliza }"
                                                :max="fechaActual">
-                                        <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
                                     </div>
@@ -663,12 +663,12 @@
                                     <div class="fiscal-grid">
                                         <div class="form-group">
                                             <label class="form-label">Fecha Factura</label>
-                                            <div class="input-wrapper">
+                                            <div class="input-wrapper input-date-wrapper">
                                                 <input type="date" v-model="formTraspaso.fecha_factura"
-                                                       class="form-input"
+                                                       class="form-input input-date"
                                                        :class="{ error: formTraspaso.errors.fecha_factura }"
                                                        :max="fechaActual">
-                                                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                 </svg>
                                             </div>
@@ -2072,9 +2072,34 @@ onMounted(() => {
     position: relative;
 }
 
+/* 🔥 CORRECCIÓN PARA INPUT DE FECHA */
+.input-date-wrapper {
+    position: relative;
+}
+
+.input-date {
+    padding-right: 40px !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* 🔥 ÍCONO DE FECHA CORREGIDO */
+.input-date-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* 🔥 ESTILO PARA SELECT CON ÍCONO */
 .form-input {
     width: 100%;
-    padding: 8px 12px 8px 14px;
+    padding: 8px 36px 8px 14px;
     font-size: 0.85rem;
     border: 2px solid #e5e7eb;
     border-radius: 8px;
@@ -2101,6 +2126,24 @@ onMounted(() => {
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
+/* 🔥 INPUT DE TEXTO SIN ÍCONO */
+.form-input-no-icon {
+    padding-right: 14px;
+}
+
+/* 🔥 ÍCONO PARA SELECT Y OTROS INPUTS */
+.input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 2;
+}
+
 .form-textarea {
     width: 100%;
     padding: 8px 12px;
@@ -2123,17 +2166,6 @@ onMounted(() => {
 }
 
 .form-textarea.error { border-color: #ef4444; }
-
-.input-icon {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    color: #94a3b8;
-    pointer-events: none;
-}
 
 .input-with-prefix .form-input {
     padding-left: 32px;

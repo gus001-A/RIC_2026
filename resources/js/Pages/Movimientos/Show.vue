@@ -16,6 +16,10 @@
                             </span>
                             <span v-if="movimiento.es_fiscal" class="fiscal-badge">FISCAL</span>
                             <span v-if="movimiento.tiene_doble_iva" class="doble-iva-badge-header">2 IVAs</span>
+                            <!-- 🔥 ESTADO DE LA PÓLIZA -->
+                            <span class="estatus-badge" :class="getEstatusClass(movimiento.estatus)">
+                                {{ getEstatusTexto(movimiento.estatus) }}
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -82,6 +86,18 @@
                             <div class="info-item" v-if="movimiento.categoria">
                                 <span class="info-label">Categoría</span>
                                 <span class="info-value">{{ movimiento.categoria || '—' }}</span>
+                            </div>
+
+                            <!-- 🔥 FOLIO DE LA PÓLIZA -->
+                            <div class="info-item">
+                                <span class="info-label">Folio</span>
+                                <span class="info-value">{{ movimiento.folio || '—' }}</span>
+                            </div>
+                            
+                            <!-- 🔥 REFERENCIA -->
+                            <div class="info-item" v-if="movimiento.referencia">
+                                <span class="info-label">Referencia</span>
+                                <span class="info-value">{{ movimiento.referencia }}</span>
                             </div>
                         </div>
                     </div>
@@ -398,7 +414,7 @@
                             </button>
 
                             <button 
-                                v-if="permisos?.puede_cerrar && movimiento.estatus !== 'LIQUIDADO' && movimiento.estatus !== 'AUTORIZADO' && movimiento.estatus !== 'CERRADO'"
+                                v-if="permisos?.puede_cerrar && puedeCerrar()"
                                 class="btn-action btn-cerrar"
                                 @click="accionCerrar"
                             >
@@ -419,8 +435,20 @@
                                 Reabrir
                             </button>
 
+                            <!-- 🔥 BOTÓN EDITAR - Solo visible si se puede editar -->
+                            <Link 
+                                v-if="permisos?.puede_editar && puedeEditar()" 
+                                :href="route('movimientos.edit', movimiento.id)" 
+                                class="btn-action btn-editar"
+                            >
+                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Editar
+                            </Link>
+
                             <button 
-                                v-if="permisos?.puede_eliminar" 
+                                v-if="permisos?.puede_eliminar && puedeEliminar()" 
                                 class="btn-action btn-eliminar"
                                 @click="accionEliminar"
                             >
@@ -528,6 +556,99 @@ const tituloPagina = computed(() => {
 });
 
 // ============================================
+// 🔥 FUNCIONES PARA ESTADOS - NUEVAS
+// ============================================
+const getEstatusTexto = (estatus) => {
+    const map = {
+        'CAPTURADO': 'Capturado',
+        'REVISADO': 'Revisado',
+        'AUTORIZADO': 'Autorizado',
+        'ABONADO': 'Abonado',
+        'LIQUIDADO': 'Liquidado',
+        'PENDIENTE': 'Pendiente',
+        'CERRADO': 'Cerrado'
+    };
+    return map[estatus] || estatus || '—';
+};
+
+const getEstatusClass = (estatus) => {
+    const map = {
+        'CAPTURADO': 'estatus-capturado',
+        'REVISADO': 'estatus-revisado',
+        'AUTORIZADO': 'estatus-autorizado',
+        'ABONADO': 'estatus-abonado',
+        'LIQUIDADO': 'estatus-liquidado',
+        'PENDIENTE': 'estatus-pendiente',
+        'CERRADO': 'estatus-cerrado'
+    };
+    return map[estatus] || 'estatus-default';
+};
+
+// ============================================
+// 🔥 FUNCIONES PARA DETERMINAR SI PUEDE EDITAR/ELIMINAR
+// ============================================
+const puedeEditar = () => {
+    // Si es super usuario, siempre puede editar
+    if (permisos.value?.es_super_usuario) {
+        return true;
+    }
+    
+    // Si es auditor, no puede editar
+    if (permisos.value?.es_auditor) {
+        return false;
+    }
+    
+    const estatus = props.movimiento.estatus;
+    
+    // 🔥 Estados NO EDITABLES
+    const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO', 'ABONADO'];
+    
+    // Si el estado está en la lista de no editables, no se puede editar
+    if (estatusNoEditables.includes(estatus)) {
+        return false;
+    }
+    
+    // CAPTURADO y PENDIENTE son editables
+    return true;
+};
+
+const puedeEliminar = () => {
+    // Si es super usuario, siempre puede eliminar
+    if (permisos.value?.es_super_usuario) {
+        return true;
+    }
+    
+    // Si es auditor, no puede eliminar
+    if (permisos.value?.es_auditor) {
+        return false;
+    }
+    
+    const estatus = props.movimiento.estatus;
+    
+    // 🔥 Estados NO ELIMINABLES
+    const estatusNoEliminables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO', 'ABONADO'];
+    
+    if (estatusNoEliminables.includes(estatus)) {
+        return false;
+    }
+    
+    return true;
+};
+
+const puedeCerrar = () => {
+    const estatus = props.movimiento.estatus;
+    
+    // No se puede cerrar si ya está liquidado, autorizado o cerrado
+    const estatusNoCerrar = ['LIQUIDADO', 'AUTORIZADO', 'CERRADO'];
+    
+    if (estatusNoCerrar.includes(estatus)) {
+        return false;
+    }
+    
+    return true;
+};
+
+// ============================================
 // COMPUTED - Total factura = SUMA DE BASES (sin IVA)
 // ============================================
 const calcularTotalDobleIva = computed(() => {
@@ -561,24 +682,6 @@ const cerrarPreview = () => {
     modalPreviewUrl.value = '';
     modalPreviewTipo.value = 'pdf';
     modalPreviewTitle.value = '';
-};
-
-// ============================================
-// FUNCIÓN PARA DETERMINAR SI PUEDE EDITAR
-// ============================================
-const puedeEditar = () => {
-    const estatus = props.movimiento.estatus;
-    
-    if (permisos.value?.es_super_usuario) {
-        return true;
-    }
-    
-    if (permisos.value?.es_auditor) {
-        return false;
-    }
-    
-    const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO'];
-    return !estatusNoEditables.includes(estatus);
 };
 
 // ============================================
@@ -681,22 +784,6 @@ const mostrarModal = (type, title, message) => {
 // ============================================
 // ACCIONES
 // ============================================
-const verPdf = () => {
-    if (props.movimiento.tiene_pdf_fiscal && props.movimiento.pdf_url) {
-        abrirModalPreview(props.movimiento.pdf_url, 'pdf');
-    } else {
-        mostrarModal('info', 'PDF no disponible', 'Esta póliza no tiene un PDF asociado.');
-    }
-};
-
-const verXml = () => {
-    if (props.movimiento.tiene_xml_fiscal && props.movimiento.xml_url) {
-        abrirModalPreview(props.movimiento.xml_url, 'xml');
-    } else {
-        mostrarModal('info', 'XML no disponible', 'Esta póliza no tiene un XML asociado.');
-    }
-};
-
 const accionImprimir = () => {
     if (!props.movimiento.id) {
         mostrarModal('error', 'Error', 'No se puede generar el PDF, falta el ID de la póliza.');
@@ -935,6 +1022,7 @@ const accionEliminar = () => {
     flex-wrap: wrap;
 }
 
+/* ========== BADGES ========== */
 .tipo-badge {
     display: inline-block;
     padding: 2px 14px;
@@ -980,8 +1068,65 @@ const accionEliminar = () => {
     text-transform: uppercase;
 }
 
-.w-4 { width: 16px; height: 16px; }
-.h-4 { width: 16px; height: 16px; }
+/* 🔥 ESTADOS BADGE */
+.estatus-badge {
+    display: inline-block;
+    padding: 2px 14px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1.5px solid transparent;
+}
+
+.estatus-capturado {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+.estatus-revisado {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #93c5fd;
+}
+
+.estatus-autorizado {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+
+.estatus-abonado {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.estatus-liquidado {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-color: #818cf8;
+}
+
+.estatus-pendiente {
+    background: #fed7aa;
+    color: #9a3412;
+    border-color: #fdba74;
+}
+
+.estatus-cerrado {
+    background: #e5e7eb;
+    color: #4b5563;
+    border-color: #9ca3af;
+}
+
+.estatus-default {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #d1d5db;
+}
 
 /* ========== PAGE CONTENT ========== */
 .page-content { padding: 1.5rem 0; }
@@ -1075,6 +1220,10 @@ const accionEliminar = () => {
 .badge-categoria.no-fiscal { background: #f3f4f6; color: #374151; }
 
 .btn-icon-sm { width: 16px; height: 16px; }
+.w-4 { width: 16px; height: 16px; }
+.h-4 { width: 16px; height: 16px; }
+.w-3 { width: 12px; height: 12px; }
+.h-3 { width: 12px; height: 12px; }
 
 /* ========== GRIDS ========== */
 .info-grid {
@@ -1134,7 +1283,9 @@ const accionEliminar = () => {
     border-radius: 4px;
 }
 
-/* ===== BOTONES VER DOCUMENTO - ESTILO PROFESIONAL ===== */
+/* ============================================================ */
+/* BOTONES VER DOCUMENTO */
+/* ============================================================ */
 .btn-ver-documento {
     display: inline-flex;
     align-items: center;
@@ -1201,7 +1352,9 @@ const accionEliminar = () => {
     flex-shrink: 0;
 }
 
-/* ========== MODAL PREVIEW ========== */
+/* ============================================================ */
+/* MODAL PREVIEW */
+/* ============================================================ */
 .modal-preview-premium :deep(.ant-modal-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
@@ -1594,9 +1747,6 @@ const accionEliminar = () => {
     flex-shrink: 0;
 }
 
-.audit-icon .w-4 { width: 14px; height: 14px; }
-.audit-icon .h-4 { width: 14px; height: 14px; }
-
 .created-icon {
     background: #dbeafe;
     color: #1e40af;
@@ -1654,9 +1804,6 @@ const accionEliminar = () => {
     color: #cbd5e1;
     flex-shrink: 0;
 }
-
-.audit-connector .w-3 { width: 12px; height: 12px; }
-.audit-connector .h-3 { width: 12px; height: 12px; }
 
 /* ===== BOTONES ===== */
 .action-right {
@@ -1735,6 +1882,16 @@ const accionEliminar = () => {
 .btn-reabrir:hover {
     background: #bfdbfe;
     box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+}
+
+.btn-editar {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1.5px solid #fcd34d;
+}
+.btn-editar:hover {
+    background: #fde68a;
+    box-shadow: 0 4px 12px rgba(146, 64, 14, 0.15);
 }
 
 .btn-eliminar {
@@ -1818,7 +1975,7 @@ const accionEliminar = () => {
     .page-content { padding: 0 !important; }
     .container-custom { padding: 0 !important; max-width: 100% !important; }
     .detail-card { box-shadow: none !important; border: 1px solid #e5e7eb !important; border-radius: 0 !important; padding: 1rem !important; }
-    .section-icon, .badge-categoria, .tipo-badge, .fiscal-badge, .doble-iva-badge-header, .doble-iva-tag {
+    .section-icon, .badge-categoria, .tipo-badge, .fiscal-badge, .doble-iva-badge-header, .doble-iva-tag, .estatus-badge {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -1831,6 +1988,13 @@ const accionEliminar = () => {
     .tipo-badge.tipo-ingreso { background: #d1fae5 !important; color: #065f46 !important; }
     .tipo-badge.tipo-egreso { background: #fee2e2 !important; color: #991b1b !important; }
     .tipo-badge.tipo-traspaso { background: #e0e7ff !important; color: #3730a3 !important; }
+    .estatus-capturado { background: #f3f4f6 !important; color: #374151 !important; border-color: #d1d5db !important; }
+    .estatus-revisado { background: #dbeafe !important; color: #1e40af !important; border-color: #93c5fd !important; }
+    .estatus-autorizado { background: #d1fae5 !important; color: #065f46 !important; border-color: #6ee7b7 !important; }
+    .estatus-abonado { background: #fef3c7 !important; color: #92400e !important; border-color: #fcd34d !important; }
+    .estatus-liquidado { background: #e0e7ff !important; color: #3730a3 !important; border-color: #818cf8 !important; }
+    .estatus-pendiente { background: #fed7aa !important; color: #9a3412 !important; border-color: #fdba74 !important; }
+    .estatus-cerrado { background: #e5e7eb !important; color: #4b5563 !important; border-color: #9ca3af !important; }
     .monto-card.total-card { background: linear-gradient(135deg, #eff6ff, #dbeafe) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .doble-iva-box { background: #fefce8 !important; border-color: #fcd34d !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .doble-iva-badge { background: #92400e !important; color: white !important; }
