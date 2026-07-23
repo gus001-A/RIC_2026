@@ -50,6 +50,9 @@
                         <span v-else-if="isComplete">✓ Completado</span>
                         <span v-else>{{ Math.round(progressPercentage) }}%</span>
                     </div>
+                    <span v-if="movimiento.estatus" class="status-badge" :class="getStatusClass(movimiento.estatus)">
+                        {{ movimiento.estatus }}
+                    </span>
                 </div>
             </div>
         </template>
@@ -64,6 +67,7 @@
                             @click="seleccionarTipo('INGRESO_EGRESO')"
                             class="tipo-btn-premium"
                             :class="{ active: tipoPolizaSeleccionado === 'INGRESO_EGRESO' }"
+                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                         >
                             <div class="tipo-btn-content">
                                 <span class="tipo-btn-icon">
@@ -80,6 +84,7 @@
                             @click="seleccionarTipo('TRASPASO')"
                             class="tipo-btn-premium"
                             :class="{ active: tipoPolizaSeleccionado === 'TRASPASO' }"
+                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                         >
                             <div class="tipo-btn-content">
                                 <span class="tipo-btn-icon">
@@ -108,7 +113,8 @@
                                         <select v-model="form.tipo_poliza" 
                                                 class="form-input"
                                                 :class="{ error: form.errors.tipo_poliza }"
-                                                @change="onTipoPolizaChange">
+                                                @change="onTipoPolizaChange"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <option value="">Selecciona un tipo</option>
                                             <option value="INGRESO">Ingreso</option>
                                             <option value="EGRESO">Egreso</option>
@@ -128,7 +134,8 @@
                                         <select v-model="form.id_persona"
                                                 @change="onPersonaChange"
                                                 class="form-input"
-                                                :class="{ error: form.errors.id_persona }">
+                                                :class="{ error: form.errors.id_persona }"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <option value="">Selecciona una persona</option>
                                             <option v-for="p in personas" :key="p.id_persona" :value="p.id_persona">
                                                 {{ p.nombre_completo }}
@@ -139,8 +146,6 @@
                                         </svg>
                                     </div>
                                     <div v-if="form.errors.id_persona" class="error-text">{{ form.errors.id_persona }}</div>
-                                    <div v-if="cargandoPoliza" class="hint-text">Cargando datos de la ultima poliza...</div>
-                                    <div v-if="polizaCargada" class="hint-text" style="color: #059669;">Datos cargados automaticamente</div>
                                 </div>
 
                                 <div class="form-group">
@@ -150,21 +155,19 @@
                                     <div class="input-wrapper">
                                         <select v-model="form.id_cuenta"
                                                 class="form-input"
-                                                :class="{ error: form.errors.id_cuenta }">
+                                                :class="{ error: form.errors.id_cuenta }"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <option value="">Selecciona una cuenta</option>
-                                            <!-- Cuentas para EGRESO -->
                                             <optgroup v-if="form.tipo_poliza === 'EGRESO'" label="Cuentas para Egresos">
                                                 <option v-for="c in cuentasEgreso" :key="c.id_cuenta" :value="c.id_cuenta">
                                                     {{ c.nombre_cuenta }}
                                                 </option>
                                             </optgroup>
-                                            <!-- Cuentas para INGRESO -->
                                             <optgroup v-else-if="form.tipo_poliza === 'INGRESO'" label="Cuentas para Ingresos">
                                                 <option v-for="c in cuentasIngreso" :key="c.id_cuenta" :value="c.id_cuenta">
                                                     {{ c.nombre_cuenta }}
                                                 </option>
                                             </optgroup>
-                                            <!-- Sin tipo seleccionado -->
                                             <optgroup v-else label="Selecciona un tipo de poliza primero">
                                                 <option value="" disabled>Selecciona INGRESO o EGRESO arriba</option>
                                             </optgroup>
@@ -186,10 +189,12 @@
                                     <div class="input-wrapper input-with-prefix">
                                         <span class="input-prefix">$</span>
                                         <input type="number" step="0.01" v-model.number="form.monto_directo"
+                                               @input="onMontoChange"
                                                class="form-input"
                                                :class="{ error: form.errors.monto_directo }"
                                                placeholder="0.00"
-                                               min="0.01">
+                                               min="0.01"
+                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                     </div>
                                     <div v-if="form.errors.monto_directo" class="error-text">{{ form.errors.monto_directo }}</div>
                                 </div>
@@ -207,6 +212,7 @@
                                                 disabled: ivasSeleccionados.length >= 2 && !ivasSeleccionados.includes(iva.id)
                                             }"
                                             @click="toggleIva(iva.id)"
+                                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                                         >
                                             {{ iva.porcentaje }}%
                                             <span class="iva-check" v-if="ivasSeleccionados.includes(iva.id)">✓</span>
@@ -223,7 +229,8 @@
                                         <input type="date" v-model="form.fecha_poliza"
                                                class="form-input input-date"
                                                :class="{ error: form.errors.fecha_poliza }"
-                                               :max="fechaActual">
+                                               :max="fechaActual"
+                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                         <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
@@ -245,22 +252,23 @@
                                                 type="number" 
                                                 step="0.01" 
                                                 v-model.number="form.ivas[ivaId].monto"
+                                                @input="onIvaMontoChange"
                                                 class="form-input iva-input"
                                                 placeholder="0.00"
                                                 min="0"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                                             >
                                         </div>
                                         <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMonto(ivaId)) }}</span>
-                                        <button type="button" @click="quitarIva(ivaId)" class="iva-remove-btn">✕</button>
+                                        <button type="button" @click="quitarIva(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">✕</button>
                                     </div>
                                     <div class="iva-total">
                                         <span>Total: <strong>${{ formatNumber(totalConIvaCalculado) }}</strong></span>
-                                        <span class="iva-breakdown">Base: ${{ formatNumber(totalBaseCalculado) }} | IVA: ${{ formatNumber(totalIvaCalculado) }}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- 🔥 VALIDACION DE IVA VS MONTO (SOLO SI HAY IVAS) -->
+                            <!-- VALIDACION DE IVA VS MONTO -->
                             <div v-if="form.monto_directo > 0 && ivasSeleccionados.length > 0" 
                                  class="validacion-iva"
                                  :class="totalConIvaCalculado > form.monto_directo ? 'iva-invalido' : 'iva-valido'">
@@ -284,7 +292,8 @@
                                         <select v-model="form.id_cuenta_fondeadora"
                                                 @change="cambiarCuentaFondeadora"
                                                 class="form-input"
-                                                :class="{ error: form.errors.id_cuenta_fondeadora }">
+                                                :class="{ error: form.errors.id_cuenta_fondeadora }"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <option value="">Selecciona una fondeadora</option>
                                             <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
@@ -307,23 +316,23 @@
                                     <label class="form-label">Opciones</label>
                                     <div class="options-grid">
                                         <label class="checkbox">
-                                            <input type="checkbox" v-model="form.es_por_pagar" @change="onEsPorPagarChange" class="checkbox-input">
+                                            <input type="checkbox" v-model="form.es_por_pagar" @change="onEsPorPagarChange" class="checkbox-input" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <span class="checkbox-custom"></span>
                                             <span class="checkbox-text">Por Pagar</span>
                                         </label>
                                         <label class="checkbox">
-                                            <input type="checkbox" v-model="form.es_fiscal" @change="toggleFiscal" class="checkbox-input">
+                                            <input type="checkbox" v-model="form.es_fiscal" @change="toggleFiscal" class="checkbox-input" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <span class="checkbox-custom"></span>
                                             <span class="checkbox-text">Fiscal</span>
                                         </label>
                                     </div>
-                                    <!-- Fecha Vencimiento -->
                                     <div v-if="form.es_por_pagar" class="vencimiento-wrapper">
                                         <label class="vencimiento-label">Fecha Vencimiento</label>
                                         <input type="date" v-model="form.fecha_vencimiento"
                                                class="form-input vencimiento-input input-date"
                                                :min="fechaActual"
-                                               :class="{ error: form.errors.fecha_vencimiento }">
+                                               :class="{ error: form.errors.fecha_vencimiento }"
+                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                         <div v-if="form.errors.fecha_vencimiento" class="error-text">{{ form.errors.fecha_vencimiento }}</div>
                                     </div>
                                 </div>
@@ -334,7 +343,8 @@
                                         <div class="input-wrapper" style="flex: 1;">
                                             <select v-model="form.id_marcador"
                                                     class="form-input"
-                                                    :class="{ error: form.errors.id_marcador }">
+                                                    :class="{ error: form.errors.id_marcador }"
+                                                    :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                                 <option value="">Selecciona un marcador</option>
                                                 <option v-for="m in marcadores" :key="m.id" :value="m.id">
                                                     {{ m.nombre_marcador }}
@@ -344,7 +354,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                             </svg>
                                         </div>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador" title="Nuevo marcador">
+                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -367,7 +377,8 @@
                                             <input type="date" v-model="form.fecha_factura"
                                                    class="form-input input-date"
                                                    :class="{ error: form.errors.fecha_factura }"
-                                                   :max="fechaActual">
+                                                   :max="fechaActual"
+                                                   :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
@@ -381,7 +392,8 @@
                                             <input type="text" v-model="form.numero_factura"
                                                    class="form-input"
                                                    :class="{ error: form.errors.numero_factura }"
-                                                   placeholder="Ej: A-1258">
+                                                   placeholder="Ej: A-1258"
+                                                   :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                         </div>
                                         <div v-if="form.errors.numero_factura" class="error-text">{{ form.errors.numero_factura }}</div>
                                     </div>
@@ -393,10 +405,10 @@
                                                 <svg class="file-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                                 </svg>
-                                                <span>{{ archivos.pdf ? archivos.pdf.name : 'Seleccionar PDF' }}</span>
+                                                <span>{{ archivos.pdf ? archivos.pdf.name : (movimiento.nombre_pdf || 'Seleccionar PDF') }}</span>
                                             </div>
-                                            <input type="file" ref="pdfInput" @change="handleFileUpload('pdf', $event)" accept=".pdf" class="file-input-hidden">
-                                            <button v-if="archivos.pdf" type="button" @click="eliminarArchivo('pdf')" class="file-remove">✕</button>
+                                            <input type="file" ref="pdfInput" @change="handleFileUpload('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <button v-if="archivos.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivo('pdf')" class="file-remove">✕</button>
                                         </div>
                                     </div>
 
@@ -407,10 +419,10 @@
                                                 <svg class="file-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                 </svg>
-                                                <span>{{ archivos.xml ? archivos.xml.name : 'Seleccionar XML' }}</span>
+                                                <span>{{ archivos.xml ? archivos.xml.name : (movimiento.nombre_xml || 'Seleccionar XML') }}</span>
                                             </div>
-                                            <input type="file" ref="xmlInput" @change="handleFileUpload('xml', $event)" accept=".xml" class="file-input-hidden">
-                                            <button v-if="archivos.xml" type="button" @click="eliminarArchivo('xml')" class="file-remove">✕</button>
+                                            <input type="file" ref="xmlInput" @change="handleFileUpload('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <button v-if="archivos.xml || movimiento.xml_existente" type="button" @click="eliminarArchivo('xml')" class="file-remove">✕</button>
                                         </div>
                                     </div>
                                 </div>
@@ -424,13 +436,14 @@
                                         <textarea v-model="form.nota" rows="2"
                                                   class="form-textarea"
                                                   :class="{ error: form.errors.nota }"
-                                                  placeholder="Agrega notas o comentarios..."></textarea>
+                                                  placeholder="Agrega notas o comentarios..."
+                                                  :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"></textarea>
                                     </div>
                                     <div v-if="form.errors.nota" class="error-text">{{ form.errors.nota }}</div>
                                 </div>
                             </div>
 
-                            <!-- VALIDACION DE SALDO - SOLO SI NO ES POR PAGAR -->
+                            <!-- VALIDACION DE SALDO -->
                             <div v-if="!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && totalConIvaCalculado > 0 && cuentaFondeadoraSeleccionada" 
                                  class="validacion-saldo"
                                  :class="totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) ? 'saldo-insuficiente' : 'saldo-suficiente'">
@@ -456,7 +469,8 @@
                                     <div class="input-wrapper">
                                         <select v-model="formTraspaso.tipo_poliza"
                                                 class="form-input"
-                                                :class="{ error: formTraspaso.errors.tipo_poliza }">
+                                                :class="{ error: formTraspaso.errors.tipo_poliza }"
+                                                disabled>
                                             <option value="TRASPASO">Traspaso</option>
                                         </select>
                                         <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,7 +488,8 @@
                                         <input type="date" v-model="formTraspaso.fecha_poliza"
                                                class="form-input input-date"
                                                :class="{ error: formTraspaso.errors.fecha_poliza }"
-                                               :max="fechaActual">
+                                               :max="fechaActual"
+                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                         <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
@@ -488,7 +503,8 @@
                                         <div class="input-wrapper" style="flex: 1;">
                                             <select v-model="formTraspaso.id_marcador"
                                                     class="form-input"
-                                                    :class="{ error: formTraspaso.errors.id_marcador }">
+                                                    :class="{ error: formTraspaso.errors.id_marcador }"
+                                                    :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                                 <option value="">Selecciona un marcador</option>
                                                 <option v-for="m in marcadores" :key="m.id" :value="m.id">
                                                     {{ m.nombre_marcador }}
@@ -498,7 +514,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                             </svg>
                                         </div>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador" title="Nuevo marcador">
+                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -518,7 +534,8 @@
                                         <select v-model="formTraspaso.id_cuenta_origen"
                                                 @change="onCuentaOrigenChange"
                                                 class="form-input"
-                                                :class="{ error: formTraspaso.errors.id_cuenta_origen }">
+                                                :class="{ error: formTraspaso.errors.id_cuenta_origen }"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <option value="">Selecciona una cuenta</option>
                                             <option v-for="c in cuentasOrigenTraspaso" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
@@ -542,7 +559,8 @@
                                         <select v-model="formTraspaso.id_cuenta_destino"
                                                 @change="onCuentaDestinoChange"
                                                 class="form-input"
-                                                :class="{ error: formTraspaso.errors.id_cuenta_destino }">
+                                                :class="{ error: formTraspaso.errors.id_cuenta_destino }"
+                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <option value="">Selecciona una cuenta</option>
                                             <option v-for="c in cuentasDestinoTraspaso" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
@@ -568,10 +586,12 @@
                                     <div class="input-wrapper input-with-prefix">
                                         <span class="input-prefix">$</span>
                                         <input type="number" step="0.01" v-model.number="formTraspaso.monto_directo"
+                                               @input="onMontoTraspasoChange"
                                                class="form-input"
                                                :class="{ error: formTraspaso.errors.monto_directo }"
                                                placeholder="0.00"
-                                               min="0.01">
+                                               min="0.01"
+                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                     </div>
                                     <div v-if="formTraspaso.errors.monto_directo" class="error-text">{{ formTraspaso.errors.monto_directo }}</div>
                                 </div>
@@ -592,6 +612,7 @@
                                                 disabled: ivasSeleccionadosTraspaso.length >= 2 && !ivasSeleccionadosTraspaso.includes(iva.id)
                                             }"
                                             @click="toggleIvaTraspaso(iva.id)"
+                                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                                         >
                                             {{ iva.porcentaje }}%
                                             <span class="iva-check" v-if="ivasSeleccionadosTraspaso.includes(iva.id)">✓</span>
@@ -612,23 +633,24 @@
                                                     type="number" 
                                                     step="0.01" 
                                                     v-model.number="formTraspaso.ivas[ivaId].monto"
+                                                    @input="onIvaTraspasoChange"
                                                     class="form-input iva-input"
                                                     placeholder="0.00"
                                                     min="0"
+                                                    :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                                                 >
                                             </div>
                                             <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMontoTraspaso(ivaId)) }}</span>
-                                            <button type="button" @click="quitarIvaTraspaso(ivaId)" class="iva-remove-btn">✕</button>
+                                            <button type="button" @click="quitarIvaTraspaso(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">✕</button>
                                         </div>
                                         <div class="iva-total">
                                             <span>Total: <strong>${{ formatNumber(totalConIvaTraspasoCalculado) }}</strong></span>
-                                            <span class="iva-breakdown">Base: ${{ formatNumber(totalBaseTraspasoCalculado) }} | IVA: ${{ formatNumber(totalIvaTraspasoCalculado) }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- 🔥 VALIDACION DE IVA VS MONTO TRASPASO (SOLO SI HAY IVAS) -->
+                            <!-- VALIDACION DE IVA VS MONTO TRASPASO -->
                             <div v-if="formTraspaso.monto_directo > 0 && ivasSeleccionadosTraspaso.length > 0" 
                                  class="validacion-iva"
                                  :class="totalConIvaTraspasoCalculado > formTraspaso.monto_directo ? 'iva-invalido' : 'iva-valido'">
@@ -646,7 +668,7 @@
                                     <label class="form-label">Opciones</label>
                                     <div class="options-grid">
                                         <label class="checkbox">
-                                            <input type="checkbox" v-model="formTraspaso.es_fiscal" @change="toggleFiscalTraspaso" class="checkbox-input">
+                                            <input type="checkbox" v-model="formTraspaso.es_fiscal" @change="toggleFiscalTraspaso" class="checkbox-input" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <span class="checkbox-custom"></span>
                                             <span class="checkbox-text">Fiscal</span>
                                         </label>
@@ -666,7 +688,8 @@
                                                 <input type="date" v-model="formTraspaso.fecha_factura"
                                                        class="form-input input-date"
                                                        :class="{ error: formTraspaso.errors.fecha_factura }"
-                                                       :max="fechaActual">
+                                                       :max="fechaActual"
+                                                       :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                                 <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                 </svg>
@@ -680,7 +703,8 @@
                                                 <input type="text" v-model="formTraspaso.numero_factura"
                                                        class="form-input"
                                                        :class="{ error: formTraspaso.errors.numero_factura }"
-                                                       placeholder="Ej: A-1258">
+                                                       placeholder="Ej: A-1258"
+                                                       :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             </div>
                                             <div v-if="formTraspaso.errors.numero_factura" class="error-text">{{ formTraspaso.errors.numero_factura }}</div>
                                         </div>
@@ -692,10 +716,10 @@
                                                     <svg class="file-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                                     </svg>
-                                                    <span>{{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : 'Seleccionar PDF' }}</span>
+                                                    <span>{{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : (movimiento.nombre_pdf || 'Seleccionar PDF') }}</span>
                                                 </div>
-                                                <input type="file" ref="pdfInputTraspaso" @change="handleFileUploadTraspaso('pdf', $event)" accept=".pdf" class="file-input-hidden">
-                                                <button v-if="archivosTraspaso.pdf" type="button" @click="eliminarArchivoTraspaso('pdf')" class="file-remove">✕</button>
+                                                <input type="file" ref="pdfInputTraspaso" @change="handleFileUploadTraspaso('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                <button v-if="archivosTraspaso.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivoTraspaso('pdf')" class="file-remove">✕</button>
                                             </div>
                                         </div>
 
@@ -706,10 +730,10 @@
                                                     <svg class="file-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                                     </svg>
-                                                    <span>{{ archivosTraspaso.xml ? archivosTraspaso.xml.name : 'Seleccionar XML' }}</span>
+                                                    <span>{{ archivosTraspaso.xml ? archivosTraspaso.xml.name : (movimiento.nombre_xml || 'Seleccionar XML') }}</span>
                                                 </div>
-                                                <input type="file" ref="xmlInputTraspaso" @change="handleFileUploadTraspaso('xml', $event)" accept=".xml" class="file-input-hidden">
-                                                <button v-if="archivosTraspaso.xml" type="button" @click="eliminarArchivoTraspaso('xml')" class="file-remove">✕</button>
+                                                <input type="file" ref="xmlInputTraspaso" @change="handleFileUploadTraspaso('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                <button v-if="archivosTraspaso.xml || movimiento.xml_existente" type="button" @click="eliminarArchivoTraspaso('xml')" class="file-remove">✕</button>
                                             </div>
                                         </div>
                                     </div>
@@ -724,7 +748,8 @@
                                         <textarea v-model="formTraspaso.nota" rows="2"
                                                   class="form-textarea"
                                                   :class="{ error: formTraspaso.errors.nota }"
-                                                  placeholder="Agrega notas o comentarios..."></textarea>
+                                                  placeholder="Agrega notas o comentarios..."
+                                                  :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"></textarea>
                                     </div>
                                     <div v-if="formTraspaso.errors.nota" class="error-text">{{ formTraspaso.errors.nota }}</div>
                                 </div>
@@ -748,35 +773,22 @@
                         <!-- ============================================ -->
                         <div class="info-box">
                             <span>Los campos con <strong class="text-danger">*</strong> son obligatorios.</span>
-                            <span v-if="polizaCargada" class="info-auto-cargado">Datos de ultima poliza cargados</span>
                             <span v-if="ivasSeleccionados.length === 0 && tipoPolizaSeleccionado === 'INGRESO_EGRESO'" class="info-sin-iva">Sin IVA</span>
                             <span v-if="ivasSeleccionadosTraspaso.length === 0 && tipoPolizaSeleccionado === 'TRASPASO'" class="info-sin-iva">Sin IVA</span>
                             <span v-else-if="tipoPolizaSeleccionado === 'INGRESO_EGRESO' && ivasSeleccionados.length > 0" class="info-con-iva">Con IVA</span>
                             <span v-else-if="tipoPolizaSeleccionado === 'TRASPASO' && ivasSeleccionadosTraspaso.length > 0" class="info-con-iva">Con IVA</span>
                             <span v-if="movimiento.id" class="info-id">ID: {{ movimiento.id }}</span>
+                            <span v-if="movimiento.estatus" class="info-id" :style="{ background: getStatusColor(movimiento.estatus) }">
+                                {{ movimiento.estatus }}
+                            </span>
                         </div>
 
                         <div class="form-actions">
                             <div class="actions-left">
                                 <div class="total-card">
                                     <span class="total-label">Total</span>
-                                    <span class="total-value">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalConIvaCalculado : totalConIvaTraspasoCalculado) }}</span>
+                                    <span class="total-value">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? form.monto_directo : formTraspaso.monto_directo) }}</span>
                                 </div>
-                                <div class="total-card total-card-iva">
-                                    <span class="total-label">IVA</span>
-                                    <span class="total-value">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalIvaCalculado : totalIvaTraspasoCalculado) }}</span>
-                                </div>
-                                <button 
-                                    v-if="permisos?.puede_eliminar"
-                                    type="button" 
-                                    @click="confirmarEliminar"
-                                    class="btn btn-delete"
-                                >
-                                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                    Eliminar
-                                </button>
                             </div>
                             <div class="actions-right">
                                 <Link :href="route('movimientos.index')" class="btn btn-cancel">
@@ -852,13 +864,6 @@ import { Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import { ref, computed, onMounted, watch } from 'vue';
-import Swal from 'sweetalert2';
-
-// ============================================
-// ✅ PERMISOS DESDE EL BACKEND
-// ============================================
-const page = usePage();
-const permisos = computed(() => page.props.permisos || {});
 
 // ============================================
 // PROPS
@@ -893,11 +898,11 @@ const modalMarcadorVisible = ref(false);
 const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
-const processingAutorizar = ref(false);
 const archivos = ref({ pdf: null, xml: null });
 const archivosTraspaso = ref({ pdf: null, xml: null });
 const cargandoPoliza = ref(false);
 const polizaCargada = ref(false);
+const modoIva = ref('SIN_IVA');
 
 // SALDOS DE TRASPASO
 const saldoCuentaOrigen = ref(0);
@@ -910,7 +915,7 @@ const cuentasEgreso = ref(props.cuentas_egreso || []);
 const cuentasIngreso = ref(props.cuentas_ingreso || []);
 const marcadores = ref(props.marcadores || []);
 
-// 🔥 CORREGIDO: Determinar correctamente el tipo de póliza
+// DETERMINAR TIPO DE PÓLIZA
 const tipoPolizaSeleccionado = ref(
     props.es_traspaso === true || props.movimiento?.tipo_poliza === 'TRASPASO' 
         ? 'TRASPASO' 
@@ -922,7 +927,7 @@ const ivasSeleccionados = ref([]);
 const ivasSeleccionadosTraspaso = ref([]);
 
 // ============================================
-// 🔥 COMPUTED - FILTROS DE TRASPASO
+// COMPUTED - FILTROS DE TRASPASO
 // ============================================
 const cuentasOrigenTraspaso = computed(() => {
     return cuentasFondeadoras.value.filter(cuenta => {
@@ -1029,11 +1034,6 @@ const statusClass = computed(() => {
     if (hasErrors.value) return 'status-error';
     if (isComplete.value) return 'status-success';
     return 'status-progress';
-});
-
-const puedeAutorizar = computed(() => {
-    const estatus = props.movimiento?.estatus || '';
-    return estatus === 'CAPTURADO' || estatus === 'REVISADO' || estatus === 'PENDIENTE';
 });
 
 // ============================================
@@ -1146,6 +1146,32 @@ const calcularIvaMontoTraspaso = (ivaId) => {
     return Math.round((montoConIva - base) * 100) / 100;
 };
 
+const getStatusClass = (estatus) => {
+    const map = {
+        'CAPTURADO': 'status-capturado',
+        'REVISADO': 'status-revisado',
+        'AUTORIZADO': 'status-autorizado',
+        'ABONADO': 'status-abonado',
+        'LIQUIDADO': 'status-liquidado',
+        'PENDIENTE': 'status-pendiente',
+        'CERRADO': 'status-cerrado'
+    };
+    return map[estatus] || 'status-default';
+};
+
+const getStatusColor = (estatus) => {
+    const map = {
+        'CAPTURADO': '#3b82f6',
+        'REVISADO': '#f59e0b',
+        'AUTORIZADO': '#10b981',
+        'ABONADO': '#8b5cf6',
+        'LIQUIDADO': '#059669',
+        'PENDIENTE': '#f59e0b',
+        'CERRADO': '#6b7280'
+    };
+    return map[estatus] || '#6b7280';
+};
+
 // ============================================
 // METODOS DE IVA
 // ============================================
@@ -1169,6 +1195,7 @@ const toggleIva = (ivaId) => {
             form.ivas[ivaId] = { monto: 0 };
         }
     }
+    modoIva.value = ivasSeleccionados.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
 };
 
 const quitarIva = (ivaId) => {
@@ -1177,6 +1204,7 @@ const quitarIva = (ivaId) => {
         ivasSeleccionados.value.splice(index, 1);
         delete form.ivas[ivaId];
     }
+    modoIva.value = ivasSeleccionados.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
 };
 
 const toggleIvaTraspaso = (ivaId) => {
@@ -1209,10 +1237,23 @@ const quitarIvaTraspaso = (ivaId) => {
     }
 };
 
+const onIvaMontoChange = () => {
+    modoIva.value = ivasSeleccionados.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
+};
+
+const onIvaTraspasoChange = () => {};
+
+const onMontoChange = () => {};
+
+const onMontoTraspasoChange = () => {};
+
 // ============================================
 // METODOS GENERALES
 // ============================================
 const seleccionarTipo = (tipo) => {
+    if (movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO') {
+        return;
+    }
     tipoPolizaSeleccionado.value = tipo;
     form.clearErrors();
     formTraspaso.clearErrors();
@@ -1224,22 +1265,6 @@ const seleccionarTipo = (tipo) => {
 const onTipoPolizaChange = () => {
     form.id_cuenta = null;
     form.clearErrors('id_cuenta');
-};
-
-const buscarPersonas = async (search) => {
-    if (!search || search.length < 2) {
-        if (personas.value.length === 0) {
-            try {
-                const res = await axios.get(route('movimientos.buscar.personas'), { params: { q: '' } });
-                personas.value = res.data;
-            } catch (error) { console.error('Error al cargar personas:', error); }
-        }
-        return;
-    }
-    try {
-        const res = await axios.get(route('movimientos.buscar.personas'), { params: { q: search } });
-        personas.value = res.data;
-    } catch (error) { console.error('Error al buscar personas:', error); }
 };
 
 const cambiarCuentaFondeadora = async () => {
@@ -1280,50 +1305,7 @@ const obtenerSaldoCuenta = (idCuenta) => {
     return cuenta ? (cuenta.saldo || 0) : 0;
 };
 
-const obtenerUltimaPoliza = async (idPersona) => {
-    if (!idPersona) {
-        polizaCargada.value = false;
-        return;
-    }
-    cargandoPoliza.value = true;
-    polizaCargada.value = false;
-    try {
-        const response = await axios.get(route('movimientos.ultima.poliza'), { params: { id: idPersona } });
-        const data = response.data;
-        if (data && data.existe) {
-            if (data.id_cuenta) form.id_cuenta = data.id_cuenta;
-            form.es_por_pagar = data.es_por_pagar || false;
-            form.fecha_vencimiento = data.fecha_vencimiento || null;
-            form.es_fiscal = data.es_fiscal || false;
-            if (data.id_marcador) form.id_marcador = data.id_marcador;
-            if (data.es_fiscal) {
-                form.fecha_factura = data.fecha_factura || null;
-                form.numero_factura = data.numero_factura || '';
-            }
-            form.nota = data.nota || '';
-            if (data.cuenta_fondeadora_valida && data.id_cuenta_fondeadora) {
-                form.id_cuenta_fondeadora = data.id_cuenta_fondeadora;
-                await cambiarCuentaFondeadora();
-            } else {
-                form.id_cuenta_fondeadora = null;
-                cuentaFondeadoraSeleccionada.value = null;
-            }
-            polizaCargada.value = true;
-        } else {
-            polizaCargada.value = false;
-        }
-    } catch (error) {
-        console.error('Error al obtener ultima poliza:', error);
-        polizaCargada.value = false;
-    } finally {
-        cargandoPoliza.value = false;
-    }
-};
-
-const onPersonaChange = async () => {
-    polizaCargada.value = false;
-    await obtenerUltimaPoliza(form.id_persona);
-};
+const onPersonaChange = async () => {};
 
 const onCuentaOrigenChange = () => {
     saldoCuentaOrigen.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_origen);
@@ -1405,6 +1387,12 @@ const eliminarArchivo = (tipo) => {
     archivos.value[tipo] = null;
     if (tipo === 'pdf' && pdfInput.value) pdfInput.value.value = '';
     if (tipo === 'xml' && xmlInput.value) xmlInput.value.value = '';
+    if (tipo === 'pdf' && movimiento.pdf_existente) {
+        form.eliminar_pdf = true;
+    }
+    if (tipo === 'xml' && movimiento.xml_existente) {
+        form.eliminar_xml = true;
+    }
 };
 
 const handleFileUploadTraspaso = (tipo, event) => {
@@ -1485,180 +1473,6 @@ const guardarMarcador = async () => {
 };
 
 // ============================================
-// AUTORIZAR PÓLIZA
-// ============================================
-const confirmarAutorizar = () => {
-    Swal.fire({
-        title: 'Autorizar Póliza',
-        html: `
-            <div style="text-align: left; padding: 10px 0;">
-                <p style="font-size: 14px; color: #374151; margin-bottom: 16px;">
-                    Estas a punto de <strong style="color: #10b981;">autorizar</strong> esta póliza:
-                </p>
-                <div style="background: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                        <span style="font-weight: 600; color: #64748b;">Folio:</span>
-                        <span style="font-weight: 700; color: #0f172a;">${props.movimiento?.folio || 'S/N'}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                        <span style="font-weight: 600; color: #64748b;">Tipo:</span>
-                        <span style="font-weight: 700; color: #0f172a;">${props.movimiento?.tipo_poliza || 'N/A'}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                        <span style="font-weight: 600; color: #64748b;">Monto:</span>
-                        <span style="font-weight: 700; color: #10b981; font-size: 16px;">$${formatNumber(totalConIvaCalculado.value || props.movimiento?.monto_abs || 0)}</span>
-                    </div>
-                </div>
-                <div style="background: #ecfdf5; border-radius: 8px; padding: 12px 16px; border-left: 4px solid #10b981;">
-                    <span style="color: #065f46; font-size: 13px;">
-                        Al autorizar, la póliza cambiará a estado <strong>"AUTORIZADO"</strong> y quedará registrada oficialmente.
-                    </span>
-                </div>
-            </div>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Autorizar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            autorizarPoliza();
-        }
-    });
-};
-
-const autorizarPoliza = () => {
-    processingAutorizar.value = true;
-    const id = props.movimiento?.id_movimiento || props.movimiento?.id;
-    axios.post(route('movimientos.autorizar', id))
-        .then(() => {
-            processingAutorizar.value = false;
-            Swal.fire({
-                title: '¡Póliza Autorizada!',
-                html: `<div style="padding: 10px 0;"><div style="background: #dcfce7; border-radius: 8px; padding: 12px; border: 1px solid #86efac;"><p style="font-size: 14px; color: #166534; font-weight: 600;">✅ Póliza ${props.movimiento?.folio || 'S/N'} autorizada exitosamente</p><p style="font-size: 12px; color: #065f46; margin-top: 4px;">Estado: <strong>AUTORIZADO</strong></p></div></div>`,
-                icon: 'success',
-                confirmButtonColor: '#10b981',
-                confirmButtonText: 'Aceptar',
-                timer: 4000,
-                timerProgressBar: true
-            }).then(() => {
-                router.visit(route('movimientos.index'), { method: 'get', replace: true });
-            });
-        })
-        .catch((error) => {
-            processingAutorizar.value = false;
-            const message = error.response?.data?.message || 'Error al autorizar la póliza';
-            Swal.fire({
-                title: 'Error',
-                text: message,
-                icon: 'error',
-                confirmButtonColor: '#dc2626',
-                confirmButtonText: 'Entendido'
-            });
-        });
-};
-
-// ============================================
-// ELIMINAR PÓLIZA
-// ============================================
-const confirmarEliminar = () => {
-    if (!permisos.value?.puede_eliminar) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Sin permisos',
-            text: 'No tienes permisos para eliminar pólizas. Contacta al administrador.',
-            confirmButtonColor: '#dc2626'
-        });
-        return;
-    }
-    const referencia = props.movimiento?.folio || form.referencia || props.movimiento?.referencia || 'S/N';
-    const tipo = form.tipo_poliza || props.movimiento?.tipo_poliza || 'N/A';
-    const monto = totalConIvaCalculado.value || props.movimiento?.monto_abs || 0;
-    Swal.fire({
-        title: 'Eliminar esta póliza?',
-        html: `
-            <div style="text-align: left; padding: 10px 0;">
-                <p style="font-size: 15px; color: #374151; margin-bottom: 16px;">Estas a punto de eliminar la siguiente póliza:</p>
-                <div style="background: #f8fafc; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                        <span style="font-weight: 600; color: #64748b;">Referencia:</span>
-                        <span style="font-weight: 700; color: #0f172a;">${referencia}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">
-                        <span style="font-weight: 600; color: #64748b;">Tipo:</span>
-                        <span style="font-weight: 700; color: #0f172a;">${tipo}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 4px 0;">
-                        <span style="font-weight: 600; color: #64748b;">Monto:</span>
-                        <span style="font-weight: 700; color: #dc2626; font-size: 16px;">$${formatNumber(monto)}</span>
-                    </div>
-                </div>
-                <div style="background: #fef2f2; border-radius: 8px; padding: 12px 16px; border-left: 4px solid #dc2626;">
-                    <span style="color: #991b1b; font-size: 13px;">Esta acción no se puede deshacer. Se eliminarán todos los datos relacionados con esta póliza.</span>
-                </div>
-            </div>
-        `,
-        icon: 'error',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Sí, eliminar definitivamente',
-        cancelButtonText: 'Cancelar',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            eliminarPoliza();
-        }
-    });
-};
-
-const eliminarPoliza = () => {
-    processing.value = true;
-    const id = props.movimiento?.id_movimiento || props.movimiento?.id;
-    if (!id) {
-        Swal.fire({
-            title: 'Error',
-            text: 'No se pudo identificar la póliza a eliminar.',
-            icon: 'error',
-            confirmButtonColor: '#dc2626',
-            confirmButtonText: 'Entendido'
-        });
-        processing.value = false;
-        return;
-    }
-    const referencia = props.movimiento?.folio || form.referencia || props.movimiento?.referencia || 'S/N';
-    axios.delete(route('movimientos.destroy', id))
-        .then(() => {
-            processing.value = false;
-            Swal.fire({
-                title: 'Póliza eliminada',
-                html: `<div style="padding: 10px 0;"><p style="font-size: 14px; color: #374151;">La póliza <strong>${referencia}</strong> ha sido eliminada exitosamente.</p></div>`,
-                icon: 'success',
-                confirmButtonColor: '#10b981',
-                confirmButtonText: 'Aceptar',
-                timer: 3000,
-                timerProgressBar: true
-            }).then(() => {
-                router.visit(route('movimientos.index'), { method: 'get', replace: true });
-            });
-        })
-        .catch((error) => {
-            processing.value = false;
-            const message = error.response?.data?.message || 'No se pudo eliminar la póliza. Verifica que no tenga dependencias.';
-            Swal.fire({
-                title: 'Error al eliminar',
-                text: message,
-                icon: 'error',
-                confirmButtonColor: '#dc2626',
-                confirmButtonText: 'Entendido'
-            });
-        });
-};
-
-// ============================================
 // FORMULARIOS
 // ============================================
 const form = useForm({
@@ -1671,13 +1485,15 @@ const form = useForm({
     es_fiscal: props.movimiento?.es_fiscal || false,
     id_cuenta_fondeadora: props.movimiento?.id_cuenta_fondeadora || null,
     id_marcador: props.movimiento?.id_marcador || null,
-    total_factura: props.movimiento?.total_factura || 0,
+    total_factura: props.movimiento?.monto_abs || 0,
     fecha_factura: props.movimiento?.fecha_factura || null,
     numero_factura: props.movimiento?.numero_factura || null,
     nota: props.movimiento?.nota || null,
     referencia: props.movimiento?.referencia || null,
     monto_directo: props.movimiento?.monto_abs || 0,
-    ivas: {}
+    ivas: {},
+    eliminar_pdf: false,
+    eliminar_xml: false,
 });
 
 const formTraspaso = useForm({
@@ -1691,24 +1507,18 @@ const formTraspaso = useForm({
     fecha_factura: props.movimiento?.fecha_factura || null,
     numero_factura: props.movimiento?.numero_factura || null,
     nota: props.movimiento?.nota || null,
-    ivas: {}
+    ivas: {},
 });
 
 // ============================================
-// SUBMIT
+// SUBMIT - CORREGIDO CON AXIOS PARA ARCHIVOS
 // ============================================
 const submit = () => {
-    if (!permisos.value?.puede_editar) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Sin permisos',
-            text: 'No tienes permisos para editar pólizas. Contacta al administrador.',
-            confirmButtonColor: '#dc2626'
-        });
-        return;
-    }
+    console.log('=== INICIO SUBMIT ===');
+    console.log('Tipo de póliza seleccionado:', tipoPolizaSeleccionado.value);
 
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
+        // 🔥 VALIDACIONES
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
             alertRef.value?.show({
                 type: 'error',
@@ -1718,6 +1528,7 @@ const submit = () => {
             });
             return;
         }
+
         if (form.fecha_poliza && form.fecha_poliza > fechaActual.value) {
             alertRef.value?.show({
                 type: 'error',
@@ -1727,6 +1538,7 @@ const submit = () => {
             });
             return;
         }
+
         if (!form.id_persona) {
             alertRef.value?.show({
                 type: 'error',
@@ -1736,6 +1548,7 @@ const submit = () => {
             });
             return;
         }
+
         if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
             if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) {
@@ -1750,59 +1563,105 @@ const submit = () => {
         }
 
         processing.value = true;
-        const modoIva = ivasSeleccionados.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
-        const totalFactura = ivasSeleccionados.value.length > 0 ? totalBaseCalculado.value : form.monto_directo;
-        const ivasArray = ivasSeleccionados.value.map(ivaId => ({
-            id: ivaId,
-            monto: form.ivas[ivaId]?.monto || 0
-        }));
 
+        // 🔥 CONSTRUIR FORM DATA CON AXIOS
         const formData = new FormData();
-        const formDataObj = form.data();
-        Object.keys(formDataObj).forEach(key => {
-            if (key === 'ivas') return;
-            let value = formDataObj[key];
-            if (typeof value === 'boolean') value = value ? 'true' : 'false';
-            if (value === null || value === undefined) value = '';
-            if (value !== '' && value !== null && value !== undefined) {
+        
+        // 🔥 Agregar _method para Laravel
+        formData.append('_method', 'PUT');
+
+        // 🔥 Agregar todos los campos del formulario
+        const campos = {
+            tipo_poliza: form.tipo_poliza,
+            fecha_poliza: form.fecha_poliza,
+            id_persona: form.id_persona ? parseInt(form.id_persona) : null,
+            id_cuenta: form.id_cuenta ? parseInt(form.id_cuenta) : null,
+            es_por_pagar: form.es_por_pagar ? 'true' : 'false',
+            fecha_vencimiento: form.fecha_vencimiento || null,
+            es_fiscal: form.es_fiscal ? 'true' : 'false',
+            id_cuenta_fondeadora: form.id_cuenta_fondeadora ? parseInt(form.id_cuenta_fondeadora) : null,
+            id_marcador: form.id_marcador ? parseInt(form.id_marcador) : null,
+            total_factura: parseFloat(form.monto_directo) || 0,
+            fecha_factura: form.fecha_factura || null,
+            numero_factura: form.numero_factura || null,
+            nota: form.nota || null,
+            referencia: form.referencia || null,
+            monto_directo: parseFloat(form.monto_directo) || 0,
+            modo_iva: ivasSeleccionados.value.length > 0 ? 'CON_IVA' : 'SIN_IVA',
+            eliminar_pdf: form.eliminar_pdf ? 'true' : 'false',
+            eliminar_xml: form.eliminar_xml ? 'true' : 'false',
+        };
+
+        // Agregar campos al FormData
+        Object.keys(campos).forEach(key => {
+            const value = campos[key];
+            if (value !== null && value !== undefined && value !== '') {
                 formData.append(key, value);
             }
         });
-        formData.append('modo_iva', modoIva);
-        formData.append('total_factura', totalFactura);
+
+        // 🔥 Agregar IVAs
+        const ivasArray = ivasSeleccionados.value.map(ivaId => ({
+            id: parseInt(ivaId),
+            monto: parseFloat(form.ivas[ivaId]?.monto) || 0
+        }));
+
         ivasArray.forEach((iva, index) => {
             formData.append(`ivas[${index}][id]`, iva.id);
             formData.append(`ivas[${index}][monto]`, iva.monto);
         });
-        if (archivos.value.pdf) formData.append('pdf_file', archivos.value.pdf);
-        if (archivos.value.xml) formData.append('xml_file', archivos.value.xml);
-        formData.append('total_iva', totalIvaCalculado.value);
-        formData.append('total_con_iva', totalConIvaCalculado.value);
-        formData.append('_method', 'PUT');
 
+        // 🔥 🔥 🔥 AGREGAR EL PDF - ESTO ES LO IMPORTANTE
+        if (archivos.value.pdf) {
+            formData.append('pdf_file', archivos.value.pdf);
+            console.log('📎 PDF adjuntado:', archivos.value.pdf.name);
+        } else {
+            console.log('📎 No hay PDF para adjuntar');
+        }
+
+        // 🔥 Log para depuración
+        console.log('=== FORM DATA A ENVIAR ===');
+        for (let [key, value] of formData.entries()) {
+            if (key === 'pdf_file') {
+                console.log(key, ':', value.name, '(archivo)');
+            } else {
+                console.log(key, ':', value);
+            }
+        }
+
+        // 🔥 ENVIAR CON AXIOS
         axios.post(route('movimientos.update', props.movimiento.id), formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
-        .then(() => {
+        .then(response => {
             processing.value = false;
+            console.log('✅ Respuesta exitosa:', response.data);
+            
             alertRef.value?.show({ 
                 type: 'success', 
-                title: 'Exito', 
-                message: 'La poliza se ha actualizado correctamente.',
+                title: 'Éxito', 
+                message: 'La póliza se ha actualizado correctamente.',
                 buttonText: 'Ir al listado'
             });
+            
             setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
             }, 1500);
         })
         .catch(error => {
             processing.value = false;
+            console.error('❌ Error completo:', error);
+            
             if (error.response?.data?.errors) {
                 const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
                 alertRef.value?.show({ 
                     type: 'error', 
-                    title: 'Error de validacion', 
+                    title: 'Error de validación', 
                     message: Array.isArray(firstError) ? firstError[0] : firstError,
                     buttonText: 'Entendido' 
                 });
@@ -1820,13 +1679,16 @@ const submit = () => {
                 alertRef.value?.show({ 
                     type: 'error', 
                     title: 'Error', 
-                    message: 'Error al actualizar la poliza. Intenta nuevamente.',
+                    message: 'Error al actualizar la póliza. Intenta nuevamente.',
                     buttonText: 'Entendido' 
                 });
             }
         });
+
     } else {
-        // TRASPASO
+        // ============================================
+        // TRASPASO - MISMO PATRÓN
+        // ============================================
         if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) {
             alertRef.value?.show({
                 type: 'error',
@@ -1836,6 +1698,7 @@ const submit = () => {
             });
             return;
         }
+
         if (formTraspaso.fecha_poliza && formTraspaso.fecha_poliza > fechaActual.value) {
             alertRef.value?.show({
                 type: 'error',
@@ -1845,6 +1708,7 @@ const submit = () => {
             });
             return;
         }
+
         if (!formTraspaso.id_cuenta_origen) {
             alertRef.value?.show({
                 type: 'error',
@@ -1854,6 +1718,7 @@ const submit = () => {
             });
             return;
         }
+
         if (!formTraspaso.id_cuenta_destino) {
             alertRef.value?.show({
                 type: 'error',
@@ -1863,6 +1728,7 @@ const submit = () => {
             });
             return;
         }
+
         if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
             alertRef.value?.show({
                 type: 'error',
@@ -1872,56 +1738,74 @@ const submit = () => {
             });
             return;
         }
-        const montoTotal = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
-        if (montoTotal > saldoCuentaOrigen.value) {
+
+        const montoTotalTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
+        if (montoTotalTraspaso > saldoCuentaOrigen.value) {
             alertRef.value?.show({
                 type: 'error',
                 title: 'Saldo insuficiente en origen',
-                message: `El monto a transferir ($${formatNumber(montoTotal)}) excede el saldo de la cuenta de origen ($${formatNumber(saldoCuentaOrigen.value)}).`,
+                message: `El monto a transferir ($${formatNumber(montoTotalTraspaso)}) excede el saldo de la cuenta de origen ($${formatNumber(saldoCuentaOrigen.value)}).`,
                 buttonText: 'Entendido'
             });
             return;
         }
 
         processing.value = true;
-        const modoIvaTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? 'CON_IVA' : 'SIN_IVA';
-        const totalFacturaTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? totalBaseTraspasoCalculado.value : formTraspaso.monto_directo;
-        const ivasArray = ivasSeleccionadosTraspaso.value.map(ivaId => ({
-            id: ivaId,
-            monto: formTraspaso.ivas[ivaId]?.monto || 0
-        }));
 
+        // 🔥 CONSTRUIR FORM DATA PARA TRASPASO
         const traspasoFormData = new FormData();
-        const traspasoDataObj = formTraspaso.data();
-        Object.keys(traspasoDataObj).forEach(key => {
-            if (key === 'ivas') return;
-            let value = traspasoDataObj[key];
-            if (typeof value === 'boolean') value = value ? 'true' : 'false';
-            if (value === null || value === undefined) value = '';
-            if (value !== '' && value !== null && value !== undefined) {
+        traspasoFormData.append('_method', 'PUT');
+
+        const camposTraspaso = {
+            tipo_poliza: formTraspaso.tipo_poliza,
+            fecha_poliza: formTraspaso.fecha_poliza,
+            id_cuenta_origen: formTraspaso.id_cuenta_origen ? parseInt(formTraspaso.id_cuenta_origen) : null,
+            id_cuenta_destino: formTraspaso.id_cuenta_destino ? parseInt(formTraspaso.id_cuenta_destino) : null,
+            monto_directo: parseFloat(formTraspaso.monto_directo) || 0,
+            es_fiscal: formTraspaso.es_fiscal ? 'true' : 'false',
+            id_marcador: formTraspaso.id_marcador ? parseInt(formTraspaso.id_marcador) : null,
+            fecha_factura: formTraspaso.fecha_factura || null,
+            numero_factura: formTraspaso.numero_factura || null,
+            nota: formTraspaso.nota || null,
+            modo_iva: ivasSeleccionadosTraspaso.value.length > 0 ? 'CON_IVA' : 'SIN_IVA',
+        };
+
+        Object.keys(camposTraspaso).forEach(key => {
+            const value = camposTraspaso[key];
+            if (value !== null && value !== undefined && value !== '') {
                 traspasoFormData.append(key, value);
             }
         });
-        traspasoFormData.append('modo_iva', modoIvaTraspaso);
-        traspasoFormData.append('total_factura', totalFacturaTraspaso);
-        ivasArray.forEach((iva, index) => {
+
+        const ivasArrayTraspaso = ivasSeleccionadosTraspaso.value.map(ivaId => ({
+            id: parseInt(ivaId),
+            monto: parseFloat(formTraspaso.ivas[ivaId]?.monto) || 0
+        }));
+
+        ivasArrayTraspaso.forEach((iva, index) => {
             traspasoFormData.append(`ivas[${index}][id]`, iva.id);
             traspasoFormData.append(`ivas[${index}][monto]`, iva.monto);
         });
-        if (archivosTraspaso.value.pdf) traspasoFormData.append('pdf_file', archivosTraspaso.value.pdf);
-        if (archivosTraspaso.value.xml) traspasoFormData.append('xml_file', archivosTraspaso.value.xml);
-        traspasoFormData.append('total_iva', totalIvaTraspasoCalculado.value);
-        traspasoFormData.append('total_con_iva', totalConIvaTraspasoCalculado.value);
-        traspasoFormData.append('_method', 'PUT');
 
+        // 🔥 AGREGAR PDF PARA TRASPASO
+        if (archivosTraspaso.value.pdf) {
+            traspasoFormData.append('pdf_file', archivosTraspaso.value.pdf);
+            console.log('📎 PDF adjuntado (traspaso):', archivosTraspaso.value.pdf.name);
+        }
+
+        // 🔥 ENVIAR CON AXIOS
         axios.post(route('movimientos.update', props.movimiento.id), traspasoFormData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
         .then(() => {
             processing.value = false;
             alertRef.value?.show({ 
                 type: 'success', 
-                title: 'Exito', 
+                title: 'Éxito', 
                 message: 'El traspaso se ha actualizado correctamente.',
                 buttonText: 'Ir al listado'
             });
@@ -1931,12 +1815,14 @@ const submit = () => {
         })
         .catch(error => {
             processing.value = false;
+            console.error('❌ Error completo:', error);
+            
             if (error.response?.data?.errors) {
                 const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
                 alertRef.value?.show({ 
                     type: 'error', 
-                    title: 'Error de validacion', 
+                    title: 'Error de validación', 
                     message: Array.isArray(firstError) ? firstError[0] : firstError,
                     buttonText: 'Entendido' 
                 });
@@ -1961,7 +1847,6 @@ const submit = () => {
         });
     }
 };
-
 // ============================================
 // WATCHERS
 // ============================================
@@ -1970,15 +1855,16 @@ watch(() => form.tipo_poliza, () => {
 });
 
 // ============================================
-// MOUNTED - PRECARGAR DATOS DEL MOVIMIENTO
+// MOUNTED
 // ============================================
 onMounted(() => {
+    console.log('=== MOUNTED - Edit.vue ===');
+    console.log('Movimiento recibido:', props.movimiento);
+    console.log('¿Es traspaso?', props.es_traspaso);
+    
     const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
     
-    // 🔥 PRECARGAR IVAS - CORREGIDO
     if (props.movimiento?.ivas && Array.isArray(props.movimiento.ivas) && props.movimiento.ivas.length > 0) {
-        console.log('🟢 Precargando IVAs:', props.movimiento.ivas);
-        
         if (tipoPolizaSeleccionado.value === 'TRASPASO') {
             props.movimiento.ivas.forEach(iva => {
                 if (iva.id && iva.monto && iva.monto > 0) {
@@ -1987,7 +1873,6 @@ onMounted(() => {
                     formTraspaso.ivas[ivaId] = { monto: iva.monto };
                 }
             });
-            console.log('🟢 IVAs de traspaso precargados:', ivasSeleccionadosTraspaso.value);
         } else {
             props.movimiento.ivas.forEach(iva => {
                 if (iva.id && iva.monto && iva.monto > 0) {
@@ -1996,32 +1881,19 @@ onMounted(() => {
                     form.ivas[ivaId] = { monto: iva.monto };
                 }
             });
-            console.log('🟢 IVAs de ingreso/egreso precargados:', ivasSeleccionados.value);
         }
-    } else {
-        console.log('🟡 No hay IVAs para precargar o la póliza no tiene IVA');
     }
 
-    // 🔥 PRECARGAR DATOS FISCALES
     if (props.movimiento?.es_fiscal) {
         form.es_fiscal = true;
         form.fecha_factura = props.movimiento.fecha_factura || null;
         form.numero_factura = props.movimiento.numero_factura || '';
-        // Si hay archivos, mostrarlos
-        if (props.movimiento.pdf_existente) {
-            // El PDF ya existe, mostrarlo como archivo existente
-        }
-        if (props.movimiento.xml_existente) {
-            // El XML ya existe, mostrarlo como archivo existente
-        }
     }
 
-    // Cargar cuenta fondeadora si existe
     if (form.id_cuenta_fondeadora) {
         cambiarCuentaFondeadora();
     }
 
-    // Cargar saldos de traspaso
     if (formTraspaso.id_cuenta_origen) {
         saldoCuentaOrigen.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_origen);
     }
@@ -2029,20 +1901,12 @@ onMounted(() => {
         saldoCuentaDestino.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_destino);
     }
 
-    // Inicializar listas
     if (props.tipos_iva && props.tipos_iva.length > 0) tiposIva.value = props.tipos_iva;
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) cuentasFondeadoras.value = props.cuentas_fondeadoras;
     if (props.cuentas_egreso && props.cuentas_egreso.length > 0) cuentasEgreso.value = props.cuentas_egreso;
     if (props.cuentas_ingreso && props.cuentas_ingreso.length > 0) cuentasIngreso.value = props.cuentas_ingreso;
     if (props.marcadores && props.marcadores.length > 0) marcadores.value = props.marcadores;
     if (props.personas && props.personas.length > 0) personas.value = props.personas;
-
-    // 🔥 Log de depuración
-    console.log('🟢 Estado de la póliza:', props.movimiento?.estatus);
-    console.log('🟢 Tipo de póliza seleccionado:', tipoPolizaSeleccionado.value);
-    console.log('🟢 ¿Es traspaso?', props.es_traspaso);
-
-    buscarPersonas('');
 });
 </script>
 
@@ -2086,7 +1950,7 @@ onMounted(() => {
 .header-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 0; line-height: 1.3; }
 .header-subtitle { font-size: 0.8rem; color: #64748b; margin: 0; }
 
-.header-right { display: flex; align-items: center; gap: 10px; }
+.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .status-badge {
     padding: 4px 14px;
@@ -2098,6 +1962,14 @@ onMounted(() => {
 .status-success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
 .status-error { background: #fecaca; color: #991b1b; border: 1px solid #f87171; animation: shake 0.4s ease; }
 .status-progress { background: #e0e7ff; color: #4338ca; border: 1px solid #818cf8; }
+.status-capturado { background: #dbeafe; color: #1e40af; border: 1px solid #60a5fa; }
+.status-revisado { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.status-autorizado { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+.status-abonado { background: #ede9fe; color: #5b21b6; border: 1px solid #8b5cf6; }
+.status-liquidado { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+.status-pendiente { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.status-cerrado { background: #f3f4f6; color: #4b5563; border: 1px solid #9ca3af; }
+.status-default { background: #f3f4f6; color: #4b5563; border: 1px solid #9ca3af; }
 
 /* ========== FLASH ========== */
 .flash-container { margin: 0 0 8px 0; padding: 0 1.5rem; }
@@ -2170,6 +2042,11 @@ onMounted(() => {
     overflow: hidden;
 }
 
+.tipo-btn-premium:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .tipo-btn-content {
     display: flex;
     align-items: center;
@@ -2230,18 +2107,12 @@ onMounted(() => {
 
 /* ========== INPUTS ========== */
 .input-wrapper { position: relative; }
-
-/* 🔥 CORRECCIÓN PARA INPUT DE FECHA */
-.input-date-wrapper {
-    position: relative;
-}
-
+.input-date-wrapper { position: relative; }
 .input-date {
     padding-right: 40px !important;
     -webkit-appearance: none;
     appearance: none;
 }
-
 .input-date-icon {
     position: absolute;
     right: 12px;
@@ -2280,6 +2151,12 @@ onMounted(() => {
 }
 .form-input.error:focus { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
 
+.form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f3f4f6;
+}
+
 .form-textarea {
     width: 100%;
     padding: 8px 12px;
@@ -2301,6 +2178,11 @@ onMounted(() => {
     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 .form-textarea.error { border-color: #ef4444; }
+.form-textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f3f4f6;
+}
 
 .input-icon {
     position: absolute;
@@ -2359,7 +2241,7 @@ onMounted(() => {
     transition: all 0.3s ease;
     height: 34px;
 }
-.iva-btn:hover:not(.disabled) {
+.iva-btn:hover:not(.disabled):not(:disabled) {
     border-color: #667eea;
     color: #667eea;
 }
@@ -2370,6 +2252,7 @@ onMounted(() => {
     box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
 }
 .iva-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.iva-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .iva-check { font-size: 0.6rem; font-weight: 700; }
 
 /* ========== IVA DETAIL ========== */
@@ -2432,9 +2315,13 @@ onMounted(() => {
     font-weight: 700;
     transition: all 0.3s ease;
 }
-.iva-remove-btn:hover {
+.iva-remove-btn:hover:not(:disabled) {
     background: #fecaca;
     transform: rotate(90deg) scale(1.1);
+}
+.iva-remove-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 .iva-total {
     display: flex;
@@ -2517,6 +2404,10 @@ onMounted(() => {
 .checkbox-input:checked + .checkbox-custom::after {
     transform: scale(1);
 }
+.checkbox-input:disabled + .checkbox-custom {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 .checkbox-text { font-weight: 500; }
 
 /* ========== VENCIMIENTO ========== */
@@ -2557,10 +2448,14 @@ onMounted(() => {
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
-.btn-add-marcador:hover {
+.btn-add-marcador:hover:not(:disabled) {
     border-color: #667eea;
     background: #f8f7ff;
     transform: scale(1.05);
+}
+.btn-add-marcador:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* ========== SALDO ========== */
@@ -2733,14 +2628,6 @@ onMounted(() => {
     font-weight: 600;
     font-size: 0.7rem;
 }
-.info-auto-cargado {
-    background: #d1fae5;
-    color: #065f46;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.7rem;
-}
 .info-id {
     background: #e0e7ff;
     color: #4338ca;
@@ -2835,16 +2722,6 @@ onMounted(() => {
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
-}
-.btn-delete {
-    background: #fef2f2;
-    color: #dc2626;
-    border: 1.5px solid #fca5a5;
-}
-.btn-delete:hover:not(:disabled) {
-    background: #fecaca;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 .spinner-border {
     display: inline-block;

@@ -7,6 +7,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
+                        <span class="btn-back-text">Regresar</span>
                     </Link>
                     <div class="header-content">
                         <h2 class="header-title">Detalle de Póliza</h2>
@@ -16,7 +17,6 @@
                             </span>
                             <span v-if="movimiento.es_fiscal" class="fiscal-badge">FISCAL</span>
                             <span v-if="movimiento.tiene_doble_iva" class="doble-iva-badge-header">2 IVAs</span>
-                            <!-- 🔥 ESTADO DE LA PÓLIZA -->
                             <span class="estatus-badge" :class="getEstatusClass(movimiento.estatus)">
                                 {{ getEstatusTexto(movimiento.estatus) }}
                             </span>
@@ -88,13 +88,11 @@
                                 <span class="info-value">{{ movimiento.categoria || '—' }}</span>
                             </div>
 
-                            <!-- 🔥 FOLIO DE LA PÓLIZA -->
                             <div class="info-item">
                                 <span class="info-label">Folio</span>
                                 <span class="info-value">{{ movimiento.folio || '—' }}</span>
                             </div>
                             
-                            <!-- 🔥 REFERENCIA -->
                             <div class="info-item" v-if="movimiento.referencia">
                                 <span class="info-label">Referencia</span>
                                 <span class="info-value">{{ movimiento.referencia }}</span>
@@ -258,7 +256,6 @@
                                 <span class="info-value uuid-value">{{ movimiento.uuid_factura }}</span>
                             </div>
                             
-                            <!-- PDF - Botón "Ver Factura" estilo profesional -->
                             <div class="info-item" v-if="movimiento.tiene_pdf_fiscal">
                                 <span class="info-label">Factura</span>
                                 <span class="info-value">
@@ -272,7 +269,6 @@
                                 </span>
                             </div>
                             
-                            <!-- XML - Botón "Ver XML" estilo profesional -->
                             <div class="info-item" v-if="movimiento.tiene_xml_fiscal">
                                 <span class="info-label">XML</span>
                                 <span class="info-value">
@@ -380,9 +376,30 @@
                         </div>
 
                         <div class="action-right">
+                            <!-- ========================================================== -->
+                            <!-- 🔥 BOTÓN PRINCIPAL: SUBIR / VER RECURSO                     -->
+                            <!-- ========================================================== -->
+                            <button 
+                                class="btn-action" 
+                                :class="movimiento.tiene_recurso ? 'btn-ver-recurso' : 'btn-subir-recurso'"
+                                @click="abrirModalRecurso"
+                                :title="movimiento.tiene_recurso ? 'Ver recurso adjunto' : 'Subir PDF o imagen como recurso'"
+                            >
+                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path v-if="!movimiento.tiene_recurso" 
+                                          stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M12 4v16m8-8H4"/>
+                                    <path v-else 
+                                          stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                {{ movimiento.tiene_recurso ? 'Ver Recurso' : 'Subir Recurso' }}
+                            </button>
+
+                            <!-- 🔥 BOTÓN IMPRIMIR (abre modal con opciones) -->
                             <button 
                                 class="btn-action btn-pdf"
-                                @click="accionImprimir"
+                                @click="abrirModalImprimir"
                             >
                                 <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -390,6 +407,7 @@
                                 Imprimir
                             </button>
 
+                            <!-- 🔥 BOTÓN REVISAR -->
                             <button 
                                 v-if="permisos?.puede_revisar && movimiento.estatus === 'CAPTURADO'"
                                 class="btn-action btn-revisar"
@@ -402,6 +420,7 @@
                                 Revisar
                             </button>
 
+                            <!-- 🔥 BOTÓN AUTORIZAR -->
                             <button 
                                 v-if="permisos?.puede_autorizar && movimiento.estatus === 'REVISADO'"
                                 class="btn-action btn-autorizar"
@@ -413,6 +432,7 @@
                                 Autorizar
                             </button>
 
+                            <!-- 🔥 BOTÓN CERRAR -->
                             <button 
                                 v-if="permisos?.puede_cerrar && puedeCerrar()"
                                 class="btn-action btn-cerrar"
@@ -424,6 +444,7 @@
                                 Cerrar
                             </button>
 
+                            <!-- 🔥 BOTÓN REABRIR -->
                             <button 
                                 v-if="permisos?.puede_reabrir && movimiento.estatus === 'CERRADO'"
                                 class="btn-action btn-reabrir"
@@ -435,7 +456,7 @@
                                 Reabrir
                             </button>
 
-                            <!-- 🔥 BOTÓN EDITAR - Solo visible si se puede editar -->
+                            <!-- 🔥 BOTÓN EDITAR -->
                             <Link 
                                 v-if="permisos?.puede_editar && puedeEditar()" 
                                 :href="route('movimientos.edit', movimiento.id)" 
@@ -447,6 +468,7 @@
                                 Editar
                             </Link>
 
+                            <!-- 🔥 BOTÓN ELIMINAR -->
                             <button 
                                 v-if="permisos?.puede_eliminar && puedeEliminar()" 
                                 class="btn-action btn-eliminar"
@@ -457,16 +479,6 @@
                                 </svg>
                                 Eliminar
                             </button>
-
-                            <Link 
-                                :href="route('movimientos.index')" 
-                                class="btn-action btn-regresar"
-                            >
-                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                                </svg>
-                                Regresar
-                            </Link>
                         </div>
                     </div>
                 </div>
@@ -474,7 +486,7 @@
         </div>
 
         <!-- ============================================================ -->
-        <!-- MODAL PARA PREVISUALIZAR PDF/XML -->
+        <!-- MODAL PARA PREVISUALIZAR PDF/XML                              -->
         <!-- ============================================================ -->
         <a-modal
             v-model:open="modalPreviewVisible"
@@ -520,6 +532,173 @@
             </div>
         </a-modal>
 
+        <!-- ============================================================ -->
+        <!-- MODAL PARA SUBIR/VER RECURSO (PDF/IMAGEN)                    -->
+        <!-- ============================================================ -->
+        <a-modal
+            v-model:open="modalRecursoVisible"
+            :title="modalRecursoTitulo"
+            width="90%"
+            :footer="null"
+            class="modal-recurso-premium"
+            :style="{ maxWidth: '900px' }"
+        >
+            <div class="modal-recurso-content">
+                <!-- ========================================================== -->
+                <!-- MODO VER: muestra PDF, imagen o mensaje de descarga        -->
+                <!-- ========================================================== -->
+                <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
+                    <!-- PDF -->
+                    <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
+                        <iframe :src="modalRecursoUrl" class="recurso-pdf" frameborder="0"></iframe>
+                    </div>
+                    <!-- IMAGEN -->
+                    <div v-else-if="modalRecursoTipo === 'image'" class="recurso-image-wrapper">
+                        <img :src="modalRecursoUrl" alt="Recurso adjunto" class="recurso-image" />
+                    </div>
+                    <!-- OTRO TIPO -->
+                    <div v-else class="recurso-other">
+                        <div class="recurso-other-icon">
+                            <svg class="recurso-other-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <p class="recurso-other-text">Vista previa no disponible para este tipo de archivo</p>
+                        <a :href="modalRecursoUrl" target="_blank" class="recurso-other-link">Descargar archivo</a>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- MODO SUBIR: muestra el drop zone para subir archivo        -->
+                <!-- ========================================================== -->
+                <div v-if="modalRecursoModo === 'subir'" class="recurso-upload-wrapper">
+                    <div class="recurso-upload-info">
+                        <p>Sube un <strong>PDF</strong> o una <strong>imagen</strong> (JPG, PNG, GIF, WEBP) para esta póliza.</p>
+                        <p class="recurso-upload-hint">Solo se permite un archivo por póliza.</p>
+                    </div>
+
+                    <form @submit.prevent="subirRecurso">
+                        <div class="recurso-drop-zone" 
+                             :class="{ 'recurso-drop-zone-dragover': dragging }"
+                             @dragover.prevent="dragging = true"
+                             @dragleave.prevent="dragging = false"
+                             @drop.prevent="onDrop"
+                             @click="$refs.recursoFileInput.click()"
+                        >
+                            <div class="recurso-drop-zone-content">
+                                <svg class="recurso-drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <span v-if="!archivoSeleccionado" class="recurso-drop-zone-text">
+                                    Arrastra y suelta tu archivo aquí, o haz clic para seleccionarlo
+                                </span>
+                                <span v-else class="recurso-drop-zone-text archivo-seleccionado">
+                                    <svg class="archivo-seleccionado-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    {{ archivoSeleccionado.name }} ({{ formatFileSize(archivoSeleccionado.size) }})
+                                </span>
+                                <span class="recurso-drop-zone-hint">Formatos permitidos: PDF, JPG, PNG, GIF, WEBP</span>
+                            </div>
+                            <input 
+                                type="file" 
+                                ref="recursoFileInput" 
+                                @change="onFileSelect" 
+                                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*"
+                                class="recurso-file-input-hidden"
+                            >
+                        </div>
+
+                        <div v-if="errorRecurso" class="recurso-error">
+                            <svg class="error-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ errorRecurso }}
+                        </div>
+
+                        <div class="recurso-modal-actions">
+                            <button type="button" class="btn-modal-cancel" @click="cerrarModalRecurso">Cancelar</button>
+                            <button type="submit" class="btn-modal-submit" :disabled="!archivoSeleccionado || subiendoRecurso">
+                                <span v-if="subiendoRecurso" class="spinner-border-sm"></span>
+                                <span v-else>Subir archivo</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer para el modo VER -->
+            <div v-if="modalRecursoModo === 'ver'" class="recurso-footer">
+                <button class="btn-modal-cancel" @click="cerrarModalRecurso">Cerrar</button>
+                <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
+                    <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar
+                </a>
+            </div>
+        </a-modal>
+
+        <!-- ============================================================ -->
+        <!-- MODAL PARA IMPRIMIR (TICKET / REIMISIÓN)                     -->
+        <!-- ============================================================ -->
+        <a-modal
+            v-model:open="modalImprimirVisible"
+            title="Opciones de Impresión"
+            width="500px"
+            :footer="null"
+            class="modal-imprimir-premium"
+            :style="{ maxWidth: '500px' }"
+        >
+            <div class="modal-imprimir-content">
+                <p class="modal-imprimir-desc">Selecciona el tipo de documento que deseas imprimir:</p>
+                
+                <div class="modal-imprimir-options">
+                    <!-- Opción 1: Ticket -->
+                    <button 
+                        class="modal-imprimir-option ticket"
+                        @click="imprimirTicket"
+                    >
+                        <div class="modal-imprimir-option-icon">
+                            <svg class="modal-imprimir-option-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                            </svg>
+                        </div>
+                        <div class="modal-imprimir-option-info">
+                            <span class="modal-imprimir-option-title">Ticket</span>
+                            <span class="modal-imprimir-option-desc">Imprimir ticket de póliza</span>
+                        </div>
+                        <svg class="modal-imprimir-option-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Opción 2: Reimisión -->
+                    <button 
+                        class="modal-imprimir-option reimision"
+                        @click="imprimirReimision"
+                    >
+                        <div class="modal-imprimir-option-icon">
+                            <svg class="modal-imprimir-option-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </div>
+                        <div class="modal-imprimir-option-info">
+                            <span class="modal-imprimir-option-title">Reimisión</span>
+                            <span class="modal-imprimir-option-desc">Reimprimir documento fiscal</span>
+                        </div>
+                        <svg class="modal-imprimir-option-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="modal-imprimir-footer">
+                    <button class="btn-modal-cancel" @click="cerrarModalImprimir">Cancelar</button>
+                </div>
+            </div>
+        </a-modal>
+
         <ModalAlert ref="alertRef" />
     </AppLayout>
 </template>
@@ -556,7 +735,7 @@ const tituloPagina = computed(() => {
 });
 
 // ============================================
-// 🔥 FUNCIONES PARA ESTADOS - NUEVAS
+// FUNCIONES PARA ESTADOS
 // ============================================
 const getEstatusTexto = (estatus) => {
     const map = {
@@ -585,47 +764,37 @@ const getEstatusClass = (estatus) => {
 };
 
 // ============================================
-// 🔥 FUNCIONES PARA DETERMINAR SI PUEDE EDITAR/ELIMINAR
+// FUNCIONES PARA DETERMINAR SI PUEDE EDITAR/ELIMINAR
 // ============================================
 const puedeEditar = () => {
-    // Si es super usuario, siempre puede editar
     if (permisos.value?.es_super_usuario) {
         return true;
     }
     
-    // Si es auditor, no puede editar
     if (permisos.value?.es_auditor) {
         return false;
     }
     
     const estatus = props.movimiento.estatus;
-    
-    // 🔥 Estados NO EDITABLES
     const estatusNoEditables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO', 'ABONADO'];
     
-    // Si el estado está en la lista de no editables, no se puede editar
     if (estatusNoEditables.includes(estatus)) {
         return false;
     }
     
-    // CAPTURADO y PENDIENTE son editables
     return true;
 };
 
 const puedeEliminar = () => {
-    // Si es super usuario, siempre puede eliminar
     if (permisos.value?.es_super_usuario) {
         return true;
     }
     
-    // Si es auditor, no puede eliminar
     if (permisos.value?.es_auditor) {
         return false;
     }
     
     const estatus = props.movimiento.estatus;
-    
-    // 🔥 Estados NO ELIMINABLES
     const estatusNoEliminables = ['REVISADO', 'AUTORIZADO', 'LIQUIDADO', 'CERRADO', 'ABONADO'];
     
     if (estatusNoEliminables.includes(estatus)) {
@@ -637,8 +806,6 @@ const puedeEliminar = () => {
 
 const puedeCerrar = () => {
     const estatus = props.movimiento.estatus;
-    
-    // No se puede cerrar si ya está liquidado, autorizado o cerrado
     const estatusNoCerrar = ['LIQUIDADO', 'AUTORIZADO', 'CERRADO'];
     
     if (estatusNoCerrar.includes(estatus)) {
@@ -658,7 +825,7 @@ const calcularTotalDobleIva = computed(() => {
 });
 
 // ============================================
-// MODAL DE PREVISUALIZACIÓN
+// MODAL DE PREVISUALIZACIÓN (PDF/XML)
 // ============================================
 const modalPreviewVisible = ref(false);
 const modalPreviewUrl = ref('');
@@ -682,6 +849,190 @@ const cerrarPreview = () => {
     modalPreviewUrl.value = '';
     modalPreviewTipo.value = 'pdf';
     modalPreviewTitle.value = '';
+};
+
+// ============================================
+// MODAL PARA SUBIR/VER RECURSO
+// ============================================
+const modalRecursoVisible = ref(false);
+const modalRecursoModo = ref('ver');
+const modalRecursoTitulo = ref('');
+const modalRecursoUrl = ref('');
+const modalRecursoTipo = ref('');
+
+// Archivos
+const archivoSeleccionado = ref(null);
+const subiendoRecurso = ref(false);
+const errorRecurso = ref('');
+const dragging = ref(false);
+const recursoFileInput = ref(null);
+
+// ============================================
+// MODAL PARA IMPRIMIR
+// ============================================
+const modalImprimirVisible = ref(false);
+
+const abrirModalImprimir = () => {
+    modalImprimirVisible.value = true;
+};
+
+const cerrarModalImprimir = () => {
+    modalImprimirVisible.value = false;
+};
+
+// ============================================
+// IMPRIMIR TICKET
+// ============================================
+const imprimirTicket = () => {
+    cerrarModalImprimir();
+    
+    if (!props.movimiento.id) {
+        mostrarModal('error', 'Error', 'No se puede generar el ticket, falta el ID de la póliza.');
+        return;
+    }
+    
+    // Usa la misma ruta de impresión con parámetro tipo=ticket
+    const url = route('movimientos.imprimir', props.movimiento.id) + '?tipo=ticket';
+    window.open(url, '_blank');
+};
+
+// ============================================
+// IMPRIMIR REIMISIÓN
+// ============================================
+const imprimirReimision = () => {
+    cerrarModalImprimir();
+    
+    if (!props.movimiento.id) {
+        mostrarModal('error', 'Error', 'No se puede generar la reimisión, falta el ID de la póliza.');
+        return;
+    }
+    
+    // Usa la misma ruta de impresión con parámetro tipo=reimision
+    const url = route('movimientos.imprimir', props.movimiento.id) + '?tipo=reimision';
+    window.open(url, '_blank');
+};
+
+// ============================================
+// 🔥 FUNCIÓN PRINCIPAL: Abre el modal de recurso (subir o ver según corresponda)
+// ============================================
+const abrirModalRecurso = () => {
+    // Verificar si ya tiene recurso
+    if (props.movimiento.tiene_recurso) {
+        // Si tiene recurso, mostrarlo en modo "ver"
+        modalRecursoModo.value = 'ver';
+        modalRecursoTitulo.value = `Recurso - ${props.movimiento.referencia || 'Póliza'}`;
+        modalRecursoUrl.value = props.movimiento.recurso_url || '';
+        
+        // Detectar tipo de archivo por extensión
+        if (props.movimiento.recurso_tipo) {
+            modalRecursoTipo.value = props.movimiento.recurso_tipo;
+        } else {
+            const url = modalRecursoUrl.value.toLowerCase();
+            if (url.endsWith('.pdf')) {
+                modalRecursoTipo.value = 'pdf';
+            } else if (url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.gif') || url.endsWith('.webp')) {
+                modalRecursoTipo.value = 'image';
+            } else {
+                modalRecursoTipo.value = 'other';
+            }
+        }
+        
+        modalRecursoVisible.value = true;
+        return;
+    }
+    
+    // Si no tiene recurso, abrir en modo "subir"
+    modalRecursoModo.value = 'subir';
+    modalRecursoTitulo.value = `Subir recurso - ${props.movimiento.referencia || 'Póliza'}`;
+    modalRecursoUrl.value = '';
+    modalRecursoTipo.value = '';
+    archivoSeleccionado.value = null;
+    errorRecurso.value = '';
+    modalRecursoVisible.value = true;
+};
+
+const cerrarModalRecurso = () => {
+    modalRecursoVisible.value = false;
+    modalRecursoModo.value = 'ver';
+    archivoSeleccionado.value = null;
+    errorRecurso.value = '';
+    dragging.value = false;
+};
+
+// === DROP ZONE ===
+const onDrop = (e) => {
+    dragging.value = false;
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        procesarArchivo(files[0]);
+    }
+};
+
+const onFileSelect = (e) => {
+    const files = e.target.files;
+    if (files.length > 0) {
+        procesarArchivo(files[0]);
+    }
+    e.target.value = '';
+};
+
+const procesarArchivo = (file) => {
+    const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const extensionesPermitidas = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    
+    const extension = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!tiposPermitidos.includes(file.type) && !extensionesPermitidas.includes(extension)) {
+        errorRecurso.value = 'Tipo de archivo no permitido. Solo PDF e imágenes (JPG, PNG, GIF, WEBP).';
+        archivoSeleccionado.value = null;
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        errorRecurso.value = 'El archivo no debe exceder 10 MB.';
+        archivoSeleccionado.value = null;
+        return;
+    }
+    
+    errorRecurso.value = '';
+    archivoSeleccionado.value = file;
+};
+
+// === SUBIR RECURSO ===
+const subirRecurso = async () => {
+    if (!archivoSeleccionado.value) return;
+    
+    subiendoRecurso.value = true;
+    errorRecurso.value = '';
+    
+    const formData = new FormData();
+    formData.append('archivo', archivoSeleccionado.value);
+    formData.append('id_poliza', props.movimiento.id_poliza || props.movimiento.id);
+    
+    try {
+        const response = await axios.post(
+            route('movimientos.archivos.subir', props.movimiento.id_poliza || props.movimiento.id),
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        
+        if (response.data.success) {
+            mostrarModal('success', 'Éxito', 'Recurso subido correctamente');
+            cerrarModalRecurso();
+            
+            // 🔥 FORZAR RECARGA COMPLETA PARA ACTUALIZAR EL ESTADO
+            setTimeout(() => {
+                router.reload();
+            }, 500);
+        } else {
+            throw new Error(response.data.message || 'Error al subir el recurso');
+        }
+    } catch (error) {
+        errorRecurso.value = error.response?.data?.message || error.message || 'Error al subir el recurso';
+        mostrarModal('error', 'Error', errorRecurso.value);
+    } finally {
+        subiendoRecurso.value = false;
+    }
 };
 
 // ============================================
@@ -716,6 +1067,14 @@ const formatFechaHora = (fecha) => {
         hour: '2-digit',
         minute: '2-digit'
     });
+};
+
+const formatFileSize = (bytes) => {
+    if (!bytes) return '—';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const value = bytes / Math.pow(1024, i);
+    return `${value.toFixed(i > 0 ? 1 : 0)} ${sizes[i]}`;
 };
 
 // ============================================
@@ -961,7 +1320,9 @@ const accionEliminar = () => {
 </script>
 
 <style scoped>
-/* ========== HEADER ========== */
+/* ========== ESTILOS COMPLETOS ========== */
+
+/* HEADER */
 .header-wrapper {
     display: flex;
     align-items: center;
@@ -979,17 +1340,19 @@ const accionEliminar = () => {
 }
 
 .btn-back {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
+    gap: 6px;
+    padding: 8px 16px;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #6b7280;
     transition: all 0.3s ease;
     backdrop-filter: blur(4px);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.85rem;
 }
 
 .btn-back:hover {
@@ -997,6 +1360,21 @@ const accionEliminar = () => {
     color: #1f2937;
     transform: translateX(-3px) scale(1.05);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-back .w-5 {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-back-text {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .btn-back-text {
+        display: inline;
+    }
 }
 
 .header-content {
@@ -1022,7 +1400,7 @@ const accionEliminar = () => {
     flex-wrap: wrap;
 }
 
-/* ========== BADGES ========== */
+/* BADGES */
 .tipo-badge {
     display: inline-block;
     padding: 2px 14px;
@@ -1068,7 +1446,6 @@ const accionEliminar = () => {
     text-transform: uppercase;
 }
 
-/* 🔥 ESTADOS BADGE */
 .estatus-badge {
     display: inline-block;
     padding: 2px 14px;
@@ -1128,11 +1505,11 @@ const accionEliminar = () => {
     border-color: #d1d5db;
 }
 
-/* ========== PAGE CONTENT ========== */
+/* PAGE CONTENT */
 .page-content { padding: 1.5rem 0; }
 .container-custom { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; }
 
-/* ========== DETAIL CARD ========== */
+/* DETAIL CARD */
 .detail-card {
     background: #ffffff;
     border-radius: 16px;
@@ -1142,7 +1519,7 @@ const accionEliminar = () => {
     transition: all 0.3s ease;
 }
 
-/* ========== SECTIONS ========== */
+/* SECTIONS */
 .detail-section {
     margin-bottom: 2rem;
     padding-bottom: 2rem;
@@ -1205,7 +1582,6 @@ const accionEliminar = () => {
     margin-left: auto;
 }
 
-/* ========== BADGES ========== */
 .badge-categoria {
     padding: 4px 16px;
     border-radius: 50px;
@@ -1225,7 +1601,7 @@ const accionEliminar = () => {
 .w-3 { width: 12px; height: 12px; }
 .h-3 { width: 12px; height: 12px; }
 
-/* ========== GRIDS ========== */
+/* GRIDS */
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1238,7 +1614,7 @@ const accionEliminar = () => {
     gap: 16px;
 }
 
-/* ========== INFO ITEMS ========== */
+/* INFO ITEMS */
 .info-item {
     display: flex;
     flex-direction: column;
@@ -1283,9 +1659,7 @@ const accionEliminar = () => {
     border-radius: 4px;
 }
 
-/* ============================================================ */
 /* BOTONES VER DOCUMENTO */
-/* ============================================================ */
 .btn-ver-documento {
     display: inline-flex;
     align-items: center;
@@ -1352,9 +1726,7 @@ const accionEliminar = () => {
     flex-shrink: 0;
 }
 
-/* ============================================================ */
-/* MODAL PREVIEW */
-/* ============================================================ */
+/* MODAL PREVIEW (PDF/XML) */
 .modal-preview-premium :deep(.ant-modal-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
@@ -1398,7 +1770,6 @@ const accionEliminar = () => {
     border: none;
 }
 
-/* XML Preview */
 .preview-xml-wrapper {
     display: flex;
     align-items: center;
@@ -1491,7 +1862,240 @@ const accionEliminar = () => {
     color: white;
 }
 
-/* ========== MONTOS ========== */
+/* MODAL RECURSO (Subir/Ver) */
+.modal-recurso-premium :deep(.ant-modal-header) {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+}
+
+.modal-recurso-premium :deep(.ant-modal-title) {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.modal-recurso-premium :deep(.ant-modal-close) {
+    color: white;
+}
+
+.modal-recurso-premium :deep(.ant-modal-close:hover) {
+    color: #fca5a5;
+}
+
+.modal-recurso-premium :deep(.ant-modal-body) {
+    padding: 0;
+}
+
+.modal-recurso-content {
+    min-height: 300px;
+    padding: 24px;
+}
+
+.recurso-pdf-wrapper {
+    width: 100%;
+    height: 70vh;
+    min-height: 400px;
+}
+
+.recurso-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.recurso-image-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.recurso-image {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.recurso-other {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 12px;
+}
+
+.recurso-other-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: #f3f4f6;
+    border-radius: 50%;
+}
+
+.recurso-other-svg {
+    width: 40px;
+    height: 40px;
+    color: #94a3b8;
+}
+
+.recurso-other-text {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.recurso-other-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.recurso-other-link:hover {
+    background: #eff6ff;
+}
+
+.recurso-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    background: white;
+    border-top: 1px solid #f3f4f6;
+}
+
+.recurso-upload-wrapper {
+    padding: 8px 0;
+}
+
+.recurso-upload-info {
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.recurso-upload-info strong {
+    color: #0f172a;
+}
+
+.recurso-upload-hint {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.recurso-drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+}
+
+.recurso-drop-zone:hover {
+    border-color: #8b5cf6;
+    background: #f8f7ff;
+}
+
+.recurso-drop-zone-dragover {
+    border-color: #8b5cf6;
+    background: #ede9fe;
+    transform: scale(1.02);
+}
+
+.recurso-drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurso-drop-zone-icon {
+    width: 48px;
+    height: 48px;
+    color: #94a3b8;
+}
+
+.recurso-drop-zone-text {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.recurso-drop-zone-text.archivo-seleccionado {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.archivo-seleccionado-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.recurso-drop-zone-hint {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.recurso-file-input-hidden {
+    display: none;
+}
+
+.recurso-error {
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: #fee2e2;
+    border-radius: 6px;
+    color: #991b1b;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurso-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.error-icon-sm {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.spinner-border-sm {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.75s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+/* MONTOS */
 .monto-card {
     display: flex;
     flex-direction: column;
@@ -1533,7 +2137,7 @@ const accionEliminar = () => {
 .monto-value.egreso { color: #dc2626; }
 .monto-value.neutro { color: #94a3b8; }
 
-/* ========== DOBLE IVA ========== */
+/* DOBLE IVA */
 .doble-iva-box {
     margin-top: 16px;
     background: linear-gradient(135deg, #fefce8, #fef3c7);
@@ -1621,7 +2225,7 @@ const accionEliminar = () => {
 
 .font-bold { font-weight: 700; }
 
-/* ========== IVA SIMPLE ========== */
+/* IVA SIMPLE */
 .iva-simple-box {
     margin-top: 16px;
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
@@ -1674,7 +2278,7 @@ const accionEliminar = () => {
     margin-top: 2px;
 }
 
-/* ========== NOTA ========== */
+/* NOTA */
 .nota-content {
     padding: 16px 20px;
     background: #f8fafc;
@@ -1685,7 +2289,7 @@ const accionEliminar = () => {
     white-space: pre-wrap;
 }
 
-/* ========== ACTION FOOTER ========== */
+/* ACTION FOOTER */
 .action-footer {
     display: flex;
     flex-direction: column;
@@ -1704,7 +2308,7 @@ const accionEliminar = () => {
     }
 }
 
-/* ===== AUDIT TIMELINE ===== */
+/* AUDIT TIMELINE */
 .action-left {
     display: flex;
     align-items: center;
@@ -1805,7 +2409,7 @@ const accionEliminar = () => {
     flex-shrink: 0;
 }
 
-/* ===== BOTONES ===== */
+/* BOTONES DE ACCIÓN */
 .action-right {
     display: flex;
     flex-wrap: wrap;
@@ -1837,10 +2441,38 @@ const accionEliminar = () => {
     transform: translateY(0px) scale(0.97);
 }
 
+/* 🔥 BOTÓN SUBIR RECURSO (cuando NO tiene recurso) */
+.btn-subir-recurso {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+}
+
+.btn-subir-recurso:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    color: white;
+}
+
+/* 🔥 BOTÓN VER RECURSO (cuando SÍ tiene recurso) */
+.btn-ver-recurso {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+}
+
+.btn-ver-recurso:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+    color: white;
+}
+
+/* 🔥 BOTÓN IMPRIMIR */
 .btn-pdf {
     background: #dc2626;
     color: white;
 }
+
 .btn-pdf:hover {
     background: #b91c1c;
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
@@ -1851,6 +2483,7 @@ const accionEliminar = () => {
     background: #dbeafe;
     color: #1e40af;
 }
+
 .btn-revisar:hover {
     background: #bfdbfe;
     box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
@@ -1860,6 +2493,7 @@ const accionEliminar = () => {
     background: #d1fae5;
     color: #065f46;
 }
+
 .btn-autorizar:hover {
     background: #a7f3d0;
     box-shadow: 0 4px 12px rgba(6, 95, 70, 0.2);
@@ -1869,6 +2503,7 @@ const accionEliminar = () => {
     background: #ef4444;
     color: white;
 }
+
 .btn-cerrar:hover {
     background: #dc2626;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
@@ -1879,6 +2514,7 @@ const accionEliminar = () => {
     background: #dbeafe;
     color: #1e40af;
 }
+
 .btn-reabrir:hover {
     background: #bfdbfe;
     box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
@@ -1889,6 +2525,7 @@ const accionEliminar = () => {
     color: #92400e;
     border: 1.5px solid #fcd34d;
 }
+
 .btn-editar:hover {
     background: #fde68a;
     box-shadow: 0 4px 12px rgba(146, 64, 14, 0.15);
@@ -1898,18 +2535,179 @@ const accionEliminar = () => {
     background: #fee2e2;
     color: #991b1b;
 }
+
 .btn-eliminar:hover {
     background: #fecaca;
     box-shadow: 0 4px 12px rgba(153, 27, 27, 0.2);
 }
 
-.btn-regresar {
-    background: #f1f5f9;
-    color: #475569;
+/* ============================================================ */
+/* MODAL DE IMPRESIÓN                                            */
+/* ============================================================ */
+.modal-imprimir-premium :deep(.ant-modal-header) {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
 }
-.btn-regresar:hover {
-    background: #e2e8f0;
-    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.15);
+
+.modal-imprimir-premium :deep(.ant-modal-title) {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.modal-imprimir-premium :deep(.ant-modal-close) {
+    color: white;
+}
+
+.modal-imprimir-premium :deep(.ant-modal-close:hover) {
+    color: #fca5a5;
+}
+
+.modal-imprimir-premium :deep(.ant-modal-body) {
+    padding: 24px;
+}
+
+.modal-imprimir-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal-imprimir-desc {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0;
+    text-align: center;
+}
+
+.modal-imprimir-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-imprimir-option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.modal-imprimir-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.modal-imprimir-option.ticket:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.modal-imprimir-option.reimision:hover {
+    border-color: #8b5cf6;
+    background: #f5f3ff;
+}
+
+.modal-imprimir-option:active {
+    transform: translateY(0px) scale(0.98);
+}
+
+.modal-imprimir-option-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.modal-imprimir-option.ticket .modal-imprimir-option-icon {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.modal-imprimir-option.reimision .modal-imprimir-option-icon {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.modal-imprimir-option-svg {
+    width: 24px;
+    height: 24px;
+}
+
+.modal-imprimir-option-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.modal-imprimir-option-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.modal-imprimir-option-desc {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.modal-imprimir-option-arrow {
+    width: 20px;
+    height: 20px;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.modal-imprimir-option:hover .modal-imprimir-option-arrow {
+    color: #475569;
+    transform: translateX(4px);
+}
+
+.modal-imprimir-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+/* ============================================================ */
+/* RESPONSIVE PARA MODAL DE IMPRESIÓN                           */
+/* ============================================================ */
+@media (max-width: 480px) {
+    .modal-imprimir-option {
+        padding: 12px 16px;
+        gap: 12px;
+    }
+    
+    .modal-imprimir-option-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .modal-imprimir-option-svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .modal-imprimir-option-title {
+        font-size: 0.85rem;
+    }
+    
+    .modal-imprimir-option-desc {
+        font-size: 0.7rem;
+    }
 }
 
 /* ============================================================ */
@@ -1934,9 +2732,12 @@ const accionEliminar = () => {
     .audit-date { font-size: 0.55rem; }
     .audit-connector { display: none; }
     .action-right { justify-content: center; width: 100%; }
-    .btn-action { flex: 1; justify-content: center; min-width: 80px; padding: 6px 12px; font-size: 0.7rem; }
+    .btn-action { flex: 1; justify-content: center; min-width: 60px; padding: 6px 12px; font-size: 0.7rem; }
     .btn-ver-documento { font-size: 0.7rem; padding: 4px 12px; }
     .preview-pdf-wrapper { height: 60vh; min-height: 300px; }
+    .recurso-pdf-wrapper { height: 50vh; min-height: 300px; }
+    .btn-back { padding: 6px 12px; font-size: 0.75rem; }
+    .btn-back .w-5 { width: 16px; height: 16px; }
 }
 
 @media (max-width: 480px) {
@@ -1962,6 +2763,10 @@ const accionEliminar = () => {
     .action-right { flex-direction: column; width: 100%; }
     .btn-action { width: 100%; justify-content: center; }
     .preview-pdf-wrapper { height: 50vh; min-height: 250px; }
+    .recurso-pdf-wrapper { height: 40vh; min-height: 250px; }
+    .recurso-image { max-height: 50vh; }
+    .btn-back { padding: 4px 10px; font-size: 0.7rem; }
+    .btn-back .w-5 { width: 14px; height: 14px; }
 }
 
 /* ============================================================ */

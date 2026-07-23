@@ -72,16 +72,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/movimientos/{id}/detalle', [MovimientoController::class, 'getDetallePoliza'])->name('movimientos.detalle');
     Route::get('/movimientos/{id}/estadisticas', [MovimientoController::class, 'getEstadisticasPoliza'])->name('movimientos.estadisticas');
     Route::get('/movimientos/{id}/historial', [MovimientoController::class, 'getHistorialPoliza'])->name('movimientos.historial');
-    Route::get('/movimientos/{id}/imprimir', [MovimientoController::class, 'imprimirPoliza'])
-    ->name('movimientos.imprimir');
-    Route::post('/movimientos/{id}/archivos', [MovimientoController::class, 'subirArchivo'])
-    ->name('movimientos.archivos.subir');
-        Route::get('/movimientos/cuentas-activas', [MovimientoController::class, 'obtenerCuentasActivas'])
-        ->name('movimientos.cuentas-activas');
-    Route::get('/movimientos/archivos/{id}', [MovimientoController::class, 'verArchivo'])
-        ->name('movimientos.archivos.ver');
-    Route::delete('/movimientos/archivos/{id}', [MovimientoController::class, 'eliminarArchivo'])
-        ->name('movimientos.archivos.eliminar');
+    Route::get('/movimientos/{id}/imprimir', [MovimientoController::class, 'imprimirPoliza'])->name('movimientos.imprimir');
+    Route::post('/movimientos/{id}/archivos', [MovimientoController::class, 'subirArchivo'])->name('movimientos.archivos.subir');
+    Route::get('/movimientos/cuentas-activas', [MovimientoController::class, 'obtenerCuentasActivas'])->name('movimientos.cuentas-activas');
+    Route::get('/movimientos/archivos/{id}', [MovimientoController::class, 'verArchivo'])->name('movimientos.archivos.ver');
+    Route::delete('/movimientos/archivos/{id}', [MovimientoController::class, 'eliminarArchivo'])->name('movimientos.archivos.eliminar');
+    
     // ============================================
     // 🟢 RESOURCE - DEBE IR AL FINAL
     // ============================================
@@ -107,11 +103,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cuentas/{cuenta}/cambiar-estado', [CuentaController::class, 'cambiarEstado'])->name('cuentas.cambiar-estado');
     Route::get('/cuentas/inactivas', [CuentaController::class, 'inactivas'])->name('cuentas.inactivas');
     Route::post('/cuentas/{id}/restaurar', [CuentaController::class, 'restaurar'])->name('cuentas.restaurar');
-    // En routes/web.php agregar:
-    Route::get('/cuentas/get-cuentas-resultados', [CuentaController::class, 'getCuentasResultados'])
-        ->name('cuentas.get-cuentas-resultados');
+    Route::get('/cuentas/get-cuentas-resultados', [CuentaController::class, 'getCuentasResultados'])->name('cuentas.get-cuentas-resultados');
     Route::resource('cuentas', CuentaController::class);
-    
 });
 
 // ✅ EMPRESAS - PRIMERO LAS RUTAS PERSONALIZADAS, LUEGO EL RESOURCE
@@ -137,6 +130,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reportes/movimientos-cuenta', [ReporteController::class, 'getMovimientosCuenta'])->name('reportes.movimientos.cuenta');
     Route::get('/reportes/export/excel', [ReporteController::class, 'exportExcel'])->name('reportes.export.excel');
     Route::get('/reportes/export/pdf', [ReporteController::class, 'exportPdf'])->name('reportes.export.pdf');
+    
+    // ✅ Reportes - Exportar PDF de Resultados (RUTA CORRECTA)
+    Route::get('/reportes/export/pdf/resultados', [ReporteController::class, 'exportPdfResultados'])
+        ->name('reportes.export.pdf.resultados');
 });
 
 // Perfil

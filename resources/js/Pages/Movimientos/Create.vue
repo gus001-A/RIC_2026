@@ -255,7 +255,6 @@
                                     </div>
                                     <div class="iva-total">
                                         <span>Total: <strong>${{ formatNumber(totalConIvaCalculado) }}</strong></span>
-                                        <span class="iva-breakdown">Base: ${{ formatNumber(totalBaseCalculado) }} | IVA: ${{ formatNumber(totalIvaCalculado) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -276,9 +275,7 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label class="form-label">
-                                        Cuenta Fondeadora
-                                        <span v-if="!form.es_por_pagar" class="required-star">*</span>
-                                        <span v-else class="opcional-label">(Opcional)</span>
+                                        Cuenta Fondeadora <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="form.id_cuenta_fondeadora"
@@ -297,9 +294,6 @@
                                     <div v-if="form.errors.id_cuenta_fondeadora" class="error-text">{{ form.errors.id_cuenta_fondeadora }}</div>
                                     <div v-if="cuentaFondeadoraSeleccionada" class="saldo-disponible">
                                         Saldo disponible: <strong>${{ formatNumber(cuentaFondeadoraSeleccionada.saldo || 0) }}</strong>
-                                    </div>
-                                    <div v-if="form.es_por_pagar" class="hint-text" style="color: #92400e;">
-                                        ⚡ Póliza diferida - no requiere cuenta fondeadora
                                     </div>
                                 </div>
 
@@ -430,15 +424,15 @@
                                 </div>
                             </div>
 
-                            <!-- VALIDACION DE SALDO - SOLO SI NO ES POR PAGAR -->
-                            <div v-if="!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && totalConIvaCalculado > 0 && cuentaFondeadoraSeleccionada" 
+                            <!-- VALIDACION DE SALDO - SOLO SI ES EGRESO -->
+                            <div v-if="form.tipo_poliza === 'EGRESO' && totalMontoTotal > 0 && cuentaFondeadoraSeleccionada" 
                                  class="validacion-saldo"
-                                 :class="totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) ? 'saldo-insuficiente' : 'saldo-suficiente'">
-                                <span class="validacion-icon">{{ totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) ? '!' : '✓' }}</span>
+                                 :class="totalMontoTotal > (cuentaFondeadoraSeleccionada.saldo || 0) ? 'saldo-insuficiente' : 'saldo-suficiente'">
+                                <span class="validacion-icon">{{ totalMontoTotal > (cuentaFondeadoraSeleccionada.saldo || 0) ? '!' : '✓' }}</span>
                                 <span class="validacion-texto">
-                                    {{ totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) 
-                                        ? `El monto ($${formatNumber(totalConIvaCalculado)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.saldo || 0)})` 
-                                        : `Saldo suficiente: $${formatNumber((cuentaFondeadoraSeleccionada.saldo || 0) - totalConIvaCalculado)} restante` }}
+                                    {{ totalMontoTotal > (cuentaFondeadoraSeleccionada.saldo || 0) 
+                                        ? `El monto ($${formatNumber(totalMontoTotal)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.saldo || 0)})` 
+                                        : `Saldo suficiente: $${formatNumber((cuentaFondeadoraSeleccionada.saldo || 0) - totalMontoTotal)} restante` }}
                                 </span>
                             </div>
                         </div>
@@ -508,7 +502,6 @@
                                 </div>
                             </div>
 
-                            <!-- 🔥 MODIFICADO: USAR SOLO CUENTAS FONDEADORAS PARA ORIGEN Y DESTINO -->
                             <!-- FILA 2: CUENTA ORIGEN, CUENTA DESTINO, MONTO -->
                             <div class="form-row">
                                 <div class="form-group">
@@ -521,7 +514,7 @@
                                                 class="form-input"
                                                 :class="{ error: formTraspaso.errors.id_cuenta_origen }">
                                             <option value="">Selecciona una cuenta</option>
-                                            <option v-for="c in cuentasOrigenTraspaso" :key="c.id_cuenta" :value="c.id_cuenta">
+                                            <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
                                             </option>
                                         </select>
@@ -545,7 +538,7 @@
                                                 class="form-input"
                                                 :class="{ error: formTraspaso.errors.id_cuenta_destino }">
                                             <option value="">Selecciona una cuenta</option>
-                                            <option v-for="c in cuentasDestinoTraspaso" :key="c.id_cuenta" :value="c.id_cuenta">
+                                            <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
                                             </option>
                                         </select>
@@ -556,7 +549,7 @@
                                     <div v-if="formTraspaso.errors.id_cuenta_destino" class="error-text">{{ formTraspaso.errors.id_cuenta_destino }}</div>
                                     <div v-if="formTraspaso.id_cuenta_destino" class="saldo-disponible">
                                         Saldo: <strong>${{ formatNumber(saldoCuentaDestino) }}</strong>
-                                        <span v-if="totalConIvaTraspasoCalculado > 0" class="nuevo-saldo">
+                                        <span v-if="totalMontoTraspaso > 0" class="nuevo-saldo">
                                             → Nuevo: ${{ formatNumber(nuevoSaldoDestino) }}
                                         </span>
                                     </div>
@@ -623,7 +616,6 @@
                                         </div>
                                         <div class="iva-total">
                                             <span>Total: <strong>${{ formatNumber(totalConIvaTraspasoCalculado) }}</strong></span>
-                                            <span class="iva-breakdown">Base: ${{ formatNumber(totalBaseTraspasoCalculado) }} | IVA: ${{ formatNumber(totalIvaTraspasoCalculado) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -732,13 +724,13 @@
                             </div>
 
                             <!-- VALIDACION DE SALDO TRASPASO -->
-                            <div v-if="formTraspaso.id_cuenta_origen && totalConIvaTraspasoCalculado > 0" 
+                            <div v-if="formTraspaso.id_cuenta_origen && totalMontoTraspaso > 0" 
                                  class="validacion-saldo"
-                                 :class="totalConIvaTraspasoCalculado > saldoCuentaOrigen ? 'saldo-insuficiente' : 'saldo-suficiente'">
-                                <span class="validacion-icon">{{ totalConIvaTraspasoCalculado > saldoCuentaOrigen ? '!' : '✓' }}</span>
+                                 :class="totalMontoTraspaso > saldoCuentaOrigen ? 'saldo-insuficiente' : 'saldo-suficiente'">
+                                <span class="validacion-icon">{{ totalMontoTraspaso > saldoCuentaOrigen ? '!' : '✓' }}</span>
                                 <span class="validacion-texto">
-                                    {{ totalConIvaTraspasoCalculado > saldoCuentaOrigen 
-                                        ? `El monto ($${formatNumber(totalConIvaTraspasoCalculado)}) excede el saldo de origen ($${formatNumber(saldoCuentaOrigen)})` 
+                                    {{ totalMontoTraspaso > saldoCuentaOrigen 
+                                        ? `El monto ($${formatNumber(totalMontoTraspaso)}) excede el saldo de origen ($${formatNumber(saldoCuentaOrigen)})` 
                                         : `Saldo suficiente en origen` }}
                                 </span>
                             </div>
@@ -760,11 +752,11 @@
                             <div class="actions-left">
                                 <div class="total-card">
                                     <span class="total-label">Total</span>
-                                    <span class="total-value">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalConIvaCalculado : totalConIvaTraspasoCalculado) }}</span>
+                                    <span class="total-value">${{ formatNumber(totalMontoMostrar) }}</span>
                                 </div>
                                 <div class="total-card total-card-iva">
                                     <span class="total-label">IVA</span>
-                                    <span class="total-value">${{ formatNumber(tipoPolizaSeleccionado === 'INGRESO_EGRESO' ? totalIvaCalculado : totalIvaTraspasoCalculado) }}</span>
+                                    <span class="total-value">${{ formatNumber(totalIvaMostrar) }}</span>
                                 </div>
                             </div>
                             <div class="actions-right">
@@ -865,7 +857,6 @@ const pdfInputTraspaso = ref(null);
 const xmlInputTraspaso = ref(null);
 const personas = ref(props.personas || []);
 const cuentaFondeadoraSeleccionada = ref(null);
-// 🔥 CORRECCIÓN DE FECHA - Usar zona horaria de México
 const fechaActual = ref(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }));
 const modalMarcadorVisible = ref(false);
 const guardandoMarcador = ref(false);
@@ -893,40 +884,65 @@ const ivasSeleccionados = ref([]);
 const ivasSeleccionadosTraspaso = ref([]);
 
 // ============================================
-// 🔥 COMPUTED - FILTROS DE TRASPASO (SOLO CUENTAS FONDEADORAS)
+// COMPUTED - TOTALES PARA MOSTRAR
 // ============================================
 
-// 🔥 AMBOS ORIGEN Y DESTINO USAN LAS MISMAS CUENTAS FONDEADORAS
-// Solo se filtran por Naturaleza para determinar qué tipo de cuenta es
-const cuentasOrigenTraspaso = computed(() => {
-    console.log('Cuentas fondeadoras disponibles:', cuentasFondeadoras.value);
-    const filtradas = cuentasFondeadoras.value.filter(cuenta => {
-        // Si no tiene Naturaleza, se muestra en ambos
-        if (!cuenta.Naturaleza) return true;
-        // DEUDORAS para origen
-        return cuenta.Naturaleza === 'DEUDORA';
-    });
-    console.log('Cuentas origen (DEUDORAS):', filtradas);
-    return filtradas;
+// 🔥 CORREGIDO: Total para Ingreso/Egreso (con o sin IVA)
+const totalMontoTotal = computed(() => {
+    if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
+        if (ivasSeleccionados.value.length > 0) {
+            return totalConIvaCalculado.value;
+        }
+        return form.monto_directo || 0;
+    }
+    return 0;
 });
 
-// 🔥 AMBOS ORIGEN Y DESTINO USAN LAS MISMAS CUENTAS FONDEADORAS
-const cuentasDestinoTraspaso = computed(() => {
-    const filtradas = cuentasFondeadoras.value.filter(cuenta => {
-        // Si no tiene Naturaleza, se muestra en ambos
-        if (!cuenta.Naturaleza) return true;
-        // ACREEDORAS para destino
-        return cuenta.Naturaleza === 'ACREEDORA';
-    });
-    console.log('Cuentas destino (ACREEDORAS):', filtradas);
-    return filtradas;
+// 🔥 CORREGIDO: Total para Traspaso (con o sin IVA)
+const totalMontoTraspaso = computed(() => {
+    if (tipoPolizaSeleccionado.value === 'TRASPASO') {
+        if (ivasSeleccionadosTraspaso.value.length > 0) {
+            return totalConIvaTraspasoCalculado.value;
+        }
+        return formTraspaso.monto_directo || 0;
+    }
+    return 0;
+});
+
+// 🔥 CORREGIDO: Total a mostrar en el footer
+const totalMontoMostrar = computed(() => {
+    if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
+        if (ivasSeleccionados.value.length > 0) {
+            return totalConIvaCalculado.value;
+        }
+        return form.monto_directo || 0;
+    } else {
+        if (ivasSeleccionadosTraspaso.value.length > 0) {
+            return totalConIvaTraspasoCalculado.value;
+        }
+        return formTraspaso.monto_directo || 0;
+    }
+});
+
+// 🔥 CORREGIDO: IVA a mostrar en el footer
+const totalIvaMostrar = computed(() => {
+    if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
+        if (ivasSeleccionados.value.length > 0) {
+            return totalIvaCalculado.value;
+        }
+        return 0;
+    } else {
+        if (ivasSeleccionadosTraspaso.value.length > 0) {
+            return totalIvaTraspasoCalculado.value;
+        }
+        return 0;
+    }
 });
 
 // ============================================
 // COMPUTED - VALIDACIONES
 // ============================================
 
-// 🔥 VALIDACION DE IVA VS MONTO (SOLO SI HAY IVAS SELECCIONADOS)
 const isIvaValid = computed(() => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
         if (ivasSeleccionados.value.length === 0) return true;
@@ -950,18 +966,18 @@ const isFormValid = computed(() => {
         if (!form.tipo_poliza) return false;
         if (!form.id_cuenta) return false;
         if (!form.monto_directo || form.monto_directo <= 0) return false;
+        if (!form.id_cuenta_fondeadora) return false;
         
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
             return false;
         }
         
-        if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
+        if (form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
             if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) return false;
         }
         return true;
     } else {
-        // 🔥 VALIDACIONES PARA TRASPASO
         if (!formTraspaso.fecha_poliza) return false;
         if (!formTraspaso.id_cuenta_origen) return false;
         if (!formTraspaso.id_cuenta_destino) return false;
@@ -992,11 +1008,7 @@ const errorCount = computed(() => {
 
 const requiredFields = computed(() => {
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
-        const fields = ['fecha_poliza', 'id_persona', 'tipo_poliza', 'id_cuenta', 'monto_directo'];
-        if (!form.es_por_pagar) {
-            fields.push('id_cuenta_fondeadora');
-        }
-        return fields;
+        return ['fecha_poliza', 'id_persona', 'tipo_poliza', 'id_cuenta', 'monto_directo', 'id_cuenta_fondeadora'];
     } else {
         return ['fecha_poliza', 'id_cuenta_origen', 'id_cuenta_destino', 'monto_directo'];
     }
@@ -1214,6 +1226,13 @@ const seleccionarTipo = (tipo) => {
     saldoCuentaOrigen.value = 0;
     saldoCuentaDestino.value = 0;
     form.id_cuenta = null;
+    
+    // Limpiar campos de traspaso
+    formTraspaso.id_cuenta_origen = null;
+    formTraspaso.id_cuenta_destino = null;
+    formTraspaso.monto_directo = 0;
+    ivasSeleccionadosTraspaso.value = [];
+    formTraspaso.ivas = {};
 };
 
 const onTipoPolizaChange = () => {
@@ -1274,7 +1293,6 @@ const cambiarCuentaFondeadora = async () => {
     }
 };
 
-// 🔥 MODIFICADO: Obtener saldo de cuentas fondeadoras
 const obtenerSaldoCuenta = (idCuenta) => {
     if (!idCuenta) return 0;
     const cuenta = cuentasFondeadoras.value.find(c => c.id_cuenta === idCuenta);
@@ -1386,14 +1404,10 @@ const toggleFiscalTraspaso = () => {
 };
 
 const onEsPorPagarChange = () => {
-    if (form.es_por_pagar) {
-        form.id_cuenta_fondeadora = null;
-        cuentaFondeadoraSeleccionada.value = null;
-    } else {
-        if (cuentasFondeadoras.value.length > 0) {
-            form.id_cuenta_fondeadora = cuentasFondeadoras.value[0].id_cuenta;
-            cambiarCuentaFondeadora();
-        }
+    // Siempre mantener la cuenta fondeadora seleccionada
+    if (!form.id_cuenta_fondeadora && cuentasFondeadoras.value.length > 0) {
+        form.id_cuenta_fondeadora = cuentasFondeadoras.value[0].id_cuenta;
+        cambiarCuentaFondeadora();
     }
 };
 
@@ -1577,7 +1591,17 @@ const submit = () => {
             return;
         }
         
-        if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
+        if (!form.id_cuenta_fondeadora) {
+            alertRef.value?.show({
+                type: 'error',
+                title: 'Cuenta fondeadora requerida',
+                message: 'Debes seleccionar una cuenta fondeadora.',
+                buttonText: 'Entendido'
+            });
+            return;
+        }
+        
+        if (form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
             if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) {
                 alertRef.value?.show({
@@ -1836,21 +1860,19 @@ watch(() => form.tipo_poliza, () => {
 // MOUNTED
 // ============================================
 onMounted(() => {
-    // 🔥 CORRECCIÓN DE FECHA - Usar zona horaria de México
     const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
     form.fecha_poliza = hoy;
     formTraspaso.fecha_poliza = hoy;
 
-    // 🔥 Las cuentas fondeadoras ya están en props.cuentas_fondeadoras
-    // No necesitamos combinarlas con nada más
-
+    console.log('📊 Cuentas fondeadoras recibidas:', props.cuentas_fondeadoras);
+    
     if (props.tipos_iva && props.tipos_iva.length > 0) {
         tiposIva.value = props.tipos_iva;
     }
 
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         cuentasFondeadoras.value = props.cuentas_fondeadoras;
-        console.log('Cuentas fondeadoras cargadas:', cuentasFondeadoras.value);
+        console.log('✅ Cuentas fondeadoras cargadas:', cuentasFondeadoras.value);
         if (!form.id_cuenta_fondeadora) {
             form.id_cuenta_fondeadora = props.cuentas_fondeadoras[0].id_cuenta;
             const primeraCuenta = props.cuentas_fondeadoras[0];
@@ -1860,6 +1882,8 @@ onMounted(() => {
                 saldo: primeraCuenta.saldo || 0
             };
         }
+    } else {
+        console.warn('⚠️ No se recibieron cuentas fondeadoras');
     }
     
     if (props.cuentas_egreso && props.cuentas_egreso.length > 0) {
@@ -2072,7 +2096,6 @@ onMounted(() => {
     position: relative;
 }
 
-/* 🔥 CORRECCIÓN PARA INPUT DE FECHA */
 .input-date-wrapper {
     position: relative;
 }
@@ -2083,7 +2106,6 @@ onMounted(() => {
     appearance: none;
 }
 
-/* 🔥 ÍCONO DE FECHA CORREGIDO */
 .input-date-icon {
     position: absolute;
     right: 12px;
@@ -2096,7 +2118,6 @@ onMounted(() => {
     z-index: 2;
 }
 
-/* 🔥 ESTILO PARA SELECT CON ÍCONO */
 .form-input {
     width: 100%;
     padding: 8px 36px 8px 14px;
@@ -2126,12 +2147,6 @@ onMounted(() => {
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
-/* 🔥 INPUT DE TEXTO SIN ÍCONO */
-.form-input-no-icon {
-    padding-right: 14px;
-}
-
-/* 🔥 ÍCONO PARA SELECT Y OTROS INPUTS */
 .input-icon {
     position: absolute;
     right: 12px;
@@ -2327,11 +2342,6 @@ onMounted(() => {
 .iva-total strong {
     color: #059669;
     font-size: 0.9rem;
-}
-
-.iva-breakdown {
-    font-size: 0.7rem;
-    color: #94a3b8;
 }
 
 /* --- VALIDACION DE IVA --- */

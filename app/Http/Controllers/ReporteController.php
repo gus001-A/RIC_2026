@@ -851,4 +851,80 @@ class ReporteController extends Controller
             }
         }
     }
+    /**
+     * 🔥 EXPORTAR CUENTAS DE RESULTADOS A PDF (USANDO BLADE)
+     */
+    public function exportPdfResultados(Request $request)
+    {
+        $empresaId = $request->input('empresa_id');
+        $vista = $request->input('vista', 'por_cuenta');
+        $fechaDesde = $request->input('fecha_desde');
+        $fechaHasta = $request->input('fecha_hasta');
+        $tipoFiltro = $request->input('tipo_filtro', 'todas');
+
+        if (!$empresaId) {
+            return back()->with('error', 'Se requiere una empresa para exportar');
+        }
+
+        try {
+            // Obtener cuentas de resultados con el filtro actual
+            $cuentasResultados = $this->getCuentasResultadosOptimizado(
+                $empresaId, 
+                $fechaDesde, 
+                $fechaHasta, 
+                $tipoFiltro
+            );
+
+            if (empty($cuentasResultados)) {
+                return back()->with('error', 'No hay cuentas de resultados para exportar');
+            }
+
+            $empresa = \App\Models\Empresa::find($empresaId);
+            $nombreEmpresa = $empresa ? $empresa->nombre_empresa : 'Sin empresa';
+
+            // Calcular totales
+            $totalCuentas = 0;
+            $saldoTotal = 0;
+            foreach ($cuentasResultados as $padre) {
+                $totalCuentas += count($padre['hijas']);
+                $saldoTotal += $padre['subtotal'];
+            }
+
+            // Preparar datos para la vista
+            $data = [
+                'empresa' => $nombreEmpresa,
+                'cuentas' => $cuentasResultados,
+                'fecha_desde' => $fechaDesde ?: 'Inicio',
+                'fecha_hasta' => $fechaHasta ?: 'Actual',
+                'tipo_filtro' => $tipoFiltro,
+                'total_cuentas' => $totalCuentas,
+                'saldo_total' => $saldoTotal,
+                'fecha_exportacion' => now()->format('d/m/Y H:i:s')
+            ];
+
+            // 🔥 CORREGIDO: Usar la ruta correcta exports/
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.resultados-pdf', $data);
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'margin_top' => 10,
+                'margin_bottom' => 10,
+                'margin_left' => 15,
+                'margin_right' => 15,
+            ]);
+
+            $filename = 'cuentas_resultados_' . date('Y-m-d_H-i-s') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al exportar PDF de resultados:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Error al exportar PDF: ' . $e->getMessage());
+        }
+    }
 }

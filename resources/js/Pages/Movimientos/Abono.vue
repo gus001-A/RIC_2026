@@ -66,15 +66,35 @@
                         </div>
                         <div class="info-leyenda-content">
                             <span class="info-leyenda-texto">
-                                Abono <strong>#{{ numeroAbono }}</strong> para la póliza <strong>{{ movimiento.referencia || 'S/N' }}</strong>. 
+                                Abono <strong>#{{ numeroAbono }}</strong> para la poliza <strong>{{ movimiento.referencia || 'S/N' }}</strong>. 
                                 Ingrese el monto del abono a registrar.
                             </span>
                         </div>
                     </div>
 
+                    <!-- PANEL DE IVAS DISPONIBLES -->
+                    <div v-if="tieneIva" class="info-iva-disponible">
+                        <div class="info-iva-disponible-icon">
+                            <svg width="20" height="20" fill="none" stroke="#1e40af" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                            </svg>
+                        </div>
+                        <div class="info-iva-disponible-content">
+                            <span class="info-iva-disponible-title">Montos disponibles para abonar:</span>
+                            <div class="info-iva-disponible-items">
+                                <span v-for="iva in ivasDisponibles" :key="iva.id" class="info-iva-disponible-item">
+                                    <span class="info-iva-disponible-badge" :class="iva.porcentaje === 0 ? 'badge-cero' : 'badge-dieciseis'">
+                                        {{ iva.porcentaje }}%
+                                    </span>
+                                    <span class="info-iva-disponible-monto">${{ formatNumber(iva.monto_disponible) }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     <form @submit.prevent="submitAbono" id="abonoForm" novalidate>
                         <!-- ============================================ -->
-                        <!-- FILA 1: PERSONA, CUENTA, MARCADOR -->
+                        <!-- FILA 1: PERSONA, CUENTA, CUENTA FONDEADORA -->
                         <!-- ============================================ -->
                         <div class="form-row">
                             <div class="form-group">
@@ -102,6 +122,25 @@
                             </div>
 
                             <div class="form-group">
+                                <label class="form-label">Cuenta Fondeadora</label>
+                                <div class="readonly-value">
+                                    <span class="readonly-icon">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                    </span>
+                                    <span>{{ movimiento.cuenta_fondeadora || 'N/A' }}</span>
+                                </div>
+                                <input type="hidden" :value="movimiento.cuenta_fondeadora_id" />
+                                <input type="hidden" v-model="abonoForm.id_cuenta_fondeadora" />
+                            </div>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- FILA 2: MARCADOR, FECHA VENCIMIENTO, FECHA PAGO, NUMERO ABONO -->
+                        <!-- ============================================ -->
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label class="form-label">Marcador</label>
                                 <div class="readonly-value">
                                     <span class="readonly-icon">
@@ -112,13 +151,51 @@
                                     <span>{{ movimiento.marcador || 'Sin marcador' }}</span>
                                 </div>
                             </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Fecha Vencimiento</label>
+                                <div class="readonly-value" :class="diasRestantesClass">
+                                    <span class="readonly-icon">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </span>
+                                    <span v-if="movimiento.fecha_vencimiento">
+                                        {{ movimiento.fecha_vencimiento }} 
+                                        <span class="dias-restantes">
+                                            ({{ diasRestantes > 0 ? diasRestantes + ' dias restantes' : diasRestantes === 0 ? 'Hoy vence' : 'Vencido' }})
+                                        </span>
+                                    </span>
+                                    <span v-else>Sin fecha de vencimiento</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Fecha de Pago</label>
+                                <div class="readonly-value">
+                                    <span class="readonly-icon">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </span>
+                                    <span>{{ fechaActualFormateada }}</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Numero de Abono</label>
+                                <div class="readonly-value">
+                                    <span class="readonly-icon">#</span>
+                                    <span>{{ numeroAbono }}</span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- FILA 2: MONTO ABONADO, REFERENCIA, CUENTA FONDEADORA -->
+                        <!-- MONTO DEL ABONO - SOLO SI NO TIENE IVA -->
                         <!-- ============================================ -->
-                        <div class="form-row">
-                            <div class="form-group">
+                        <div class="form-row" v-if="!tieneIva">
+                            <div class="form-group full-width">
                                 <label class="form-label">
                                     Monto del Abono <span class="required-star">*</span>
                                 </label>
@@ -139,142 +216,23 @@
                                     </button>
                                 </div>
                                 <div v-if="abonoForm.errors.monto_abonado" class="error-text">{{ abonoForm.errors.monto_abonado }}</div>
-                                <div class="hint-text">Monto máximo: ${{ formatNumber(movimiento.saldo_pendiente) }}</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">
-                                    Referencia del Abono <span class="required-star">*</span>
-                                </label>
-                                <div class="input-wrapper">
-                                    <input type="text" v-model="abonoForm.referencia"
-                                           @input="clearError('referencia')"
-                                           class="form-input"
-                                           :class="{ error: abonoForm.errors.referencia }"
-                                           placeholder="AB-001-2024">
-                                    <button type="button" 
-                                            @click="generarReferenciaAutomatica"
-                                            class="btn-generate"
-                                            title="Generar referencia automática">
-                                        <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div v-if="abonoForm.errors.referencia" class="error-text">{{ abonoForm.errors.referencia }}</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Cuenta Fondeadora</label>
-                                <div class="readonly-value">
-                                    <span class="readonly-icon">
-                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                        </svg>
-                                    </span>
-                                    <span>{{ movimiento.cuenta_fondeadora || 'N/A' }}</span>
-                                </div>
-                                <input type="hidden" :value="movimiento.cuenta_fondeadora_id" />
-                                <input type="hidden" v-model="abonoForm.id_cuenta_fondeadora" />
+                                <div class="hint-text">Monto maximo: ${{ formatNumber(movimiento.saldo_pendiente) }}</div>
                             </div>
                         </div>
 
-                        <!-- Nuevo Saldo Pendiente -->
-                        <div class="nuevo-saldo-box" v-if="abonoForm.monto_abonado > 0">
-                            <span class="nuevo-saldo-icon">
-                                <svg width="20" height="20" fill="none" stroke="#047857" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </span>
-                            <span class="nuevo-saldo-label">Nuevo saldo pendiente:</span>
-                            <span class="nuevo-saldo-value">${{ formatNumber(nuevoSaldoPendiente) }}</span>
-                            <span v-if="nuevoSaldoPendiente === 0" class="nuevo-saldo-liquidado">Póliza liquidada</span>
-                        </div>
+                        <!-- Campo oculto para cuando tiene IVA -->
+                        <input v-if="tieneIva" type="hidden" v-model="abonoForm.monto_abonado" />
 
                         <!-- ============================================ -->
-                        <!-- FILA 3: OPCIONES (Por Pagar, Fiscal) - SOLO LECTURA -->
+                        <!-- DESGLOSE DE IVA - SOLO SI LA POLIZA TIENE IVA -->
                         <!-- ============================================ -->
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">Opciones</label>
-                                <div class="options-grid">
-                                    <label class="checkbox">
-                                        <input type="checkbox" checked disabled class="checkbox-input">
-                                        <span class="checkbox-custom"></span>
-                                        <span class="checkbox-text">Por Pagar</span>
-                                    </label>
-                                    <label class="checkbox">
-                                        <input type="checkbox" :checked="movimiento.es_fiscal" disabled class="checkbox-input">
-                                        <span class="checkbox-custom"></span>
-                                        <span class="checkbox-text">Fiscal</span>
-                                    </label>
-                                </div>
-                                <div v-if="movimiento.fecha_vencimiento" class="vencimiento-wrapper">
-                                    <label class="vencimiento-label">Fecha Vencimiento</label>
-                                    <div class="readonly-value" :class="diasRestantesClass">
-                                        <span>{{ movimiento.fecha_vencimiento }} ({{ diasRestantes > 0 ? diasRestantes + ' días restantes' : diasRestantes === 0 ? 'Hoy vence' : 'Vencido' }})</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Fecha de Pago</label>
-                                <div class="readonly-value">
-                                    <span class="readonly-icon">
-                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
-                                    </span>
-                                    <span>{{ fechaActualFormateada }}</span>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Número de Abono</label>
-                                <div class="readonly-value">
-                                    <span class="readonly-icon">#</span>
-                                    <span>{{ numeroAbono }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ============================================ -->
-                        <!-- IVA - IGUAL QUE CREATE -->
-                        <!-- ============================================ -->
-                        <div class="sub-section">
+                        <div v-if="tieneIva" class="sub-section">
                             <div class="sub-section-header">
-                                <span class="sub-section-title">Desglose de IVA</span>
-                                <span class="sub-section-subtitle">Selecciona los tipos de IVA y asigna los montos</span>
+                                <span class="sub-section-title">Asignacion de IVA</span>
+                                <span class="sub-section-subtitle">Ingresa los montos que deseas abonar a cada tipo de IVA</span>
                             </div>
 
-                            <div class="iva-selector">
-                                <div class="iva-selector-grid">
-                                    <div 
-                                        v-for="iva in tiposIva" 
-                                        :key="iva.id"
-                                        class="iva-select-item"
-                                        :class="{ 
-                                            selected: ivasSeleccionados.includes(iva.id),
-                                            disabled: ivasSeleccionados.length >= 2 && !ivasSeleccionados.includes(iva.id)
-                                        }"
-                                        @click="toggleIvaAbono(iva.id)"
-                                    >
-                                        <span class="iva-select-badge" :class="iva.porcentaje === 0 ? 'badge-cero' : 'badge-dieciseis'">
-                                            {{ iva.porcentaje }}%
-                                        </span>
-                                        <span class="iva-select-name">{{ iva.nombre }}</span>
-                                        <span class="iva-select-check" v-if="ivasSeleccionados.includes(iva.id)">✓</span>
-                                    </div>
-                                </div>
-                                <div class="iva-selector-hint">
-                                    <span v-if="ivasSeleccionados.length === 0" class="text-danger">⚠ Selecciona al menos un tipo de IVA</span>
-                                    <span v-else-if="ivasSeleccionados.length === 1">1 IVA seleccionado</span>
-                                    <span v-else>2 IVAs seleccionados (máximo)</span>
-                                </div>
-                            </div>
-
-                            <!-- DETALLE DE IVA -->
-                            <div v-if="ivasSeleccionados.length > 0" class="iva-detail">
+                            <div class="iva-detail">
                                 <div class="iva-detail-grid">
                                     <div v-for="ivaId in ivasSeleccionados" :key="ivaId" class="iva-detail-item">
                                         <span class="iva-detail-badge" :class="getIvaPorcentaje(ivaId) === 0 ? 'badge-cero' : 'badge-dieciseis'">
@@ -286,37 +244,49 @@
                                                 type="number" 
                                                 step="0.01" 
                                                 v-model.number="abonoForm.ivas[ivaId].monto"
-                                                @input="clearError('ivas')"
+                                                @input="calcularTotalAbono; clearError('ivas')"
                                                 class="form-input iva-input"
                                                 placeholder="0.00"
                                                 min="0"
+                                                :max="obtenerMontoDisponibleIva(ivaId)"
                                             >
                                         </div>
+                                        <span class="iva-detail-disponible">Disponible: ${{ formatNumber(obtenerMontoDisponibleIva(ivaId)) }}</span>
                                         <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMontoAbono(ivaId)) }}</span>
                                         <button type="button" @click="quitarIvaAbono(ivaId)" class="iva-remove-btn">✕</button>
                                     </div>
                                     <div class="iva-total">
-                                        <span>Total: <strong>${{ formatNumber(totalConIvaAbonoCalculado) }}</strong></span>
-                                        <span class="iva-breakdown">Base: ${{ formatNumber(totalBaseAbonoCalculado) }} | IVA: ${{ formatNumber(totalIvaAbonoCalculado) }}</span>
+                                        <span>Total abono: <strong>${{ formatNumber(totalConIvaAbonoCalculado) }}</strong></span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- VALIDACION DE IVA VS MONTO -->
-                            <div v-if="abonoForm.monto_abonado > 0 && ivasSeleccionados.length > 0" 
-                                 class="validacion-iva"
-                                 :class="validarMontoConIva ? 'iva-valido' : 'iva-invalido'">
-                                <span class="validacion-icon">{{ validarMontoConIva ? '✓' : '!' }}</span>
+                            <div v-if="abonoForm.monto_abonado > 0 && ivasSeleccionados.length > 0 && !validarMontoConIva" 
+                                 class="validacion-iva iva-invalido">
+                                <span class="validacion-icon">!</span>
                                 <span class="validacion-texto">
-                                    {{ validarMontoConIva 
-                                        ? `Desglose correcto: $${formatNumber(abonoForm.monto_abonado - totalConIvaAbonoCalculado)} restante` 
-                                        : `La suma del desglose ($${formatNumber(totalConIvaAbonoCalculado)}) excede el monto ($${formatNumber(abonoForm.monto_abonado)})` }}
+                                    La suma del desglose (${{ formatNumber(totalConIvaAbonoCalculado) }}) excede el monto (${{ formatNumber(abonoForm.monto_abonado) }})
                                 </span>
                             </div>
                         </div>
 
                         <!-- ============================================ -->
-                        <!-- RESUMEN FINANCIERO - Estilo Create -->
+                        <!-- NUEVO SALDO PENDIENTE -->
+                        <!-- ============================================ -->
+                        <div class="nuevo-saldo-box" v-if="montoAbonoMostrar > 0">
+                            <span class="nuevo-saldo-icon">
+                                <svg width="20" height="20" fill="none" stroke="#047857" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </span>
+                            <span class="nuevo-saldo-label">Nuevo saldo pendiente:</span>
+                            <span class="nuevo-saldo-value">${{ formatNumber(nuevoSaldoPendiente) }}</span>
+                            <span v-if="nuevoSaldoPendiente === 0" class="nuevo-saldo-liquidado">Poliza liquidada</span>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- RESUMEN FINANCIERO -->
                         <!-- ============================================ -->
                         <div class="resumen-financiero">
                             <div class="resumen-header">
@@ -367,11 +337,7 @@
                             <div class="actions-left">
                                 <div class="total-card">
                                     <span class="total-label">Total Abono</span>
-                                    <span class="total-value">${{ formatNumber(totalConIvaAbonoCalculado) }}</span>
-                                </div>
-                                <div v-if="abonoForm.referencia" class="referencia-card">
-                                    <span class="referencia-label">Referencia</span>
-                                    <span class="referencia-value">{{ abonoForm.referencia }}</span>
+                                    <span class="total-value">${{ formatNumber(totalAbonoFinal) }}</span>
                                 </div>
                             </div>
                             <div class="actions-right">
@@ -428,7 +394,7 @@ const alertRef = ref(null);
 const processing = ref(false);
 const tiposIva = ref(props.tipos_iva || []);
 
-// IVAs seleccionados (se precargarán con los heredados de la póliza)
+// IVAs seleccionados
 const ivasSeleccionados = ref([]);
 
 // ============================================
@@ -447,6 +413,25 @@ const abonoForm = useForm({
 // ============================================
 // COMPUTED
 // ============================================
+const tieneIva = computed(() => {
+    const ivasHeredados = props.movimiento?.ivas_heredados || [];
+    return ivasHeredados.length > 0;
+});
+
+const montoAbonoMostrar = computed(() => {
+    if (tieneIva.value) {
+        return totalConIvaAbonoCalculado.value;
+    }
+    return abonoForm.monto_abonado || 0;
+});
+
+const totalAbonoFinal = computed(() => {
+    if (tieneIva.value) {
+        return totalConIvaAbonoCalculado.value;
+    }
+    return abonoForm.monto_abonado || 0;
+});
+
 const numeroAbono = computed(() => {
     return (props.movimiento.numero_abonos || 0) + 1;
 });
@@ -456,15 +441,13 @@ const fechaActualFormateada = computed(() => {
     return fecha.toLocaleDateString('es-MX', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: 'numeric'
     });
 });
 
 const nuevoSaldoPendiente = computed(() => {
     const saldoActual = props.movimiento.saldo_pendiente || 0;
-    const montoAbono = parseFloat(abonoForm.monto_abonado) || 0;
+    const montoAbono = totalAbonoFinal.value || 0;
     const nuevoSaldo = saldoActual - montoAbono;
     return nuevoSaldo < 0 ? 0 : Math.round(nuevoSaldo * 100) / 100;
 });
@@ -481,8 +464,12 @@ const totalBaseAbonoCalculado = computed(() => {
     let totalBase = 0;
     ivasSeleccionados.value.forEach(ivaId => {
         const montoConIva = abonoForm.ivas[ivaId]?.monto || 0;
+        if (montoConIva <= 0) return;
+        
         const iva = tiposIva.value.find(i => i.id === ivaId);
-        if (iva && iva.porcentaje > 0) {
+        if (!iva) return;
+        
+        if (iva.porcentaje > 0) {
             const base = montoConIva / (1 + (iva.porcentaje / 100));
             totalBase += base;
         } else {
@@ -493,26 +480,35 @@ const totalBaseAbonoCalculado = computed(() => {
 });
 
 const totalIvaAbonoCalculado = computed(() => {
-    const totalConIva = totalConIvaAbonoCalculado.value;
-    const base = totalBaseAbonoCalculado.value;
-    return Math.round((totalConIva - base) * 100) / 100;
+    let totalIva = 0;
+    ivasSeleccionados.value.forEach(ivaId => {
+        const montoConIva = abonoForm.ivas[ivaId]?.monto || 0;
+        if (montoConIva <= 0) return;
+        
+        const iva = tiposIva.value.find(i => i.id === ivaId);
+        if (!iva || iva.porcentaje <= 0) return;
+        
+        const base = montoConIva / (1 + (iva.porcentaje / 100));
+        totalIva += (montoConIva - base);
+    });
+    return Math.round(totalIva * 100) / 100;
 });
+
+const calcularTotalAbono = () => {
+    if (tieneIva.value) {
+        abonoForm.monto_abonado = totalConIvaAbonoCalculado.value;
+    }
+};
 
 // VALIDACION DE IVA VS MONTO
 const validarMontoConIva = computed(() => {
     if (!abonoForm.monto_abonado || abonoForm.monto_abonado <= 0) return true;
     if (ivasSeleccionados.value.length === 0) return true;
     
-    const tieneMonto = ivasSeleccionados.value.some(ivaId => {
-        return (abonoForm.ivas[ivaId]?.monto || 0) > 0;
-    });
-    if (!tieneMonto) return true;
-    
     const totalIva = totalConIvaAbonoCalculado.value;
     const montoAbono = abonoForm.monto_abonado;
-    const diferencia = Math.abs(totalIva - montoAbono);
     
-    return diferencia <= 0.02;
+    return totalIva <= montoAbono;
 });
 
 const diasRestantes = computed(() => {
@@ -539,28 +535,29 @@ const errorCount = computed(() => Object.keys(abonoForm.errors).length);
 
 // VALIDACION DEL FORMULARIO
 const isFormValid = computed(() => {
-    if (!abonoForm.monto_abonado || abonoForm.monto_abonado <= 0) return false;
-    if (abonoForm.monto_abonado > props.movimiento.saldo_pendiente) return false;
-    if (!abonoForm.referencia || abonoForm.referencia.trim() === '') return false;
-    if (ivasSeleccionados.value.length === 0) return false;
+    const montoAbono = totalAbonoFinal.value;
+    if (!montoAbono || montoAbono <= 0) return false;
+    if (montoAbono > props.movimiento.saldo_pendiente) return false;
     
-    const tieneMontoIva = ivasSeleccionados.value.some(ivaId => {
-        const monto = abonoForm.ivas[ivaId]?.monto || 0;
-        return monto > 0;
-    });
-    if (!tieneMontoIva) return false;
-    if (!validarMontoConIva.value) return false;
+    if (tieneIva.value) {
+        if (ivasSeleccionados.value.length === 0) return false;
+        const tieneMontoIva = ivasSeleccionados.value.some(ivaId => {
+            const monto = abonoForm.ivas[ivaId]?.monto || 0;
+            return monto > 0;
+        });
+        if (!tieneMontoIva) return false;
+        if (!validarMontoConIva.value) return false;
+    }
+    
     if (hasErrors.value) return false;
-    
     return true;
 });
 
 const progressPercentage = computed(() => {
     let filled = 0;
-    const total = 3;
-    if (abonoForm.monto_abonado > 0) filled++;
-    if (abonoForm.referencia && abonoForm.referencia.trim() !== '') filled++;
-    if (ivasSeleccionados.value.length > 0) {
+    const total = tieneIva.value ? 2 : 1;
+    if (totalAbonoFinal.value > 0) filled++;
+    if (tieneIva.value) {
         const tieneMonto = ivasSeleccionados.value.some(ivaId => {
             return (abonoForm.ivas[ivaId]?.monto || 0) > 0;
         });
@@ -578,21 +575,36 @@ const statusClass = computed(() => {
 });
 
 const tituloPagina = computed(() => {
-    return `Abono - Póliza ${props.movimiento.referencia || 'S/N'}`;
+    return `Abono - Poliza ${props.movimiento.referencia || 'S/N'}`;
 });
 
 const subtituloPagina = computed(() => {
-    return `Registro del abono #${numeroAbono.value} para la póliza ${props.movimiento.referencia || 'S/N'}`;
+    return `Registro del abono #${numeroAbono.value} para la poliza ${props.movimiento.referencia || 'S/N'}`;
 });
+
+// ============================================
+// IVAS DISPONIBLES PARA MOSTRAR EN EL PANEL
+// ============================================
+const ivasDisponibles = computed(() => {
+    const ivasHeredados = props.movimiento?.ivas_heredados || [];
+    return ivasHeredados.map(iva => {
+        const montoDisponible = iva.monto || 0;
+        return {
+            id: iva.id,
+            porcentaje: iva.porcentaje,
+            monto_disponible: montoDisponible
+        };
+    });
+});
+
+const obtenerMontoDisponibleIva = (ivaId) => {
+    const iva = ivasDisponibles.value.find(i => i.id === ivaId);
+    return iva?.monto_disponible || 0;
+};
 
 // ============================================
 // METODOS PARA IVA
 // ============================================
-const getIvaNombre = (ivaId) => {
-    const iva = tiposIva.value.find(i => i.id === ivaId);
-    return iva ? iva.nombre : '';
-};
-
 const getIvaPorcentaje = (ivaId) => {
     const iva = tiposIva.value.find(i => i.id === ivaId);
     return iva ? iva.porcentaje : 0;
@@ -615,7 +627,7 @@ const toggleIvaAbono = (ivaId) => {
         if (ivasSeleccionados.value.length >= 2) {
             alertRef.value?.show({
                 type: 'warning',
-                title: 'Límite alcanzado',
+                title: 'Limite alcanzado',
                 message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
                 buttonText: 'Entendido'
             });
@@ -626,6 +638,7 @@ const toggleIvaAbono = (ivaId) => {
             abonoForm.ivas[ivaId] = { monto: 0 };
         }
     }
+    calcularTotalAbono();
 };
 
 const quitarIvaAbono = (ivaId) => {
@@ -634,6 +647,7 @@ const quitarIvaAbono = (ivaId) => {
         ivasSeleccionados.value.splice(index, 1);
         delete abonoForm.ivas[ivaId];
     }
+    calcularTotalAbono();
 };
 
 // ============================================
@@ -660,19 +674,12 @@ const generarReferenciaAutomatica = () => {
     const mes = String(ahora.getMonth() + 1).padStart(2, '0');
     const dia = String(ahora.getDate()).padStart(2, '0');
     
-    const consecutivo = numeroAbono.value;
+    const folio = props.movimiento.referencia || '0000';
+    const folioLimpio = folio.replace(/[^0-9]/g, '').padStart(4, '0');
     
     const fechaStr = `${año}${mes}${dia}`;
-    const consecutivoStr = String(consecutivo).padStart(4, '0');
-    const referencia = `AB-${fechaStr}-${consecutivoStr}`;
-    
+    const referencia = `ABO-${folioLimpio}-${fechaStr}`;
     abonoForm.referencia = referencia;
-};
-
-const generarReferenciaInicial = () => {
-    if (!abonoForm.referencia || abonoForm.referencia.trim() === '') {
-        generarReferenciaAutomatica();
-    }
 };
 
 // ============================================
@@ -681,6 +688,10 @@ const generarReferenciaInicial = () => {
 const submitAbono = () => {
     processing.value = true;
 
+    if (tieneIva.value) {
+        abonoForm.monto_abonado = totalConIvaAbonoCalculado.value;
+    }
+    
     abonoForm.monto_abonado = Math.round(abonoForm.monto_abonado * 100) / 100;
 
     if (!abonoForm.monto_abonado || abonoForm.monto_abonado <= 0) {
@@ -705,64 +716,61 @@ const submitAbono = () => {
         return;
     }
 
+    if (tieneIva.value) {
+        if (ivasSeleccionados.value.length === 0) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Error', 
+                message: 'Debes seleccionar al menos un tipo de IVA', 
+                buttonText: 'Entendido' 
+            });
+            processing.value = false;
+            return;
+        }
+
+        const tieneMontoIva = ivasSeleccionados.value.some(ivaId => {
+            return (abonoForm.ivas[ivaId]?.monto || 0) > 0;
+        });
+        if (!tieneMontoIva) {
+            alertRef.value?.show({ 
+                type: 'error', 
+                title: 'Error', 
+                message: 'Debes asignar un monto a al menos un tipo de IVA', 
+                buttonText: 'Entendido' 
+            });
+            processing.value = false;
+            return;
+        }
+
+        if (!validarMontoConIva.value) {
+            alertRef.value?.show({ 
+                type: 'warning', 
+                title: 'Atencion', 
+                message: `El total del desglose ($${formatNumber(totalConIvaAbonoCalculado.value)}) excede el monto del abono ($${formatNumber(abonoForm.monto_abonado)}). Verifica los montos de IVA.`, 
+                buttonText: 'Entendido' 
+            });
+            processing.value = false;
+            return;
+        }
+    }
+
+    // Generar referencia automatica si no tiene
     if (!abonoForm.referencia || abonoForm.referencia.trim() === '') {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: 'La referencia del abono es obligatoria', 
-            buttonText: 'Entendido' 
-        });
-        processing.value = false;
-        return;
-    }
-
-    if (ivasSeleccionados.value.length === 0) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: 'Debes seleccionar al menos un tipo de IVA', 
-            buttonText: 'Entendido' 
-        });
-        processing.value = false;
-        return;
-    }
-
-    const tieneMontoIva = ivasSeleccionados.value.some(ivaId => {
-        return (abonoForm.ivas[ivaId]?.monto || 0) > 0;
-    });
-    if (!tieneMontoIva) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: 'Debes asignar un monto a al menos un tipo de IVA', 
-            buttonText: 'Entendido' 
-        });
-        processing.value = false;
-        return;
-    }
-
-    if (!validarMontoConIva.value) {
-        alertRef.value?.show({ 
-            type: 'warning', 
-            title: 'Atención', 
-            message: `El total del abono con IVA ($${formatNumber(totalConIvaAbonoCalculado.value)}) no coincide con el monto ingresado ($${formatNumber(abonoForm.monto_abonado)}). Verifica los montos de IVA.`, 
-            buttonText: 'Entendido' 
-        });
-        processing.value = false;
-        return;
+        generarReferenciaAutomatica();
     }
 
     if (!abonoForm.id_cuenta_fondeadora) {
         alertRef.value?.show({ 
             type: 'error', 
             title: 'Error', 
-            message: 'No se encontró una cuenta de fondo asociada a esta póliza', 
+            message: 'No se encontro una cuenta de fondo asociada a esta poliza', 
             buttonText: 'Entendido' 
         });
         processing.value = false;
         return;
     }
 
+    // 🔥 CONSTRUIR EL ARRAY DE IVAS CON EL FORMATO CORRECTO
     const ivasArray = ivasSeleccionados.value.map(ivaId => ({
         id: ivaId,
         monto: abonoForm.ivas[ivaId]?.monto || 0
@@ -780,14 +788,27 @@ const submitAbono = () => {
         }
     });
 
+    // 🔥 ENVIAR IVAS EN EL FORMATO ESPERADO POR EL BACKEND
     ivasArray.forEach((iva, index) => {
         formData.append(`ivas[${index}][id]`, iva.id);
         formData.append(`ivas[${index}][monto]`, iva.monto);
     });
 
-    formData.append('total_base', totalBaseAbonoCalculado.value);
-    formData.append('total_iva', totalIvaAbonoCalculado.value);
-    formData.append('total_con_iva', totalConIvaAbonoCalculado.value);
+    // 🔥 ENVIAR LOS TOTALES CALCULADOS
+    const totalBase = totalBaseAbonoCalculado.value;
+    const totalIva = totalIvaAbonoCalculado.value;
+    const totalConIva = totalConIvaAbonoCalculado.value;
+
+    console.log('📊 Enviando al backend:', {
+        totalBase,
+        totalIva,
+        totalConIva,
+        ivas: ivasArray
+    });
+
+    formData.append('total_base', totalBase);
+    formData.append('total_iva', totalIva);
+    formData.append('total_con_iva', totalConIva);
 
     abonoForm.post(route('movimientos.abono.store'), {
         preserveState: false,
@@ -829,7 +850,9 @@ watch(
 // MOUNTED
 // ============================================
 onMounted(() => {
-    // Fecha actual para el abono
+    console.log('📊 Tipos de IVA disponibles:', tiposIva.value);
+    console.log('📊 Movimiento recibido:', props.movimiento);
+    
     if (!abonoForm.fecha_abono) {
         abonoForm.fecha_abono = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
     }
@@ -838,45 +861,40 @@ onMounted(() => {
         abonoForm.monto_abonado = Math.round(abonoForm.monto_abonado * 100) / 100;
     }
     
-    generarReferenciaInicial();
+    generarReferenciaAutomatica();
 
-    // ============================================
-    // 🔥 PRECARGAR IVAS HEREDADOS DE LA PÓLIZA ORIGINAL
-    // ============================================
     const ivasHeredados = props.movimiento?.ivas_heredados || [];
+    const saldoPendiente = props.movimiento.saldo_pendiente || 0;
+    
+    console.log('📊 IVAs heredados:', ivasHeredados);
     
     if (ivasHeredados.length > 0) {
-        // Primero, limpiar selecciones anteriores
         ivasSeleccionados.value = [];
         abonoForm.ivas = {};
         
-        // Seleccionar los IVAs heredados
-        ivasHeredados.forEach(iva => {
+        ivasHeredados.forEach((iva) => {
             ivasSeleccionados.value.push(iva.id);
             if (!abonoForm.ivas[iva.id]) {
-                abonoForm.ivas[iva.id] = { monto: 0 };
+                abonoForm.ivas[iva.id] = { 
+                    monto: 0
+                };
             }
         });
+        
+        calcularTotalAbono();
+        console.log('📊 IVAs seleccionados:', ivasSeleccionados.value);
+        console.log('📊 Montos iniciales:', abonoForm.ivas);
+        
     } else {
-        // 🔥 Si no hay IVAs heredados, seleccionar IVA por defecto (16%)
-        if (tiposIva.value.length > 0) {
-            const ivaDefecto = tiposIva.value.find(iva => iva.porcentaje === 16) || tiposIva.value[0];
-            ivasSeleccionados.value.push(ivaDefecto.id);
-            if (!abonoForm.ivas[ivaDefecto.id]) {
-                abonoForm.ivas[ivaDefecto.id] = { monto: 0 };
-            }
+        if (saldoPendiente > 0) {
+            abonoForm.monto_abonado = Math.round(saldoPendiente * 100) / 100;
         }
-    }
-
-    // 🔥 Si el abono es para liquidar completamente, sugerir el monto
-    if (props.movimiento.saldo_pendiente > 0) {
-        abonoForm.monto_abonado = Math.round(props.movimiento.saldo_pendiente * 100) / 100;
     }
 });
 </script>
 
 <style scoped>
-/* ========== ESTILOS COMPLETOS - MISMO QUE CREATE ========== */
+/* ========== ESTILOS COMPLETOS ========== */
 
 /* --- HEADER --- */
 .header-wrapper {
@@ -981,7 +999,7 @@ onMounted(() => {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     border-radius: 14px;
     border-left: 6px solid #f59e0b;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .info-leyenda-icon {
@@ -1005,10 +1023,74 @@ onMounted(() => {
     font-weight: 700;
 }
 
+/* --- INFO IVA DISPONIBLE --- */
+.info-iva-disponible {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-radius: 10px;
+    border-left: 4px solid #22c55e;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+.info-iva-disponible-icon {
+    flex-shrink: 0;
+    color: #16a34a;
+}
+
+.info-iva-disponible-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.info-iva-disponible-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #166534;
+}
+
+.info-iva-disponible-items {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.info-iva-disponible-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    padding: 2px 10px 2px 6px;
+    border-radius: 6px;
+    border: 1px solid #bbf7d0;
+}
+
+.info-iva-disponible-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: white;
+}
+
+.info-iva-disponible-badge.badge-cero { background: #64748b; }
+.info-iva-disponible-badge.badge-dieciseis { background: #3b82f6; }
+
+.info-iva-disponible-monto {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #065f46;
+}
+
 /* --- FORM ROWS --- */
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 14px;
     margin-bottom: 12px;
 }
@@ -1071,6 +1153,12 @@ onMounted(() => {
 
 .readonly-value.pronto-vencer {
     color: #f59e0b;
+}
+
+.dias-restantes {
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: #64748b;
 }
 
 /* --- INPUTS --- */
@@ -1179,25 +1267,6 @@ onMounted(() => {
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
-.btn-generate {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 4px 8px;
-    background: none;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 2;
-}
-
-.btn-generate:hover {
-    color: #667eea;
-    transform: translateY(-50%) scale(1.2);
-}
-
 .icon-svg-sm {
     width: 18px;
     height: 18px;
@@ -1249,74 +1318,6 @@ onMounted(() => {
     50% { opacity: 0.7; }
 }
 
-/* --- OPTIONS --- */
-.options-grid {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.checkbox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: default;
-    font-size: 0.8rem;
-    color: #1e293b;
-    position: relative;
-    opacity: 0.7;
-}
-
-.checkbox-input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.checkbox-custom {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #d1d5db;
-    border-radius: 4px;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.checkbox-custom::after {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    background: #667eea;
-    border-radius: 2px;
-    transform: scale(0);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.checkbox-input:checked + .checkbox-custom::after {
-    transform: scale(1);
-}
-
-.checkbox-text {
-    font-weight: 500;
-}
-
-/* --- VENCIMIENTO --- */
-.vencimiento-wrapper {
-    margin-top: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.vencimiento-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #64748b;
-}
-
 /* --- SUB-SECCION IVA --- */
 .sub-section {
     margin-top: 16px;
@@ -1342,89 +1343,6 @@ onMounted(() => {
     color: #94a3b8;
     display: block;
     margin-top: 2px;
-}
-
-/* --- IVA SELECTOR --- */
-.iva-selector {
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 12px 16px;
-    border: 2px solid #e5e7eb;
-    margin-bottom: 12px;
-}
-
-.iva-selector-grid {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.iva-select-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    user-select: none;
-}
-
-.iva-select-item:hover:not(.disabled) {
-    border-color: #667eea;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.iva-select-item.selected {
-    border-color: #667eea;
-    background: linear-gradient(135deg, #f8f7ff, #eef2ff);
-}
-
-.iva-select-item.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.iva-select-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: white;
-}
-
-.iva-select-badge.badge-cero {
-    background: #64748b;
-}
-
-.iva-select-badge.badge-dieciseis {
-    background: #3b82f6;
-}
-
-.iva-select-name {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: #1e293b;
-}
-
-.iva-select-check {
-    color: #10b981;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.iva-selector-hint {
-    margin-top: 8px;
-    font-size: 0.75rem;
-    color: #94a3b8;
-    font-weight: 500;
-}
-
-.text-danger {
-    color: #dc2626 !important;
 }
 
 /* --- IVA DETAIL --- */
@@ -1465,13 +1383,19 @@ onMounted(() => {
 .iva-detail-badge.badge-dieciseis { background: #3b82f6; }
 
 .iva-input-wrap {
-    width: 90px;
+    width: 100px;
 }
 
 .iva-input {
     height: 32px !important;
     padding: 2px 8px 2px 24px !important;
     font-size: 0.8rem !important;
+}
+
+.iva-detail-disponible {
+    font-size: 0.65rem;
+    color: #6b7280;
+    white-space: nowrap;
 }
 
 .iva-detail-result {
@@ -1513,11 +1437,6 @@ onMounted(() => {
 .iva-total strong {
     color: #059669;
     font-size: 0.9rem;
-}
-
-.iva-breakdown {
-    font-size: 0.7rem;
-    color: #94a3b8;
 }
 
 /* --- VALIDACION IVA --- */
@@ -1660,30 +1579,6 @@ onMounted(() => {
     color: #0f172a;
 }
 
-.referencia-card {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 14px;
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border-radius: 8px;
-    border: 1px solid #f59e0b;
-}
-
-.referencia-label {
-    font-size: 0.6rem;
-    color: #92400e;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.referencia-value {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #78350f;
-}
-
 .btn {
     display: inline-flex;
     align-items: center;
@@ -1803,8 +1698,7 @@ onMounted(() => {
         flex-wrap: wrap;
     }
     .btn { flex: 1; justify-content: center; padding: 6px 16px; height: 36px; font-size: 0.8rem; }
-    .options-grid { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .iva-detail-item { flex-wrap: wrap; }
+    .iva-detail-item { flex-wrap: wrap; justify-content: center; }
     .iva-input-wrap { width: 100%; }
     .resumen-grid { grid-template-columns: 1fr; }
     .info-leyenda-premium {
@@ -1812,6 +1706,15 @@ onMounted(() => {
         align-items: center;
         text-align: center;
         padding: 14px;
+    }
+    .info-iva-disponible {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 14px;
+    }
+    .info-iva-disponible-content {
+        justify-content: center;
     }
     .total-card { padding: 4px 12px; }
     .total-value { font-size: 0.9rem; }
@@ -1821,6 +1724,5 @@ onMounted(() => {
         text-align: center;
     }
     .nuevo-saldo-value { margin-left: 0; }
-    .referencia-card { width: 100%; justify-content: center; }
 }
 </style>

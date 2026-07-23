@@ -62,7 +62,7 @@
                 </div>
 
                 <!-- BARRA SUPERIOR: FECHAS + EXCEL + PDF + CHECKBOX TODOS + FILTRO FISCAL -->
-                <div v-if="empresas.length > 0" class="filtros-superior-premium">
+                <div v-if="empresas.length > 0 && vistaActual !== 'diferidas'" class="filtros-superior-premium">
                     <div class="filtros-superior-content">
                         <!-- Fechas -->
                         <div class="fecha-item">
@@ -161,7 +161,7 @@
                     <!-- Header de la tabla -->
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
-                            <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
+                            <a-tag v-if="filtrosActivos && vistaActual !== 'diferidas'" color="blue" class="filter-tag-ultra">
                                 <span class="filter-dot-active"></span>
                                 Filtros activos
                             </a-tag>
@@ -221,7 +221,7 @@
                             :row-class-name="getRowClassName"
                         >
                             <template #bodyCell="{ column, record }">
-                                <!-- 🔥 REFERENCIA - MODIFICADA: más compacta y sin texto gris -->
+                                <!-- REFERENCIA -->
                                 <template v-if="column.key === 'referencia'">
                                     <Link 
                                         :href="route('movimientos.show', record.id_movimiento)" 
@@ -246,14 +246,10 @@
                                     </span>
                                 </template>
 
-                                <!-- CUENTA DESTINO (para traspasos) -->
+                                <!-- CUENTA DESTINO (para traspasos) - SIN EMOJIS NI FLECHAS -->
                                 <template v-if="column.key === 'cuenta_destino'">
                                     <span class="cuenta-text-ultra">
-                                        <span v-if="record.es_traspaso">
-                                            <span class="cuenta-destino-label">→</span>
-                                            {{ record.cuenta_destino || '—' }}
-                                        </span>
-                                        <span v-else class="text-gray-400">—</span>
+                                        {{ record.cuenta_destino || '—' }}
                                     </span>
                                 </template>
 
@@ -294,13 +290,14 @@
                                     <span class="nota-text-ultra">{{ record.nota || '—' }}</span>
                                 </template>
 
-                                <!-- MONTO -->
+                                <!-- MONTO - SIN EMOJIS EN TRASPASOS -->
                                 <template v-if="column.key === 'monto'">
                                     <span class="monto-text-ultra" :class="getMontoClass(record.monto)">
                                         ${{ formatNumber(Math.abs(record.monto)) }}
                                     </span>
-                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Monto del traspaso">
-                                        🔄
+                                    <!-- En traspasos, mostramos un badge pequeño sin emoji -->
+                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Traspaso">
+                                        T
                                     </span>
                                 </template>
 
@@ -390,7 +387,7 @@
                                 <!-- ============================================ -->
                                 <template v-if="column.key === 'acciones'">
                                     <div class="acciones-cell">
-                                        <!-- Botón Abonar (disponible en TODAS las vistas cuando corresponda) -->
+                                        <!-- Botón Abonar -->
                                         <button 
                                             v-if="permisos?.puede_autorizar && record.es_por_pagar && record.saldo_pendiente > 0"
                                             class="btn-accion abonar" 
@@ -443,8 +440,8 @@
                         <p class="text-gray-500">Comienza creando tu primera poliza.</p>
                     </div>
 
-                    <!-- FILTROS INFERIOR -->
-                    <div v-if="movimientos.data && movimientos.data.length > 0" class="filtros-inferior-tabla">
+                    <!-- FILTROS INFERIOR - OCULTOS EN DIFERIDAS -->
+                    <div v-if="movimientos.data && movimientos.data.length > 0 && vistaActual !== 'diferidas'" class="filtros-inferior-tabla">
                         <div class="filtros-inferior-grid">
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Referencia</label>
@@ -887,7 +884,6 @@ const getColumnasDisponibles = () => {
 
 const columnasDisponibles = computed(() => getColumnasDisponibles());
 
-// 🔥 COLUMNAS CON REFERENCIA MÁS COMPACTA
 const columnasNormal = [
     { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left' },
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
@@ -999,6 +995,7 @@ watch(mostrarTodos, (val) => { filtros.value.mostrar_todos = val; });
 watch(soloFiscales, (val) => { filtros.value.solo_fiscales = val; });
 
 const filtrosActivos = computed(() => {
+    if (vistaActual.value === 'diferidas') return false;
     const { fecha_desde, fecha_hasta, vista, sort_by, sort_order, mostrar_todos, solo_fiscales, ...otros } = filtros.value;
     return Object.values(otros).some(v => v !== '' && v !== null && v !== undefined) ||
            fecha_desde || fecha_hasta || mostrar_todos || solo_fiscales;
@@ -1029,12 +1026,22 @@ const aplicarFiltros = () => {
             mostrar_todos: mostrarTodos.value,
             solo_fiscales: soloFiscales.value
         };
-        for (const [key, value] of Object.entries(filtros.value)) {
-            if (value !== '' && value !== null && value !== undefined && 
-                key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
-                params[key] = value;
+        
+        // En Diferidas NO enviamos filtros de búsqueda (solo fechas y ordenamiento)
+        if (vistaActual.value === 'diferidas') {
+            // Solo enviamos sort_by y sort_order para diferidas
+            if (filtros.value.sort_by) params.sort_by = filtros.value.sort_by;
+            if (filtros.value.sort_order) params.sort_order = filtros.value.sort_order;
+        } else {
+            // Para normal y traspasos, enviamos todos los filtros
+            for (const [key, value] of Object.entries(filtros.value)) {
+                if (value !== '' && value !== null && value !== undefined && 
+                    key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
+                    params[key] = value;
+                }
             }
         }
+        
         router.get(route('movimientos.index'), params, {
             preserveState: true,
             replace: true,
@@ -1111,12 +1118,19 @@ const cambiarEmpresa = () => {
             mostrar_todos: mostrarTodos.value,
             solo_fiscales: soloFiscales.value
         };
-        for (const [key, value] of Object.entries(filtros.value)) {
-            if (value !== '' && value !== null && value !== undefined && 
-                key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
-                params[key] = value;
+        
+        if (vistaActual.value === 'diferidas') {
+            if (filtros.value.sort_by) params.sort_by = filtros.value.sort_by;
+            if (filtros.value.sort_order) params.sort_order = filtros.value.sort_order;
+        } else {
+            for (const [key, value] of Object.entries(filtros.value)) {
+                if (value !== '' && value !== null && value !== undefined && 
+                    key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
+                    params[key] = value;
+                }
             }
         }
+        
         router.get(route('movimientos.index'), params, {
             preserveState: true,
             replace: true,
@@ -1380,7 +1394,13 @@ const onLiquidado = (data) => {
 
 const accionEditar = (record) => {
     console.log('🟢 Editando póliza ID:', record.id_movimiento);
-    router.get(route('movimientos.edit', record.id_movimiento));
+    // Verificamos que el ID sea válido antes de navegar
+    if (record.id_movimiento) {
+        router.get(route('movimientos.edit', record.id_movimiento));
+    } else {
+        console.error('❌ ID de movimiento no válido:', record);
+        mostrarModal('error', 'Error', 'No se puede editar esta póliza: ID no válido');
+    }
 };
 
 const accionVer = (record) => {
@@ -1408,10 +1428,17 @@ const exportarExcel = () => {
     params.append('vista', vistaActual.value);
     params.append('mostrar_todos', mostrarTodos.value);
     params.append('solo_fiscales', soloFiscales.value);
-    for (const [key, value] of Object.entries(filtros.value)) {
-        if (value !== '' && value !== null && value !== undefined && 
-            key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
-            params.append(key, value);
+    
+    if (vistaActual.value === 'diferidas') {
+        // Solo ordenamiento para diferidas
+        if (filtros.value.sort_by) params.append('sort_by', filtros.value.sort_by);
+        if (filtros.value.sort_order) params.append('sort_order', filtros.value.sort_order);
+    } else {
+        for (const [key, value] of Object.entries(filtros.value)) {
+            if (value !== '' && value !== null && value !== undefined && 
+                key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
+                params.append(key, value);
+            }
         }
     }
     window.open(route('movimientos.export.excel') + '?' + params.toString(), '_blank');
@@ -1427,10 +1454,16 @@ const exportarPdf = () => {
     params.append('vista', vistaActual.value);
     params.append('mostrar_todos', mostrarTodos.value);
     params.append('solo_fiscales', soloFiscales.value);
-    for (const [key, value] of Object.entries(filtros.value)) {
-        if (value !== '' && value !== null && value !== undefined && 
-            key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
-            params.append(key, value);
+    
+    if (vistaActual.value === 'diferidas') {
+        if (filtros.value.sort_by) params.append('sort_by', filtros.value.sort_by);
+        if (filtros.value.sort_order) params.append('sort_order', filtros.value.sort_order);
+    } else {
+        for (const [key, value] of Object.entries(filtros.value)) {
+            if (value !== '' && value !== null && value !== undefined && 
+                key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
+                params.append(key, value);
+            }
         }
     }
     window.open(route('movimientos.export.pdf') + '?' + params.toString(), '_blank');
@@ -1459,7 +1492,7 @@ onMounted(() => {
     
     if (empresaSeleccionada.value) {
         const hoy = obtenerFechaLocal();
-        if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
+        if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta && vistaActual.value !== 'diferidas') {
             filtros.value.fecha_desde = hoy;
             filtros.value.fecha_hasta = hoy;
         }
@@ -2162,6 +2195,19 @@ onMounted(() => {
 
 .monto-text-ultra.saldo-cero {
     color: #10b981;
+}
+
+/* Badge pequeño para traspasos - sin emoji */
+.traspaso-amount-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 6px;
+    background: #ede9fe;
+    color: #7c3aed;
+    font-size: 8px;
+    font-weight: 700;
+    border-radius: 3px;
+    line-height: 16px;
 }
 
 .usuario-cell {

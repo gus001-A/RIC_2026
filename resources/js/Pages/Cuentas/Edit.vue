@@ -524,7 +524,10 @@
             </div>
         </div>
 
-        <!-- Modal Crear Cuenta Hija -->
+        <!-- ============================================ -->
+        <!-- 🔥 MODAL CREAR CUENTA HIJA - MODIFICADO -->
+        <!-- OPCIONES VISIBLES PERO DESACTIVADAS -->
+        <!-- ============================================ -->
         <div v-if="modalHijaVisible" class="modal-overlay-premium" @click.self="cerrarModalHija">
             <div class="modal-container-premium modal-hija">
                 <div class="modal-header-premium">
@@ -542,7 +545,7 @@
                             </p>
                         </div>
                     </div>
-                    <button type="button" @click="cerrarModalHija" class="modal-close-premium">
+                    <button type="button" @click="cerrarModalHija" class="modal-close-premium" :disabled="guardandoHija">
                         <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -567,7 +570,8 @@
                                     <input type="text" v-model="formHija.codigo_cuenta"
                                            @input="clearErrorHija('codigo_cuenta'); verificarCodigoHija()"
                                            class="form-input-premium"
-                                           :class="{ 'error': formHija.errors.codigo_cuenta || codigoExisteHija }"
+                                           :class="{ 'error': formHija.errors.codigo_cuenta || codigoExisteHija, 'modal-disabled': guardandoHija }"
+                                           :disabled="guardandoHija"
                                            placeholder="Ej: AC001-01">
                                 </div>
                                 <div v-if="formHija.errors.codigo_cuenta" class="error-message-premium">
@@ -587,7 +591,8 @@
                                     <input type="text" v-model="formHija.nombre_cuenta"
                                            @input="clearErrorHija('nombre_cuenta')"
                                            class="form-input-premium"
-                                           :class="{ 'error': formHija.errors.nombre_cuenta }"
+                                           :class="{ 'error': formHija.errors.nombre_cuenta, 'modal-disabled': guardandoHija }"
+                                           :disabled="guardandoHija"
                                            placeholder="Ej: Bancos Nacionales">
                                 </div>
                                 <div v-if="formHija.errors.nombre_cuenta" class="error-message-premium">
@@ -602,13 +607,13 @@
                                 </label>
                                 <div class="radio-group-modal">
                                     <div class="radio-card-modal" 
-                                         :class="{ 'selected': formHija.Naturaleza === 'DEUDORA' }"
-                                         @click="formHija.Naturaleza = 'DEUDORA'; clearErrorHija('Naturaleza')">
+                                         :class="{ 'selected': formHija.Naturaleza === 'DEUDORA', 'modal-disabled': guardandoHija }"
+                                         @click="!guardandoHija && (formHija.Naturaleza = 'DEUDORA'); clearErrorHija('Naturaleza')">
                                         <span class="radio-label-modal">Deudora</span>
                                     </div>
                                     <div class="radio-card-modal" 
-                                         :class="{ 'selected': formHija.Naturaleza === 'ACREEDORA' }"
-                                         @click="formHija.Naturaleza = 'ACREEDORA'; clearErrorHija('Naturaleza')">
+                                         :class="{ 'selected': formHija.Naturaleza === 'ACREEDORA', 'modal-disabled': guardandoHija }"
+                                         @click="!guardandoHija && (formHija.Naturaleza = 'ACREEDORA'); clearErrorHija('Naturaleza')">
                                         <span class="radio-label-modal">Acreedora</span>
                                     </div>
                                 </div>
@@ -617,36 +622,44 @@
                                 </div>
                             </div>
 
-                            <!-- Checkboxes del modal -->
+                            <!-- ============================================ -->
+                            <!-- 🔥 CHECKBOXES DEL MODAL - VISIBLES PERO DESACTIVADOS -->
+                            <!-- ============================================ -->
                             <div class="form-group-premium full-width-modal">
                                 <div class="checkbox-group-inline-modal">
+                                    <!-- Cuenta de resultados -->
                                     <label class="checkbox-modal" 
-                                           v-if="!formHija.fondeo_c && !formHija.es_cuenta_resultados"
-                                           :class="{ 'checked': formHija.es_cuenta_resultados }"
-                                           @click="toggleHijaCuentaResultados">
-                                        <div class="checkbox-custom-modal">
+                                           :class="{ 
+                                               'checked': formHija.es_cuenta_resultados, 
+                                               'modal-disabled': guardandoHija 
+                                           }"
+                                           @click="!guardandoHija && toggleHijaCuentaResultados()">
+                                        <div class="checkbox-custom-modal" :class="{ 'modal-disabled': guardandoHija }">
                                             <svg v-if="formHija.es_cuenta_resultados" class="checkbox-check-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                             </svg>
                                         </div>
-                                        <span class="checkbox-label-modal">Cuenta de resultados</span>
+                                        <span class="checkbox-label-modal" :class="{ 'modal-disabled': guardandoHija }">Cuenta de resultados</span>
                                     </label>
 
+                                    <!-- Cuenta fondeadora -->
                                     <label class="checkbox-modal" 
-                                           v-if="!formHija.es_cuenta_resultados"
-                                           :class="{ 'checked': formHija.fondeo_c }"
-                                           @click="toggleHijaFondeo">
-                                        <div class="checkbox-custom-modal">
+                                           :class="{ 
+                                               'checked': formHija.fondeo_c, 
+                                               'modal-disabled': guardandoHija 
+                                           }"
+                                           @click="!guardandoHija && toggleHijaFondeo()">
+                                        <div class="checkbox-custom-modal" :class="{ 'modal-disabled': guardandoHija }">
                                             <svg v-if="formHija.fondeo_c" class="checkbox-check-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                             </svg>
                                         </div>
-                                        <span class="checkbox-label-modal">Cuenta fondeadora</span>
+                                        <span class="checkbox-label-modal" :class="{ 'modal-disabled': guardandoHija }">Cuenta fondeadora</span>
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- Cuenta de Resultados Padre - OCULTA cuando es cuenta de resultados -->
+                            <!-- Cuenta de Resultados Padre - OCULTA cuando es cuenta de resultados o fondeadora -->
                             <div class="form-group-premium full-width-modal" 
                                  v-if="!formHija.es_cuenta_resultados && !formHija.fondeo_c">
                                 <label class="form-label-premium">
@@ -659,7 +672,8 @@
                                     <select v-model="formHija.cuenta_resultados" 
                                             @change="clearErrorHija('cuenta_resultados')"
                                             class="form-input-premium"
-                                            :class="{ 'error': formHija.errors.cuenta_resultados }">
+                                            :class="{ 'error': formHija.errors.cuenta_resultados, 'modal-disabled': guardandoHija }"
+                                            :disabled="guardandoHija">
                                         <option value="">-- Selecciona una cuenta de resultados --</option>
                                         <option v-for="cuenta in cuentasResultados" 
                                                 :key="cuenta.id_cuenta" 
@@ -681,7 +695,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                     <span style="color: #065f46;">
-                                        <strong>Cuenta fondeadora</strong> — Esta cuenta no pertenece a una cuenta de resultados
+                                        <strong>Cuenta fondeadora</strong>
                                     </span>
                                 </div>
                             </div>
@@ -694,7 +708,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                     <span style="color: #6d28d9;">
-                                        <strong>Cuenta de resultados</strong> — Nivel 2 fijo, sin cuenta madre ni fondeadora
+                                        <strong>Cuenta de resultados</strong>
                                     </span>
                                 </div>
                             </div>
@@ -705,6 +719,8 @@
                                 <div class="input-wrapper-premium">
                                     <textarea v-model="formHija.descripcion"
                                               class="form-textarea-premium"
+                                              :class="{ 'modal-disabled': guardandoHija }"
+                                              :disabled="guardandoHija"
                                               rows="2"
                                               placeholder="Breve descripción de la cuenta hija..."></textarea>
                                 </div>
@@ -712,7 +728,10 @@
                         </div>
 
                         <div class="modal-actions-premium">
-                            <button type="button" @click="cerrarModalHija" class="btn-cancel-premium">
+                            <button type="button" 
+                                    @click="cerrarModalHija" 
+                                    class="btn-cancel-premium"
+                                    :disabled="guardandoHija">
                                 Cancelar
                             </button>
                             <button type="submit" 
@@ -961,10 +980,8 @@ const toggleHijaCuentaResultados = () => {
     if (formHija.es_cuenta_resultados) {
         formHija.fondeo_c = false;
         formHija.cuenta_resultados = null;
-        // Ajustar nivel a 2 para cuentas de resultados
         formHija.nivel = 2;
     } else {
-        // Restaurar nivel
         const nivelMadre = parseInt(form.nivel);
         formHija.nivel = nivelMadre + 1;
     }
@@ -1154,6 +1171,7 @@ const abrirModalCrearHija = () => {
     formHija.cuenta_resultados = null;
     formHija.clearErrors();
     codigoExisteHija.value = false;
+    guardandoHija.value = false;
     
     if (formHija.id_empresa) {
         cargarCuentasResultados(formHija.id_empresa);
@@ -1163,6 +1181,7 @@ const abrirModalCrearHija = () => {
 };
 
 const cerrarModalHija = () => {
+    if (guardandoHija.value) return;
     modalHijaVisible.value = false;
     formHija.clearErrors();
     codigoExisteHija.value = false;
@@ -1204,7 +1223,6 @@ const guardarCuentaHija = () => {
     const nivelMadre = parseInt(form.nivel);
     const nivelHijaEsperado = nivelMadre + 1;
     
-    // Si es cuenta de resultados, nivel siempre 2
     if (formHija.es_cuenta_resultados) {
         formHija.nivel = 2;
     } else if (parseInt(formHija.nivel) !== nivelHijaEsperado) {
@@ -1223,7 +1241,6 @@ const guardarCuentaHija = () => {
         return;
     }
 
-    // Asegurar que cuenta_resultados sea null cuando es cuenta de resultados o fondeadora
     if (formHija.es_cuenta_resultados || formHija.fondeo_c) {
         formHija.cuenta_resultados = null;
     }
@@ -1563,7 +1580,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* HEADER - igual que antes */
+/* HEADER */
 .header-premium {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 20px;
@@ -2518,11 +2535,16 @@ onMounted(() => {
     background: white;
 }
 
-.btn-cancel-premium:hover {
+.btn-cancel-premium:hover:not(:disabled) {
     border-color: #1a3a5c;
     color: #1a3a5c;
     background: #f8fafc;
     transform: translateY(-1px);
+}
+
+.btn-cancel-premium:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-submit-premium {
@@ -2553,7 +2575,7 @@ onMounted(() => {
 }
 
 /* ============================================ */
-/* MODAL */
+/* 🔥 MODAL CON OPCIONES VISIBLES PERO DESACTIVADAS */
 /* ============================================ */
 .modal-overlay-premium {
     position: fixed;
@@ -2646,10 +2668,16 @@ onMounted(() => {
     flex-shrink: 0;
 }
 
-.modal-close-premium:hover {
+.modal-close-premium:hover:not(:disabled) {
     background: #fecaca;
     color: #dc2626;
     transform: rotate(90deg);
+}
+
+.modal-close-premium:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .modal-body-premium {
@@ -2684,7 +2712,7 @@ onMounted(() => {
     background: white;
 }
 
-.radio-card-modal:hover {
+.radio-card-modal:hover:not(.modal-disabled) {
     border-color: #9ca3af;
 }
 
@@ -2718,7 +2746,7 @@ onMounted(() => {
     background: white;
 }
 
-.checkbox-modal:hover {
+.checkbox-modal:hover:not(.modal-disabled) {
     border-color: #9ca3af;
 }
 
@@ -2751,6 +2779,35 @@ onMounted(() => {
     white-space: nowrap;
 }
 
+/* 🔥 ESTILOS PARA ELEMENTOS DESACTIVADOS PERO VISIBLES */
+.modal-disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    background-color: #f3f4f6 !important;
+}
+
+.modal-disabled.checkbox-custom-modal {
+    background: #e5e7eb !important;
+    border-color: #d1d5db !important;
+}
+
+.modal-disabled.radio-card-modal {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+.modal-disabled.form-textarea-premium {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+.modal-disabled.form-input-premium {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    background-color: #f1f5f9 !important;
+}
+
+/* Botones del modal */
 .modal-actions-premium {
     display: flex;
     justify-content: flex-end;
@@ -2980,7 +3037,17 @@ onMounted(() => {
     animation: spinner-border 0.75s linear infinite;
 }
 
+.spinner-border-sm {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-width: 0.15em;
+}
+
 @keyframes spinner-border {
     to { transform: rotate(360deg); }
+}
+
+.text-danger {
+    color: #ef4444;
 }
 </style>
