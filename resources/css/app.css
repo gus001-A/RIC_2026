@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Tu CSS personalizado */
+/* ===== ANIMACIONES GLOBALES ===== */
+@layer base {
+    * {
+        @apply scroll-smooth;
+    }
+
+    body {
+        @apply antialiased;
+    }
+}
+
+/* ===== SCROLLBAR PERSONALIZADA ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-blue-500 rounded-full hover:bg-blue-600 transition;
+}
+
+/* ===== SELECTION ===== */
+::selection {
+    @apply bg-blue-500 text-white;
+}
+
+/* ===== TRANSICIONES ===== */
+.fade-enter-active,
+.fade-leave-active {
+    transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* ===== LOADING SPINNER ===== */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
