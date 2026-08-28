@@ -268,6 +268,7 @@ class PersonaController extends Controller
                 $errorMessages[] = $field . ': ' . implode(', ', $messages);
             }
             return redirect()->back()
+                ->withErrors($e->errors())
                 ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
                 ->withInput();
         } catch (\Exception $e) {
@@ -364,7 +365,7 @@ class PersonaController extends Controller
         try {
             $persona = Persona::findOrFail($id);
             $validated = $this->validatePersona($request, $persona->id_persona);
-            $data = $this->buildPersonaData($validated);
+            $data = $this->buildPersonaData($validated, $persona);
             $persona->update($data);
 
             \Log::info('Persona actualizada: ID ' . $persona->id_persona);
@@ -382,7 +383,10 @@ class PersonaController extends Controller
             foreach ($errors as $field => $messages) {
                 $errorMessages[] = $field . ': ' . implode(', ', $messages);
             }
+            // 🔥 withErrors() para que el formulario (Vue: form.errors.rfc, etc.)
+            // pueda mostrar el error en cada campo y detectar el RFC duplicado.
             return redirect()->back()
+                ->withErrors($e->errors())
                 ->with('error', 'Error de validación: ' . implode(' | ', $errorMessages))
                 ->withInput();
         } catch (\Exception $e) {
@@ -849,9 +853,11 @@ class PersonaController extends Controller
             'notas' => 'nullable|string',
         ];
 
-        if ($request->has('representante_nombre') && $request->representante_nombre) {
+        if ($request->filled('representante_nombre')) {
             $rules['representante_paterno'] = 'required|string|max:100';
-            $rules['representante_fecha_nacimiento'] = 'required|date|before:today';
+            // La fecha de nacimiento del representante NO se fuerza como obligatoria:
+            // muchos registros existentes no la tienen y bloquearía su edición.
+            // Si se captura, la regla base ya valida que sea fecha pasada.
         }
 
         $messages = [
@@ -873,12 +879,10 @@ class PersonaController extends Controller
     /**
      * Construir el array de datos para crear/actualizar
      */
-    private function buildPersonaData($validated)
+    private function buildPersonaData($validated, ?Persona $persona = null)
     {
-        return [
+        $data = [
             'tipo_persona' => $validated['tipo_persona'],
-            'activo' => $validated['activo'] ?? true,
-            'empleado' => $validated['empleado'] ?? false,
             'Nombre' => $validated['Nombre'] ?? null,
             'Paterno' => $validated['Paterno'] ?? null,
             'Materno' => $validated['Materno'] ?? null,
@@ -910,6 +914,27 @@ class PersonaController extends Controller
             'representante_extension_trabajo' => $validated['representante_extension_trabajo'] ?? null,
             'notas' => $validated['notas'] ?? null,
         ];
+
+        // 🔥 `activo` NO viene en el formulario de edición. Si lo pusiéramos con
+        // un valor por defecto (`?? true`) cada edición reactivaría a una persona
+        // que estaba dada de baja. Por eso:
+        //  - al crear (sin $persona): default true
+        //  - al editar: sólo se toca si el request lo trae explícitamente
+        if (array_key_exists('activo', $validated)) {
+            $data['activo'] = (bool) $validated['activo'];
+        } elseif ($persona === null) {
+            $data['activo'] = true;
+        }
+
+        // `empleado` sí viene en el formulario, pero aplicamos la misma lógica
+        // defensiva por si algún día se envía sin ese campo.
+        if (array_key_exists('empleado', $validated)) {
+            $data['empleado'] = (bool) $validated['empleado'];
+        } elseif ($persona === null) {
+            $data['empleado'] = false;
+        }
+
+        return $data;
     }
 
     /**

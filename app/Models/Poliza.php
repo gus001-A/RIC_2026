@@ -43,7 +43,10 @@ class Poliza extends Model
         'fecha_creacion',
         'comentario_revision',
         'comentario_autorizacion',
-        'motivo_rechazo'
+        'motivo_rechazo',
+        'fecha_cierre',
+        'id_usuario_cierre',
+        'motivo_cierre'
     ];
 
     protected $casts = [
@@ -52,6 +55,7 @@ class Poliza extends Model
         'fecha_factura' => 'date',
         'fecha_autorizacion' => 'datetime',
         'fecha_revision' => 'datetime',
+        'fecha_cierre' => 'datetime',
         'es_por_pagar' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

@@ -34,7 +34,9 @@ class PolizaArchivo extends Model
 
     public function usuario(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'id_usuario_subio');
+        // La autenticación del sistema usa la tabla `usuarios` (PK id_usuario),
+        // no la tabla por defecto `users`.
+        return $this->belongsTo(Usuario::class, 'id_usuario_subio', 'id_usuario');
     }
 
     // 🔥 ESTO ES LO QUE FALTA - EL ACCESSOR PARA LA URL

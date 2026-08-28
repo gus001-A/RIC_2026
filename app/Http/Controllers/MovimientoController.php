@@ -1138,12 +1138,24 @@ private function calcularSaldoCuenta($idCuenta)
     if (!$idCuenta) return 0;
 
     try {
+        // 🔥 Las pólizas diferidas (es_por_pagar = true) NO afectan el saldo.
+        $soloPolizasQueAfectanSaldo = function ($q) {
+            $q->where(function ($sub) {
+                $sub->where('es_por_pagar', false)
+                    ->orWhereNull('es_por_pagar');
+            });
+        };
+
         // 🔥 OBTENER MOVIMIENTOS DONDE ES CUENTA PRINCIPAL
-        $movimientosCuenta = MovimientoPoliza::where('id_cuenta', $idCuenta)->get();
-        
+        $movimientosCuenta = MovimientoPoliza::where('id_cuenta', $idCuenta)
+            ->whereHas('poliza', $soloPolizasQueAfectanSaldo)
+            ->get();
+
         // 🔥 OBTENER MOVIMIENTOS DONDE ES CUENTA FONDEADORA
-        $movimientosFondeadora = MovimientoPoliza::where('id_caja_fondo', $idCuenta)->get();
-        
+        $movimientosFondeadora = MovimientoPoliza::where('id_caja_fondo', $idCuenta)
+            ->whereHas('poliza', $soloPolizasQueAfectanSaldo)
+            ->get();
+
         // 🔥 UNIR Y SUMAR SIN DUPLICAR
         $ids = collect();
         $saldoTotal = 0;
@@ -1251,12 +1263,27 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
         if (!$idCuenta) return 0;
 
         try {
+            // 🔥 LAS PÓLIZAS DIFERIDAS (es_por_pagar = true) NO AFECTAN EL SALDO.
+            // Solo mueven dinero las pólizas normales y las pólizas de abono
+            // (que se crean como es_por_pagar = false). Por eso excluimos siempre
+            // los movimientos cuya póliza está "por pagar".
+            $soloPolizasQueAfectanSaldo = function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('es_por_pagar', false)
+                        ->orWhereNull('es_por_pagar');
+                });
+            };
+
             // 🔥 OBTENER MOVIMIENTOS DONDE ES CUENTA PRINCIPAL
-            $movimientosCuenta = MovimientoPoliza::where('id_cuenta', $idCuenta)->get();
-            
+            $movimientosCuenta = MovimientoPoliza::where('id_cuenta', $idCuenta)
+                ->whereHas('poliza', $soloPolizasQueAfectanSaldo)
+                ->get();
+
             // 🔥 OBTENER MOVIMIENTOS DONDE ES CUENTA FONDEADORA
-            $movimientosFondeadora = MovimientoPoliza::where('id_caja_fondo', $idCuenta)->get();
-            
+            $movimientosFondeadora = MovimientoPoliza::where('id_caja_fondo', $idCuenta)
+                ->whereHas('poliza', $soloPolizasQueAfectanSaldo)
+                ->get();
+
             // 🔥 UNIR Y SUMAR SIN DUPLICAR (evita que un movimiento se sume dos veces)
             $ids = collect();
             $saldoTotal = 0;
