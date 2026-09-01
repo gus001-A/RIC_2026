@@ -8,6 +8,7 @@ use App\Http\Controllers\CuentaController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\DireccionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -23,6 +24,13 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 // ✅ TODAS LAS RUTAS DE MOVIMIENTOS JUNTAS Y EN ORDEN
 Route::middleware(['auth'])->group(function () {
+    // ============================================
+    // 📍 DIRECCIONES (catálogo estados/municipios + búsqueda por CP)
+    // ============================================
+    Route::get('/direccion/estados', [DireccionController::class, 'estados'])->name('direccion.estados');
+    Route::get('/direccion/municipios', [DireccionController::class, 'municipios'])->name('direccion.municipios');
+    Route::get('/direccion/cp/{cp}', [DireccionController::class, 'codigoPostal'])->name('direccion.cp');
+
     // ============================================
     // 📝 RUTAS DE NÓMINA (MUST GO BEFORE RESOURCE)
     // ============================================
@@ -43,7 +51,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('movimientos/buscar/cuentas', [MovimientoController::class, 'buscarCuentas'])->name('movimientos.buscar.cuentas');
     Route::get('movimientos/saldo/cuenta', [MovimientoController::class, 'obtenerSaldoCuenta'])->name('movimientos.saldo.cuenta');
     Route::post('movimientos/calcular-desglose', [MovimientoController::class, 'calcularDesglose'])->name('movimientos.calcular-desglose');
+    Route::get('movimientos/marcadores', [MovimientoController::class, 'indexMarcadores'])->name('movimientos.marcadores.index');
     Route::post('movimientos/marcadores/store', [MovimientoController::class, 'storeMarcador'])->name('movimientos.marcadores.store');
+    Route::put('movimientos/marcadores/{id}', [MovimientoController::class, 'updateMarcador'])->name('movimientos.marcadores.update');
+    Route::delete('movimientos/marcadores/{id}', [MovimientoController::class, 'destroyMarcador'])->name('movimientos.marcadores.destroy');
     Route::post('movimientos/traspaso/store', [MovimientoController::class, 'storeTraspaso'])->name('movimientos.traspaso.store');
     Route::get('movimientos/export/excel', [MovimientoController::class, 'exportExcel'])->name('movimientos.export.excel');
     Route::get('movimientos/export/pdf', [MovimientoController::class, 'exportPdf'])->name('movimientos.export.pdf');

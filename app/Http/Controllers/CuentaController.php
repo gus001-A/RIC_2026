@@ -1084,7 +1084,15 @@ class CuentaController extends Controller
 
             $validated['es_cuenta_resultados'] = $validated['es_cuenta_resultados'] ?? false;
             $validated['fondeo_c'] = $validated['fondeo_c'] ?? false;
-            $validated['en_uso'] = $validated['en_uso'] ?? true;
+
+            // 🔥 `en_uso` NO viene en el formulario de edición. Antes se forzaba a
+            // `?? true`, lo que REACTIVABA cualquier cuenta deshabilitada cada vez
+            // que se editaba. Si no se envía explícitamente, no se toca.
+            if (array_key_exists('en_uso', $validated) && $validated['en_uso'] !== null) {
+                $validated['en_uso'] = (bool) $validated['en_uso'];
+            } else {
+                unset($validated['en_uso']);
+            }
 
             // 🔥 CASO 1: ES CUENTA DE RESULTADOS
             if ($validated['es_cuenta_resultados']) {

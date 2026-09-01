@@ -136,7 +136,7 @@
 
                             <div class="monto-card" v-if="movimiento.es_traspaso">
                                 <span class="monto-label">Monto Traspaso</span>
-                                <span class="monto-value" style="color: #8b5cf6;">${{ formatNumber(Math.abs(movimiento.monto_traspaso)) }}</span>
+                                <span class="monto-value" style="color: #1a3a5c;">${{ formatNumber(Math.abs(movimiento.monto_traspaso)) }}</span>
                             </div>
                         </div>
 
@@ -377,7 +377,7 @@
 
                         <div class="action-right">
                             <!-- ========================================================== -->
-                            <!-- 🔥 BOTÓN PRINCIPAL: SUBIR / VER RECURSO                     -->
+                            <!-- BOTÓN PRINCIPAL: SUBIR / VER RECURSO -->
                             <!-- ========================================================== -->
                             <button 
                                 class="btn-action" 
@@ -396,7 +396,7 @@
                                 {{ movimiento.tiene_recurso ? 'Ver Recurso' : 'Subir Recurso' }}
                             </button>
 
-                            <!-- 🔥 BOTÓN IMPRIMIR (abre modal con opciones) -->
+                            <!-- BOTÓN IMPRIMIR (abre modal con opciones) -->
                             <button 
                                 class="btn-action btn-pdf"
                                 @click="abrirModalImprimir"
@@ -407,7 +407,7 @@
                                 Imprimir
                             </button>
 
-                            <!-- 🔥 BOTÓN REVISAR -->
+                            <!-- BOTÓN REVISAR -->
                             <button 
                                 v-if="permisos?.puede_revisar && movimiento.estatus === 'CAPTURADO'"
                                 class="btn-action btn-revisar"
@@ -420,7 +420,7 @@
                                 Revisar
                             </button>
 
-                            <!-- 🔥 BOTÓN AUTORIZAR -->
+                            <!-- BOTÓN AUTORIZAR -->
                             <button 
                                 v-if="permisos?.puede_autorizar && movimiento.estatus === 'REVISADO'"
                                 class="btn-action btn-autorizar"
@@ -432,19 +432,7 @@
                                 Autorizar
                             </button>
 
-                            <!-- 🔥 BOTÓN CERRAR -->
-                            <button 
-                                v-if="permisos?.puede_cerrar && puedeCerrar()"
-                                class="btn-action btn-cerrar"
-                                @click="accionCerrar"
-                            >
-                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                Cerrar
-                            </button>
-
-                            <!-- 🔥 BOTÓN REABRIR -->
+                            <!-- BOTÓN REABRIR -->
                             <button 
                                 v-if="permisos?.puede_reabrir && movimiento.estatus === 'CERRADO'"
                                 class="btn-action btn-reabrir"
@@ -456,7 +444,7 @@
                                 Reabrir
                             </button>
 
-                            <!-- 🔥 BOTÓN EDITAR -->
+                            <!-- BOTÓN EDITAR -->
                             <Link 
                                 v-if="permisos?.puede_editar && puedeEditar()" 
                                 :href="route('movimientos.edit', movimiento.id)" 
@@ -468,7 +456,7 @@
                                 Editar
                             </Link>
 
-                            <!-- 🔥 BOTÓN ELIMINAR -->
+                            <!-- BOTÓN ELIMINAR -->
                             <button 
                                 v-if="permisos?.puede_eliminar && puedeEliminar()" 
                                 class="btn-action btn-eliminar"
@@ -488,13 +476,12 @@
         <!-- ============================================================ -->
         <!-- MODAL PARA PREVISUALIZAR PDF/XML                              -->
         <!-- ============================================================ -->
-        <a-modal
-            v-model:open="modalPreviewVisible"
-            :title="modalPreviewTitle"
-            width="90%"
-            :footer="null"
+        <Dialog
+            v-model:visible="modalPreviewVisible"
+            modal
+            :header="modalPreviewTitle"
             class="modal-preview-premium"
-            :style="{ maxWidth: '1200px' }"
+            :style="{ width: '90vw', maxWidth: '1200px' }"
         >
             <div class="preview-content">
                 <div v-if="modalPreviewTipo === 'pdf'" class="preview-pdf-wrapper">
@@ -530,18 +517,17 @@
                     Descargar
                 </a>
             </div>
-        </a-modal>
+        </Dialog>
 
         <!-- ============================================================ -->
         <!-- MODAL PARA SUBIR/VER RECURSO (PDF/IMAGEN)                    -->
         <!-- ============================================================ -->
-        <a-modal
-            v-model:open="modalRecursoVisible"
-            :title="modalRecursoTitulo"
-            width="90%"
-            :footer="null"
+        <Dialog
+            v-model:visible="modalRecursoVisible"
+            modal
+            :header="modalRecursoTitulo"
             class="modal-recurso-premium"
-            :style="{ maxWidth: '900px' }"
+            :style="{ width: '90vw', maxWidth: '900px' }"
         >
             <div class="modal-recurso-content">
                 <!-- ========================================================== -->
@@ -637,20 +623,18 @@
                     Descargar
                 </a>
             </div>
-        </a-modal>
+        </Dialog>
 
         <!-- ============================================================ -->
         <!-- MODAL PARA IMPRIMIR (TICKET / REIMISIÓN) - MEJORADO          -->
         <!-- ============================================================ -->
-        <a-modal
-            v-model:open="modalImprimirVisible"
-            title="Opciones de Impresión"
-            width="480px"
-            :footer="null"
+        <Dialog
+            v-model:visible="modalImprimirVisible"
+            modal
+            header="Opciones de Impresión"
             class="modal-imprimir-premium"
-            :style="{ maxWidth: '480px' }"
-            :closable="true"
-            @cancel="cerrarModalImprimir"
+            :style="{ width: '480px', maxWidth: '95vw' }"
+            @hide="cerrarModalImprimir"
         >
             <div class="modal-imprimir-content">
                 <p class="modal-imprimir-desc">Selecciona el tipo de documento que deseas imprimir:</p>
@@ -699,19 +683,45 @@
                     <button class="btn-modal-cancel" @click="cerrarModalImprimir">Cancelar</button>
                 </div>
             </div>
-        </a-modal>
+        </Dialog>
 
-        <ModalAlert ref="alertRef" />
+        <!-- ============================================================ -->
+        <!-- DIÁLOGO DE COMENTARIO (revisar / autorizar / reabrir)        -->
+        <!-- ============================================================ -->
+        <Dialog
+            v-model:visible="comentarioDialog.visible"
+            modal
+            :header="comentarioDialog.title"
+            :style="{ width: '460px', maxWidth: '95vw' }"
+        >
+            <p class="comentario-dialog-text">{{ comentarioDialog.message }}</p>
+            <textarea
+                v-model="comentarioDialog.comentario"
+                :placeholder="comentarioDialog.placeholder"
+                class="comentario-dialog-textarea"
+                rows="3"
+            ></textarea>
+            <div class="comentario-dialog-actions">
+                <button type="button" class="btn-modal-cancel" @click="comentarioDialog.visible = false">Cancelar</button>
+                <button
+                    type="button"
+                    class="btn-modal-submit"
+                    :class="{ 'btn-modal-submit-danger': comentarioDialog.confirmSeverity === 'danger', 'btn-modal-submit-success': comentarioDialog.confirmSeverity === 'success' }"
+                    @click="confirmarComentarioDialog"
+                >
+                    {{ comentarioDialog.confirmLabel }}
+                </button>
+            </div>
+        </Dialog>
     </AppLayout>
 </template>
 <script setup>
 import { ref, computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import ModalAlert from '@/Components/AlertModal.vue';
-import Swal from 'sweetalert2';
 import axios from 'axios';
-import { Modal as AModal } from 'ant-design-vue';
+import Dialog from 'primevue/dialog';
+import { useNotify } from '@/composables/useNotify';
 
 // ============================================
 // PERMISOS
@@ -729,11 +739,45 @@ const props = defineProps({
     }
 });
 
-const alertRef = ref(null);
+const notify = useNotify();
 
 const tituloPagina = computed(() => {
     return `Detalle de Póliza`;
 });
+
+// ============================================
+// DIÁLOGO DE COMENTARIO (revisar / autorizar / reabrir)
+// ============================================
+const comentarioDialog = ref({
+    visible: false,
+    title: '',
+    message: '',
+    placeholder: 'Comentario (opcional)...',
+    comentario: '',
+    confirmLabel: 'Confirmar',
+    confirmSeverity: 'primary',
+    onConfirm: null,
+});
+
+const abrirComentarioDialog = (opts) => {
+    comentarioDialog.value = {
+        visible: true,
+        title: opts.title,
+        message: opts.message,
+        placeholder: opts.placeholder || 'Comentario (opcional)...',
+        comentario: '',
+        confirmLabel: opts.confirmLabel || 'Confirmar',
+        confirmSeverity: opts.confirmSeverity || 'primary',
+        onConfirm: opts.onConfirm,
+    };
+};
+
+const confirmarComentarioDialog = () => {
+    const cb = comentarioDialog.value.onConfirm;
+    const valor = comentarioDialog.value.comentario;
+    comentarioDialog.value.visible = false;
+    if (cb) cb(valor);
+};
 
 // ============================================
 // FUNCIONES PARA ESTADOS
@@ -882,7 +926,7 @@ const cerrarModalImprimir = () => {
 };
 
 // ============================================
-// 🔥 IMPRIMIR DIRECTAMENTE - CON IFRAME OCULTO (SIN ABRIR NUEVA PESTAÑA)
+// IMPRIMIR DIRECTAMENTE - CON IFRAME OCULTO (SIN ABRIR NUEVA PESTAÑA)
 // ============================================
 const imprimirDirecto = (tipo) => {
     cerrarModalImprimir();
@@ -892,10 +936,10 @@ const imprimirDirecto = (tipo) => {
         return;
     }
     
-    // 🔥 Ruta para generar el HTML según el tipo seleccionado
+    // Ruta para generar el HTML según el tipo seleccionado
     const url = route('movimientos.imprimir', props.movimiento.id) + '?tipo=' + tipo;
     
-    // 🔥 CREAR IFRAME OCULTO
+    // CREAR IFRAME OCULTO
     const iframe = document.createElement('iframe');
     iframe.style.position = 'absolute';
     iframe.style.width = '0';
@@ -905,10 +949,10 @@ const imprimirDirecto = (tipo) => {
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
     
-    // 🔥 CARGAR LA URL EN EL IFRAME
+    // CARGAR LA URL EN EL IFRAME
     iframe.src = url;
     
-    // 🔥 CUANDO EL IFRAME TERMINE DE CARGAR, EJECUTAR PRINT
+    // CUANDO EL IFRAME TERMINE DE CARGAR, EJECUTAR PRINT
     iframe.onload = function() {
         try {
             setTimeout(function() {
@@ -932,7 +976,7 @@ const imprimirDirecto = (tipo) => {
         }
     };
     
-    // 🔥 TIMEOUT DE SEGURIDAD (por si el iframe nunca carga)
+    // TIMEOUT DE SEGURIDAD (por si el iframe nunca carga)
     setTimeout(function() {
         if (iframe.parentNode) {
             document.body.removeChild(iframe);
@@ -1150,18 +1194,9 @@ const getPorcentajeIva = (id) => {
 // MODAL / ALERTAS
 // ============================================
 const mostrarModal = (type, title, message) => {
-    if (alertRef.value && alertRef.value.show) {
-        alertRef.value.show({ type, title, message, buttonText: type === 'error' ? 'Entendido' : 'Aceptar' });
-    } else {
-        const iconMap = { success: 'success', error: 'error', info: 'info', warning: 'warning' };
-        Swal.fire({
-            icon: iconMap[type] || 'info',
-            title: title || 'Información',
-            text: message,
-            confirmButtonColor: '#1a3a5c',
-            confirmButtonText: 'Aceptar'
-        });
-    }
+    const map = { success: 'success', error: 'error', info: 'info', warning: 'warn' };
+    const fn = notify[map[type] || 'info'];
+    fn(message, title);
 };
 
 // ============================================
@@ -1172,33 +1207,20 @@ const mostrarModal = (type, title, message) => {
 // REVISAR - REDIRIGE AL INDEX
 // ============================================
 const accionRevisar = () => {
-    Swal.fire({
+    abrirComentarioDialog({
         title: '¿Revisar póliza?',
-        text: 'Confirma que la póliza está correcta para pasarla a REVISADO.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3b82f6',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, revisar',
-        cancelButtonText: 'Cancelar',
-        input: 'textarea',
-        inputPlaceholder: 'Comentario (opcional)...',
-        inputAttributes: {
-            'aria-label': 'Comentario'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+        message: 'Confirma que la póliza está correcta para pasarla a REVISADO.',
+        confirmLabel: 'Sí, revisar',
+        onConfirm: (comentario) => {
             axios.post(route('movimientos.revisar', props.movimiento.id_poliza), {
-                comentario: result.value || null
+                comentario: comentario || null,
             }).then(() => {
                 mostrarModal('success', 'Póliza revisada', 'La póliza ha sido revisada exitosamente.');
-                setTimeout(() => {
-                    router.visit(route('movimientos.index'));
-                }, 1500);
+                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al revisar la póliza.');
             });
-        }
+        },
     });
 };
 
@@ -1206,33 +1228,21 @@ const accionRevisar = () => {
 // AUTORIZAR - REDIRIGE AL INDEX
 // ============================================
 const accionAutorizar = () => {
-    Swal.fire({
+    abrirComentarioDialog({
         title: '¿Autorizar póliza?',
-        text: 'Confirma que la póliza está correcta para pasarla a AUTORIZADO.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, autorizar',
-        cancelButtonText: 'Cancelar',
-        input: 'textarea',
-        inputPlaceholder: 'Comentario (opcional)...',
-        inputAttributes: {
-            'aria-label': 'Comentario'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+        message: 'Confirma que la póliza está correcta para pasarla a AUTORIZADO.',
+        confirmLabel: 'Sí, autorizar',
+        confirmSeverity: 'success',
+        onConfirm: (comentario) => {
             axios.post(route('movimientos.autorizar', props.movimiento.id_poliza), {
-                comentario: result.value || null
+                comentario: comentario || null,
             }).then(() => {
                 mostrarModal('success', 'Póliza autorizada', 'La póliza ha sido autorizada exitosamente.');
-                setTimeout(() => {
-                    router.visit(route('movimientos.index'));
-                }, 1500);
+                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al autorizar la póliza.');
             });
-        }
+        },
     });
 };
 
@@ -1240,28 +1250,22 @@ const accionAutorizar = () => {
 // CERRAR - SIN MOTIVO (SOLO CONFIRMACIÓN)
 // ============================================
 const accionCerrar = () => {
-    Swal.fire({
-        title: '¿Cerrar póliza?',
-        text: 'Esta acción cerrará la póliza y no podrá ser editada. ¿Estás seguro?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, cerrar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
+    notify.confirmAction({
+        header: '¿Cerrar póliza?',
+        message: 'Esta acción cerrará la póliza y no podrá ser editada. ¿Estás seguro?',
+        acceptLabel: 'Sí, cerrar',
+        acceptSeverity: 'danger',
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => {
             axios.post(route('movimientos.cerrar', props.movimiento.id_poliza), {
-                motivo: 'Cierre manual de póliza'
+                motivo: 'Cierre manual de póliza',
             }).then(() => {
                 mostrarModal('success', 'Póliza cerrada', 'La póliza ha sido cerrada exitosamente.');
-                setTimeout(() => {
-                    router.visit(route('movimientos.index'));
-                }, 1500);
+                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al cerrar la póliza.');
             });
-        }
+        },
     });
 };
 
@@ -1269,33 +1273,21 @@ const accionCerrar = () => {
 // REABRIR - REDIRIGE AL INDEX
 // ============================================
 const accionReabrir = () => {
-    Swal.fire({
+    abrirComentarioDialog({
         title: '¿Reabrir póliza?',
-        text: 'Esta acción reabrirá la póliza y la dejará en estado CAPTURADO para poder editarla. ¿Estás seguro?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3b82f6',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, reabrir',
-        cancelButtonText: 'Cancelar',
-        input: 'textarea',
-        inputPlaceholder: 'Motivo de la reapertura (opcional)...',
-        inputAttributes: {
-            'aria-label': 'Motivo de la reapertura'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+        message: 'Esta acción reabrirá la póliza y la dejará en estado CAPTURADO para poder editarla.',
+        placeholder: 'Motivo de la reapertura (opcional)...',
+        confirmLabel: 'Sí, reabrir',
+        onConfirm: (motivo) => {
             axios.post(route('movimientos.reabrir', props.movimiento.id_poliza), {
-                motivo: result.value || 'Reapertura manual de póliza'
+                motivo: motivo || 'Reapertura manual de póliza',
             }).then(() => {
                 mostrarModal('success', 'Póliza reabierta', 'La póliza ha sido reabierta exitosamente.');
-                setTimeout(() => {
-                    router.visit(route('movimientos.index'));
-                }, 1500);
+                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al reabrir la póliza.');
             });
-        }
+        },
     });
 };
 
@@ -1303,28 +1295,19 @@ const accionReabrir = () => {
 // ELIMINAR - REDIRIGE AL INDEX
 // ============================================
 const accionEliminar = () => {
-    Swal.fire({
-        title: '¿Eliminar póliza?',
-        text: 'Esta acción no se puede deshacer. ¿Estás seguro?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
+    notify.confirmDelete({
+        header: '¿Eliminar póliza?',
+        message: 'Esta acción no se puede deshacer. ¿Estás seguro?',
+        accept: () => {
             axios.delete(route('movimientos.destroy', props.movimiento.id))
                 .then(() => {
                     mostrarModal('success', 'Eliminada', 'La póliza ha sido eliminada exitosamente.');
-                    setTimeout(() => {
-                        router.visit(route('movimientos.index'));
-                    }, 1500);
+                    setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
                 })
                 .catch((error) => {
                     mostrarModal('error', 'Error', error.response?.data?.message || 'Error al eliminar la póliza.');
                 });
-        }
+        },
     });
 };
 </script>
@@ -1449,7 +1432,7 @@ const accionEliminar = () => {
 .doble-iva-badge-header {
     display: inline-block;
     padding: 2px 12px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
     border-radius: 4px;
     font-weight: 700;
@@ -1585,7 +1568,7 @@ const accionEliminar = () => {
 
 .doble-iva-tag {
     padding: 4px 14px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
     border-radius: 20px;
     font-size: 0.7rem;
@@ -1722,13 +1705,13 @@ const accionEliminar = () => {
 
 .btn-ver-xml:hover {
     background: #ffffff;
-    border-color: #8b5cf6;
+    border-color: #1a3a5c;
     color: #5b21b6;
     box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
 }
 
 .btn-ver-xml .btn-ver-icon {
-    color: #8b5cf6;
+    color: #1a3a5c;
 }
 
 .btn-ver-icon {
@@ -1738,27 +1721,27 @@ const accionEliminar = () => {
 }
 
 /* MODAL PREVIEW (PDF/XML) */
-.modal-preview-premium :deep(.ant-modal-header) {
+.modal-preview-premium :deep(.p-dialog-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
     padding: 16px 24px;
 }
 
-.modal-preview-premium :deep(.ant-modal-title) {
+.modal-preview-premium :deep(.p-dialog-title) {
     color: white;
     font-weight: 700;
     font-size: 1.1rem;
 }
 
-.modal-preview-premium :deep(.ant-modal-close) {
+.modal-preview-premium :deep(.p-dialog-close-button) {
     color: white;
 }
 
-.modal-preview-premium :deep(.ant-modal-close:hover) {
+.modal-preview-premium :deep(.p-dialog-close-button:hover) {
     color: #fca5a5;
 }
 
-.modal-preview-premium :deep(.ant-modal-body) {
+.modal-preview-premium :deep(.p-dialog-content) {
     padding: 0;
 }
 
@@ -1805,7 +1788,7 @@ const accionEliminar = () => {
 .preview-xml-icon {
     width: 48px;
     height: 48px;
-    color: #7c3aed;
+    color: #132a44;
 }
 
 .preview-xml-header span {
@@ -1874,27 +1857,27 @@ const accionEliminar = () => {
 }
 
 /* MODAL RECURSO (Subir/Ver) */
-.modal-recurso-premium :deep(.ant-modal-header) {
+.modal-recurso-premium :deep(.p-dialog-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
     padding: 16px 24px;
 }
 
-.modal-recurso-premium :deep(.ant-modal-title) {
+.modal-recurso-premium :deep(.p-dialog-title) {
     color: white;
     font-weight: 700;
     font-size: 1.1rem;
 }
 
-.modal-recurso-premium :deep(.ant-modal-close) {
+.modal-recurso-premium :deep(.p-dialog-close-button) {
     color: white;
 }
 
-.modal-recurso-premium :deep(.ant-modal-close:hover) {
+.modal-recurso-premium :deep(.p-dialog-close-button:hover) {
     color: #fca5a5;
 }
 
-.modal-recurso-premium :deep(.ant-modal-body) {
+.modal-recurso-premium :deep(.p-dialog-content) {
     padding: 0;
 }
 
@@ -2015,12 +1998,12 @@ const accionEliminar = () => {
 }
 
 .recurso-drop-zone:hover {
-    border-color: #8b5cf6;
+    border-color: #1a3a5c;
     background: #f8f7ff;
 }
 
 .recurso-drop-zone-dragover {
-    border-color: #8b5cf6;
+    border-color: #1a3a5c;
     background: #ede9fe;
     transform: scale(1.02);
 }
@@ -2453,13 +2436,13 @@ const accionEliminar = () => {
 }
 
 .btn-subir-recurso {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #1a3a5c, #132a44);
     color: white;
     border: none;
 }
 
 .btn-subir-recurso:hover {
-    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    background: linear-gradient(135deg, #132a44, #6d28d9);
     box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
     color: white;
 }
@@ -2552,14 +2535,14 @@ const accionEliminar = () => {
 /* ============================================================ */
 /* MODAL DE IMPRESIÓN MEJORADO                                  */
 /* ============================================================ */
-.modal-imprimir-premium :deep(.ant-modal-header) {
+.modal-imprimir-premium :deep(.p-dialog-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 12px 12px 0 0;
     padding: 18px 24px;
     border-bottom: none;
 }
 
-.modal-imprimir-premium :deep(.ant-modal-title) {
+.modal-imprimir-premium :deep(.p-dialog-title) {
     color: white;
     font-weight: 700;
     font-size: 1.1rem;
@@ -2568,7 +2551,7 @@ const accionEliminar = () => {
     gap: 10px;
 }
 
-.modal-imprimir-premium :deep(.ant-modal-title)::before {
+.modal-imprimir-premium :deep(.p-dialog-title)::before {
     content: '';
     display: inline-block;
     width: 4px;
@@ -2577,18 +2560,18 @@ const accionEliminar = () => {
     border-radius: 2px;
 }
 
-.modal-imprimir-premium :deep(.ant-modal-close) {
+.modal-imprimir-premium :deep(.p-dialog-close-button) {
     color: rgba(255, 255, 255, 0.8);
     transition: all 0.3s ease;
 }
 
-.modal-imprimir-premium :deep(.ant-modal-close:hover) {
+.modal-imprimir-premium :deep(.p-dialog-close-button:hover) {
     color: white;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
 }
 
-.modal-imprimir-premium :deep(.ant-modal-body) {
+.modal-imprimir-premium :deep(.p-dialog-content) {
     padding: 24px 28px 20px;
     background: #fafbfc;
 }
@@ -2637,7 +2620,7 @@ const accionEliminar = () => {
 }
 
 .modal-imprimir-option.reimision:hover {
-    border-color: #8b5cf6;
+    border-color: #1a3a5c;
     background: #f5f3ff;
 }
 
@@ -2712,7 +2695,7 @@ const accionEliminar = () => {
 /* RESPONSIVE PARA MODAL DE IMPRESIÓN                           */
 /* ============================================================ */
 @media (max-width: 480px) {
-    .modal-imprimir-premium :deep(.ant-modal-body) {
+    .modal-imprimir-premium :deep(.p-dialog-content) {
         padding: 16px;
     }
     
@@ -2841,5 +2824,43 @@ const accionEliminar = () => {
     .reviewed-icon { background: #d1fae5 !important; }
     .authorized-icon { background: #e0e7ff !important; }
     .rejected-icon { background: #fee2e2 !important; }
+}
+
+/* ===== DIÁLOGO DE COMENTARIO ===== */
+.comentario-dialog-text {
+    font-size: 14px;
+    color: #475569;
+    margin: 0 0 12px 0;
+}
+
+.comentario-dialog-textarea {
+    width: 100%;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.comentario-dialog-textarea:focus {
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
+}
+
+.comentario-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.btn-modal-submit-danger {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+}
+
+.btn-modal-submit-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
 }
 </style>

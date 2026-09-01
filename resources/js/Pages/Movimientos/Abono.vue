@@ -1,35 +1,6 @@
 <template>
     <AppLayout :title="tituloPagina">
-        <!-- FLASH MESSAGES -->
-        <div v-if="$page.props.flash" class="flash-container">
-            <div v-if="$page.props.flash.success" class="flash-message flash-success">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.success }}</span>
-                <button @click="$page.props.flash.success = null" class="flash-close">✕</button>
-            </div>
-            <div v-if="$page.props.flash.error" class="flash-message flash-error">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.error }}</span>
-                <button @click="$page.props.flash.error = null" class="flash-close">✕</button>
-            </div>
-            <div v-if="$page.props.flash.info" class="flash-message flash-info">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.info }}</span>
-                <button @click="$page.props.flash.info = null" class="flash-close">✕</button>
-            </div>
-        </div>
+        <!-- Los flash messages se muestran de forma global (AppLayout useFlashMessages) -->
 
         <template #header>
             <div class="header-wrapper">
@@ -47,7 +18,7 @@
                 <div class="header-right">
                     <div class="status-badge" :class="statusClass">
                         <span v-if="hasErrors">! {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✓ Completado</span>
+                        <span v-else-if="isComplete">Completado</span>
                         <span v-else>{{ Math.round(progressPercentage) }}%</span>
                     </div>
                 </div>
@@ -65,18 +36,14 @@
                             </svg>
                         </div>
                         <div class="info-leyenda-content">
-                            <span class="info-leyenda-texto">
-                                Registro de abono para la póliza <strong>{{ movimiento.referencia || 'S/N' }}</strong>
+                            <span class="info-leyenda-texto">Registro de abono para la póliza <strong>{{ movimiento.referencia || 'S/N' }}</strong>
                             </span>
-                            <span class="info-leyenda-detalle">
-                                Saldo pendiente: <strong>${{ formatNumber(movimiento.saldo_pendiente) }}</strong>
+                            <span class="info-leyenda-detalle">Saldo pendiente: <strong>${{ formatNumber(movimiento.saldo_pendiente) }}</strong>
                             </span>
                             <span v-if="movimiento.tipo_poliza === 'EGRESO' && movimiento.cuenta_fondeadora_id" class="info-leyenda-detalle" :class="movimiento.saldo_suficiente ? 'saldo-suficiente' : 'saldo-insuficiente'">
-                                <span v-if="movimiento.saldo_suficiente">
-                                     Saldo fondeadora: <strong>${{ formatNumber(movimiento.saldo_fondeadora) }}</strong>
+                                <span v-if="movimiento.saldo_suficiente">Saldo fondeadora: <strong>${{ formatNumber(movimiento.saldo_fondeadora) }}</strong>
                                 </span>
-                                <span v-else>
-                                    Saldo insuficiente: <strong>${{ formatNumber(movimiento.saldo_fondeadora) }}</strong>
+                                <span v-else>Saldo insuficiente: <strong>${{ formatNumber(movimiento.saldo_fondeadora) }}</strong>
                                 </span>
                             </span>
                         </div>
@@ -115,12 +82,11 @@
                             </svg>
                         </span>
                         <span class="validacion-texto">
-                            <span v-if="movimiento.saldo_suficiente">
-                                Saldo disponible en cuenta fondeadora: <strong>${{ formatNumber(movimiento.saldo_fondeadora) }}</strong>
+                            <span v-if="movimiento.saldo_suficiente">Saldo disponible en cuenta fondeadora: <strong>${{ formatNumber(movimiento.saldo_fondeadora) }}</strong>
                                 <span class="saldo-detalle"> (Suficiente para cubrir el saldo pendiente)</span>
                             </span>
                             <span v-else>
-                                ⚠️ <strong>Saldo insuficiente</strong> en cuenta fondeadora: 
+                                 <strong>Saldo insuficiente</strong> en cuenta fondeadora:
                                 ${{ formatNumber(movimiento.saldo_fondeadora) }} disponible vs 
                                 ${{ formatNumber(movimiento.saldo_pendiente) }} necesario
                                 <span class="saldo-detalle"> (Agrega fondos a la cuenta fondeadora antes de abonar)</span>
@@ -242,8 +208,7 @@
                                     <button type="button" 
                                             @click="abonoForm.monto_abonado = Math.round(movimiento.saldo_pendiente * 100) / 100; calcularNuevoSaldo()"
                                             class="btn-max"
-                                            title="Completar saldo pendiente">
-                                        Max
+                                            title="Completar saldo pendiente">Max
                                     </button>
                                 </div>
                                 <div v-if="abonoForm.errors.monto_abonado" class="error-text">{{ abonoForm.errors.monto_abonado }}</div>
@@ -304,8 +269,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                     </svg>
                                 </span>
-                                <span class="validacion-texto">
-                                    La suma del desglose (${{ formatNumber(totalConIvaAbonoCalculado) }}) excede el monto (${{ formatNumber(abonoForm.monto_abonado) }})
+                                <span class="validacion-texto">La suma del desglose (${{ formatNumber(totalConIvaAbonoCalculado) }}) excede el monto (${{ formatNumber(abonoForm.monto_abonado) }})
                                 </span>
                             </div>
                         </div>
@@ -378,7 +342,7 @@
                             <span v-if="tieneIva" class="info-con-iva">Con IVA</span>
                             <span v-else class="info-sin-iva">Sin IVA</span>
                             <span v-if="movimiento.tipo_poliza === 'EGRESO' && !movimiento.saldo_suficiente" class="info-saldo-insuficiente">
-                                ⚠️ Saldo insuficiente
+                                Saldo insuficiente
                             </span>
                         </div>
 
@@ -411,16 +375,16 @@
                 </div>
             </div>
         </div>
-
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+
+const notify = useNotify();
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 
 // ============================================
 // PROPS
@@ -439,7 +403,6 @@ const props = defineProps({
 // ============================================
 // REFS
 // ============================================
-const alertRef = ref(null);
 const processing = ref(false);
 const tiposIva = ref(props.tipos_iva || []);
 
@@ -557,7 +520,7 @@ const validarMontoConIva = computed(() => {
 });
 
 // ============================================
-// 🔥 VALIDACIÓN DE SALDO DE CUENTA FONDEADORA
+// VALIDACIÓN DE SALDO DE CUENTA FONDEADORA
 // ============================================
 const validarSaldoFondeadora = computed(() => {
     // Solo validar si es EGRESO y tiene cuenta fondeadora
@@ -646,7 +609,7 @@ const subtituloPagina = computed(() => {
 });
 
 // ============================================
-// 🔥 IVAS DISPONIBLES - CALCULADOS CORRECTAMENTE
+// IVAS DISPONIBLES - CALCULADOS CORRECTAMENTE
 // ============================================
 const ivasDisponibles = computed(() => {
     const ivasHeredados = props.movimiento?.ivas_heredados || [];
@@ -727,39 +690,24 @@ const submitAbono = () => {
     abonoForm.monto_abonado = Math.round(abonoForm.monto_abonado * 100) / 100;
 
     if (!abonoForm.monto_abonado || abonoForm.monto_abonado <= 0) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: 'El monto del abono debe ser mayor a 0', 
-            buttonText: 'Entendido' 
-        });
+        notify.error('El monto del abono debe ser mayor a 0', 'Error');
         processing.value = false;
         return;
     }
 
     if (abonoForm.monto_abonado > props.movimiento.saldo_pendiente) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: `El monto del abono no puede ser mayor al saldo pendiente ($${formatNumber(props.movimiento.saldo_pendiente)})`, 
-            buttonText: 'Entendido' 
-        });
+        notify.error(`El monto del abono no puede ser mayor al saldo pendiente ($${formatNumber(props.movimiento.saldo_pendiente)})`, 'Error');
         processing.value = false;
         return;
     }
 
-    // 🔥 VALIDAR SALDO DE CUENTA FONDEADORA PARA EGRESOS
+    // VALIDAR SALDO DE CUENTA FONDEADORA PARA EGRESOS
     if (props.movimiento.tipo_poliza === 'EGRESO' && props.movimiento.cuenta_fondeadora_id) {
         const montoAbono = totalAbonoFinal.value;
         const saldoDisponible = props.movimiento.saldo_fondeadora || 0;
         
         if (montoAbono > saldoDisponible) {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Saldo insuficiente', 
-                message: `No hay suficiente saldo en la cuenta fondeadora. Disponible: $${formatNumber(saldoDisponible)}. Necesario: $${formatNumber(montoAbono)}.`, 
-                buttonText: 'Entendido' 
-            });
+            notify.error(`No hay suficiente saldo en la cuenta fondeadora. Disponible: $${formatNumber(saldoDisponible)}. Necesario: $${formatNumber(montoAbono)}.`, 'Saldo insuficiente');
             processing.value = false;
             return;
         }
@@ -781,12 +729,7 @@ const submitAbono = () => {
         });
         
         if (ivaInvalido) {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Error en IVA', 
-                message: mensajeIva, 
-                buttonText: 'Entendido' 
-            });
+            notify.error(mensajeIva, 'Error en IVA');
             processing.value = false;
             return;
         }
@@ -795,40 +738,25 @@ const submitAbono = () => {
             return (abonoForm.ivas[ivaId]?.monto || 0) > 0;
         });
         if (!tieneMontoIva) {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Error', 
-                message: 'Debes asignar un monto a al menos un tipo de IVA', 
-                buttonText: 'Entendido' 
-            });
+            notify.error('Debes asignar un monto a al menos un tipo de IVA', 'Error');
             processing.value = false;
             return;
         }
 
         if (!validarMontoConIva.value) {
-            alertRef.value?.show({ 
-                type: 'warning', 
-                title: 'Atención', 
-                message: `El total del desglose ($${formatNumber(totalConIvaAbonoCalculado.value)}) excede el monto del abono ($${formatNumber(abonoForm.monto_abonado)}). Verifica los montos de IVA.`, 
-                buttonText: 'Entendido' 
-            });
+            notify.warn(`El total del desglose ($${formatNumber(totalConIvaAbonoCalculado.value)}) excede el monto del abono ($${formatNumber(abonoForm.monto_abonado)}). Verifica los montos de IVA.`, 'Atención');
             processing.value = false;
             return;
         }
     }
 
     if (!abonoForm.id_cuenta_fondeadora) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: 'No se encontró una cuenta de fondo asociada a esta póliza', 
-            buttonText: 'Entendido' 
-        });
+        notify.error('No se encontró una cuenta de fondo asociada a esta póliza', 'Error');
         processing.value = false;
         return;
     }
 
-    // 🔥 CONSTRUIR EL ARRAY DE IVAS CON EL FORMATO CORRECTO
+    // CONSTRUIR EL ARRAY DE IVAS CON EL FORMATO CORRECTO
     const ivasArray = ivasSeleccionados.value.map(ivaId => ({
         id: ivaId,
         monto: abonoForm.ivas[ivaId]?.monto || 0
@@ -862,39 +790,18 @@ const submitAbono = () => {
     abonoForm.post(route('movimientos.abono.store'), {
         preserveState: false,
         preserveScroll: false,
-        onSuccess: (page) => {
+        onSuccess: () => {
             processing.value = false;
-            
-            // Mostrar alerta de éxito con SweetAlert
-            if (page.props.flash && page.props.flash.success) {
-                alertRef.value?.show({ 
-                    type: 'success', 
-                    title: '✅ ¡Abono registrado!', 
-                    message: page.props.flash.success,
-                    buttonText: 'Ir a pólizas diferidas',
-                    onConfirm: () => {
-                        router.visit(route('movimientos.index', { vista: 'diferidas' }), { 
-                            method: 'get', 
-                            replace: true 
-                        });
-                    }
-                });
-            } else {
-                router.visit(route('movimientos.index', { vista: 'diferidas' }), { 
-                    method: 'get', 
-                    replace: true 
-                });
-            }
+            // El mensaje de éxito lo muestra el manejador global de flash (toast).
+            router.visit(route('movimientos.index', { vista: 'diferidas' }), {
+                method: 'get',
+                replace: true,
+            });
         },
         onError: (errors) => {
             processing.value = false;
             const firstError = Object.values(errors)[0];
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Error', 
-                message: firstError || 'Error al registrar el abono.', 
-                buttonText: 'Entendido' 
-            });
+            notify.error(firstError || 'Error al registrar el abono.', 'Error');
         }
     });
 };
@@ -1245,7 +1152,7 @@ onMounted(() => {
 .label-icon {
     width: 18px;
     height: 18px;
-    stroke: #667eea;
+    stroke: #1a3a5c;
     flex-shrink: 0;
 }
 
@@ -1317,8 +1224,8 @@ onMounted(() => {
 }
 
 .form-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .form-input.error {
@@ -1347,8 +1254,8 @@ onMounted(() => {
 }
 
 .form-textarea:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .form-textarea.error { border-color: #ef4444; }
@@ -1375,7 +1282,7 @@ onMounted(() => {
     top: 50%;
     transform: translateY(-50%);
     padding: 2px 12px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
     border: none;
     border-radius: 4px;
@@ -1388,7 +1295,7 @@ onMounted(() => {
 
 .btn-max:hover {
     transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.3);
 }
 
 /* --- NUEVO SALDO --- */
@@ -1631,7 +1538,7 @@ onMounted(() => {
     padding: 6px 14px;
     background: #f8fafc;
     border-radius: 8px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     font-size: 0.8rem;
     color: #4b5563;
     margin-top: 8px;
@@ -1748,14 +1655,14 @@ onMounted(() => {
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 8px 24px rgba(26, 58, 92, 0.35);
 }
 
 .spinner-border {

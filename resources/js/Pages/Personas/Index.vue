@@ -10,8 +10,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h2 class="header-title-premium">
-                                Gestión de Personas
+                            <h2 class="header-title-premium">Gestión de Personas
                             </h2>
                             <p class="header-subtitle-premium">
                                 <span class="subtitle-line"></span>
@@ -20,12 +19,10 @@
                         </div>
                     </div>
                     <Link v-if="permisos?.puede_crear_personas" :href="route('personas.create')">
-                        <a-button type="primary" size="large" class="btn-nueva-persona-premium">
-                            <template #icon>
-                                <PlusOutlined />
-                            </template>
+                        <button type="button" class="btn-nueva-persona-premium">
+                            <i class="pi pi-plus"></i>
                             Nueva Persona
-                        </a-button>
+                        </button>
                     </Link>
                 </div>
             </div>
@@ -34,83 +31,75 @@
         <div class="py-6">
             <div class="max-w-full px-4 sm:px-6 lg:px-8">
                 <!-- Stats Cards -->
-                <a-row :gutter="[20, 20]" class="mb-6">
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Total Personas</span>
-                                    <span class="stats-card-enhanced-value">{{ stats?.total || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
-                                    <svg class="stats-card-enhanced-svg" style="color: #1a3a5c;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
-                                </div>
+                <div class="stats-grid-personas mb-6">
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Total Personas</span>
+                                <span class="stats-card-enhanced-value">{{ stats?.total || 0 }}</span>
                             </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" style="width: 100%; background: linear-gradient(90deg, #1a3a5c, #2c5282);"></div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
+                                <svg class="stats-card-enhanced-svg" style="color: #1a3a5c;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
                             </div>
                         </div>
-                    </a-col>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" style="width: 100%; background: linear-gradient(90deg, #1a3a5c, #2c5282);"></div>
+                        </div>
+                    </div>
 
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Físicas</span>
-                                    <span class="stats-card-enhanced-value" style="color: #2563eb;">{{ stats?.fisicas || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.05));">
-                                    <svg class="stats-card-enhanced-svg" style="color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                </div>
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Físicas</span>
+                                <span class="stats-card-enhanced-value" style="color: #2563eb;">{{ stats?.fisicas || 0 }}</span>
                             </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.fisicas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #2563eb, #3b82f6)' }"></div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.05));">
+                                <svg class="stats-card-enhanced-svg" style="color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
                             </div>
                         </div>
-                    </a-col>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.fisicas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #2563eb, #3b82f6)' }"></div>
+                        </div>
+                    </div>
 
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Morales</span>
-                                    <span class="stats-card-enhanced-value" style="color: #7c3aed;">{{ stats?.morales || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05));">
-                                    <svg class="stats-card-enhanced-svg" style="color: #7c3aed;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                    </svg>
-                                </div>
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Morales</span>
+                                <span class="stats-card-enhanced-value" style="color: #132a44;">{{ stats?.morales || 0 }}</span>
                             </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.morales / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #7c3aed, #8b5cf6)' }"></div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
+                                <svg class="stats-card-enhanced-svg" style="color: #132a44;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
                             </div>
                         </div>
-                    </a-col>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.morales / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #132a44, #1a3a5c)' }"></div>
+                        </div>
+                    </div>
 
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Activas / Inactivas</span>
-                                    <span class="stats-card-enhanced-value" style="color: #0f172a; font-size: 22px;">{{ stats?.activas || 0 }} / {{ stats?.inactivas || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(239, 68, 68, 0.05));">
-                                    <svg class="stats-card-enhanced-svg" style="color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Activas / Inactivas</span>
+                                <span class="stats-card-enhanced-value" style="color: #0f172a; font-size: 22px;">{{ stats?.activas || 0 }} / {{ stats?.inactivas || 0 }}</span>
                             </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.activas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #10b981, #34d399)' }"></div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(239, 68, 68, 0.05));">
+                                <svg class="stats-card-enhanced-svg" style="color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
                             </div>
                         </div>
-                    </a-col>
-                </a-row>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.activas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #10b981, #34d399)' }"></div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Tabla Premium -->
                 <div class="table-wrapper-premium">
@@ -118,159 +107,146 @@
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
                             <span class="table-title-ultra">Listado de Personas</span>
-                            <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
+                            <span v-if="filtrosActivos" class="filter-tag-ultra">
                                 <span class="filter-dot-active"></span>
                                 Filtros activos
-                            </a-tag>
+                            </span>
                             <span v-if="personas.total > 0" class="resultados-count-ultra">
                                 {{ personas.total }} resultado{{ personas.total !== 1 ? 's' : '' }}
                             </span>
                         </div>
                         <div class="table-header-right-ultra">
-                            <a-button v-if="filtrosActivos" @click="limpiarFiltros" size="small" class="btn-limpiar-ultra">
-                                <template #icon>
-                                    <CloseOutlined />
-                                </template>
+                            <button v-if="filtrosActivos" type="button" @click="limpiarFiltros" class="btn-limpiar-ultra">
+                                <i class="pi pi-times"></i>
                                 Limpiar filtros
-                            </a-button>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Contenedor de tabla con scroll -->
+                    <!-- Contenedor de tabla -->
                     <div class="table-scroll-container-full">
-                        <a-table
-                            :columns="columns"
-                            :data-source="personas.data"
-                            :pagination="false"
+                        <DataTable
+                            :value="personas.data"
                             :loading="loading"
-                            row-key="id_persona"
+                            data-key="id_persona"
+                            scrollable
+                            scroll-height="460px"
+                            row-hover
+                            table-style="min-width: 70rem"
                             class="persona-table-ultra"
-                            size="middle"
-                            :scroll="{ x: 'max-content' }"
                         >
-                            <template #bodyCell="{ column, record }">
-                                <template v-if="column.key === 'persona'">
-                                    <div class="persona-cell-ultra">
-                                        <div class="persona-info-ultra">
-                                            <span class="persona-nombre-ultra">{{ record.nombre_completo || 'Sin nombre' }}</span>
-                                        </div>
-                                    </div>
-                                </template>
+                            <template #empty>
+                                <div class="tabla-vacia">No se encontraron personas con los filtros actuales.</div>
+                            </template>
 
-                                <template v-if="column.key === 'tipo_persona'">
-                                    <div class="tipo-cell-ultra">
-                                        <span class="tipo-badge" :class="record.tipo_persona === 'MORAL' ? 'moral' : 'fisica'">
-                                            {{ record.tipo_persona === 'MORAL' ? 'Moral' : 'Física' }}
-                                        </span>
-                                    </div>
+                            <Column header="Persona" style="width: 18%" frozen>
+                                <template #body="{ data }">
+                                    <span class="persona-nombre-ultra">{{ data.nombre_completo || 'Sin nombre' }}</span>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'rfc'">
-                                    <div class="rfc-cell-ultra">
-                                        <span class="rfc-text-ultra">{{ record.rfc || '-' }}</span>
-                                    </div>
+                            <Column header="Tipo" style="width: 8%">
+                                <template #body="{ data }">
+                                    <span class="tipo-badge" :class="data.tipo_persona === 'MORAL' ? 'moral' : 'fisica'">
+                                        {{ data.tipo_persona === 'MORAL' ? 'Moral' : 'Física' }}
+                                    </span>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'ubicacion'">
-                                    <div class="ubicacion-cell-ultra">
-                                        <span class="ubicacion-text-ultra">
-                                            {{ record.ciudad || '' }}{{ record.ciudad && record.estado ? ', ' : '' }}{{ record.estado || 'Sin ubicación' }}
-                                        </span>
-                                    </div>
+                            <Column header="RFC" style="width: 10%">
+                                <template #body="{ data }">
+                                    <span class="rfc-text-ultra">{{ data.rfc || '-' }}</span>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'contacto'">
+                            <Column header="Ubicación" style="width: 12%">
+                                <template #body="{ data }">
+                                    <span class="ubicacion-text-ultra">
+                                        {{ data.ciudad || '' }}{{ data.ciudad && data.estado ? ', ' : '' }}{{ data.estado || 'Sin ubicación' }}
+                                    </span>
+                                </template>
+                            </Column>
+
+                            <Column header="Contacto" style="width: 18%">
+                                <template #body="{ data }">
                                     <div class="contacto-cell-ultra">
-                                        <a v-if="record.email" :href="`mailto:${record.email}`" class="contacto-email-ultra">
-                                            <MailOutlined class="contacto-icon-ultra" /> 
-                                            <span>{{ record.email }}</span>
+                                        <a v-if="data.email" :href="`mailto:${data.email}`" class="contacto-email-ultra">
+                                            <i class="pi pi-envelope contacto-icon-ultra"></i>
+                                            <span>{{ data.email }}</span>
                                         </a>
-                                        <span v-if="record.telefono_particular || record.telefono_trabajo" class="contacto-telefono-ultra">
-                                            <PhoneOutlined class="contacto-icon-ultra" /> 
-                                            <span>{{ record.telefono_particular || record.telefono_trabajo }}</span>
+                                        <span v-if="data.telefono_particular || data.telefono_trabajo" class="contacto-telefono-ultra">
+                                            <i class="pi pi-phone contacto-icon-ultra"></i>
+                                            <span>{{ data.telefono_particular || data.telefono_trabajo }}</span>
                                         </span>
-                                        <span v-if="!record.email && !record.telefono_particular && !record.telefono_trabajo" class="contacto-vacio-ultra">
+                                        <span v-if="!data.email && !data.telefono_particular && !data.telefono_trabajo" class="contacto-vacio-ultra">
                                             Sin contacto
                                         </span>
                                     </div>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'representante'">
-                                    <div class="representante-cell-ultra">
-                                        <span v-if="record.representante_nombre_completo" class="representante-nombre-ultra">
-                                            {{ record.representante_nombre_completo }}
-                                        </span>
-                                        <span v-else class="representante-vacio-ultra">-</span>
+                            <Column header="Representante" style="width: 12%">
+                                <template #body="{ data }">
+                                    <span v-if="data.representante_nombre_completo" class="representante-nombre-ultra">
+                                        {{ data.representante_nombre_completo }}
+                                    </span>
+                                    <span v-else class="representante-vacio-ultra">-</span>
+                                </template>
+                            </Column>
+
+                            <Column header="Estado" style="width: 8%">
+                                <template #body="{ data }">
+                                    <div class="estado-badge-ultra" :class="data.activo ? 'activo' : 'inactivo'">
+                                        <span class="estado-dot-ultra"></span>
+                                        <span>{{ data.activo ? 'Activo' : 'Inactivo' }}</span>
                                     </div>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'estado'">
-                                    <div class="estado-cell-ultra">
-                                        <div class="estado-badge-ultra" :class="record.activo ? 'activo' : 'inactivo'">
-                                            <span class="estado-dot-ultra"></span>
-                                            <span>{{ record.activo ? 'Activo' : 'Inactivo' }}</span>
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <template v-if="column.key === 'acciones'">
+                            <Column header="Acciones" style="width: 10%" align-frozen="right" frozen>
+                                <template #body="{ data }">
                                     <div class="acciones-ultra">
-                                        <a-tooltip title="Ver detalles" placement="top" color="#1a3a5c">
-                                            <Link :href="route('personas.show', record.id_persona)">
-                                                <button class="btn-action-ultra btn-view-ultra">
-                                                    <EyeOutlined />
-                                                </button>
-                                            </Link>
-                                        </a-tooltip>
-
-                                        <a-tooltip v-if="permisos?.puede_editar_personas" title="Editar" placement="top" color="#1a3a5c">
-                                            <Link :href="route('personas.edit', record.id_persona)">
-                                                <button class="btn-action-ultra btn-edit-ultra">
-                                                    <EditOutlined />
-                                                </button>
-                                            </Link>
-                                        </a-tooltip>
-
-                                        <a-tooltip 
-                                            v-if="!record.activo && permisos?.puede_editar_personas"
-                                            title="Activar persona" 
-                                            placement="top" 
-                                            color="#10b981"
-                                        >
-                                            <button 
-                                                class="btn-action-ultra btn-activate-ultra"
-                                                @click="confirmarActivar(record)"
-                                            >
-                                                <CheckCircleOutlined />
+                                        <Link :href="route('personas.show', data.id_persona)">
+                                            <button v-tooltip.top="'Ver detalles'" class="btn-action-ultra btn-view-ultra">
+                                                <i class="pi pi-eye"></i>
                                             </button>
-                                        </a-tooltip>
+                                        </Link>
 
-                                        <a-tooltip 
-                                            v-if="record.activo && permisos?.puede_editar_personas"
-                                            title="Desactivar" 
-                                            placement="top" 
-                                            color="#ef4444"
-                                        >
-                                            <button 
-                                                class="btn-action-ultra btn-delete-ultra"
-                                                @click="confirmarDesactivar(record)"
-                                            >
-                                                <DeleteOutlined />
+                                        <Link v-if="permisos?.puede_editar_personas" :href="route('personas.edit', data.id_persona)">
+                                            <button v-tooltip.top="'Editar'" class="btn-action-ultra btn-edit-ultra">
+                                                <i class="pi pi-pencil"></i>
                                             </button>
-                                        </a-tooltip>
+                                        </Link>
+
+                                        <button
+                                            v-if="!data.activo && permisos?.puede_editar_personas"
+                                            v-tooltip.top="'Activar persona'"
+                                            class="btn-action-ultra btn-activate-ultra"
+                                            @click="confirmarActivar(data)"
+                                        >
+                                            <i class="pi pi-check-circle"></i>
+                                        </button>
+
+                                        <button
+                                            v-if="data.activo && permisos?.puede_editar_personas"
+                                            v-tooltip.top="'Desactivar'"
+                                            class="btn-action-ultra btn-delete-ultra"
+                                            @click="confirmarDesactivar(data)"
+                                        >
+                                            <i class="pi pi-trash"></i>
+                                        </button>
                                     </div>
                                 </template>
-                            </template>
-                        </a-table>
+                            </Column>
+                        </DataTable>
                     </div>
 
-                    <!-- FILTROS INFERIOR - ALINEADOS PERFECTAMENTE -->
+                    <!-- FILTROS INFERIOR -->
                     <div class="filtros-ultra-full">
                         <div class="filtros-grid-ultra-full">
-                            <!-- Filtro Persona (COLUMNA 1) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>Persona</InputLabel>
-                                <TextInput 
+                                <TextInput
                                     v-model="filtros.search"
                                     @input="aplicarFiltros"
                                     placeholder="Buscar..."
@@ -278,27 +254,23 @@
                                 />
                             </div>
 
-                            <!-- Filtro Tipo (COLUMNA 2) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>Tipo</InputLabel>
-                                <a-select
-                                    v-model:value="filtros.tipo_persona"
-                                    @change="aplicarFiltros"
+                                <Select
+                                    v-model="filtros.tipo_persona"
+                                    :options="tipoOptions"
+                                    option-label="label"
+                                    option-value="value"
                                     placeholder="Todos"
-                                    allow-clear
-                                    size="small"
+                                    show-clear
                                     class="filtro-select-ultra"
-                                >
-                                    <ASelectOption value="">Todos</ASelectOption>
-                                    <ASelectOption value="FISICA">Física</ASelectOption>
-                                    <ASelectOption value="MORAL">Moral</ASelectOption>
-                                </a-select>
+                                    @change="aplicarFiltros"
+                                />
                             </div>
 
-                            <!-- Filtro RFC (COLUMNA 3) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>RFC</InputLabel>
-                                <TextInput 
+                                <TextInput
                                     v-model="filtros.rfc"
                                     @input="aplicarFiltros"
                                     placeholder="Buscar..."
@@ -306,30 +278,22 @@
                                 />
                             </div>
 
-                            <!-- Filtro Ciudad (COLUMNA 4) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>Ciudad</InputLabel>
-                                <a-select
-                                    v-model:value="filtros.ciudad"
-                                    @change="aplicarFiltros"
+                                <Select
+                                    v-model="filtros.ciudad"
+                                    :options="ciudadesUnicas"
                                     placeholder="Todas"
-                                    allow-clear
-                                    size="small"
+                                    show-clear
+                                    filter
                                     class="filtro-select-ultra"
-                                    show-search
-                                    :filter-option="filterOption"
-                                >
-                                    <ASelectOption value="">Todas</ASelectOption>
-                                    <ASelectOption v-for="ciudad in ciudadesUnicas" :key="ciudad" :value="ciudad">
-                                        {{ ciudad }}
-                                    </ASelectOption>
-                                </a-select>
+                                    @change="aplicarFiltros"
+                                />
                             </div>
 
-                            <!-- Filtro Contacto (COLUMNA 5) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>Contacto</InputLabel>
-                                <TextInput 
+                                <TextInput
                                     v-model="filtros.contacto"
                                     @input="aplicarFiltros"
                                     placeholder="Buscar..."
@@ -337,10 +301,9 @@
                                 />
                             </div>
 
-                            <!-- Filtro Representante (COLUMNA 6) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>Representante</InputLabel>
-                                <TextInput 
+                                <TextInput
                                     v-model="filtros.representante"
                                     @input="aplicarFiltros"
                                     placeholder="Buscar..."
@@ -348,56 +311,47 @@
                                 />
                             </div>
 
-                            <!-- Filtro Estado (COLUMNA 7) -->
                             <div class="filtro-item-ultra">
                                 <InputLabel>Estado</InputLabel>
-                                <a-select
-                                    v-model:value="filtros.estado"
-                                    @change="aplicarFiltros"
+                                <Select
+                                    v-model="filtros.estado"
+                                    :options="estadoOptions"
+                                    option-label="label"
+                                    option-value="value"
                                     placeholder="Todos"
-                                    allow-clear
-                                    size="small"
+                                    show-clear
                                     class="filtro-select-ultra"
-                                >
-                                    <ASelectOption :value="null">Todos</ASelectOption>
-                                    <ASelectOption :value="true">Activo</ASelectOption>
-                                    <ASelectOption :value="false">Inactivo</ASelectOption>
-                                </a-select>
+                                    @change="aplicarFiltros"
+                                />
                             </div>
 
-                            <!-- Botón Limpiar (COLUMNA 8 - Acciones) -->
                             <div class="filtro-item-ultra filtro-actions">
                                 <InputLabel>Acciones</InputLabel>
-                                <a-button 
+                                <button
                                     v-if="filtrosActivos"
-                                    @click="limpiarFiltros" 
-                                    size="small"
+                                    type="button"
+                                    @click="limpiarFiltros"
                                     class="btn-clear-ultra"
-                                    block
                                 >
-                                    <template #icon>
-                                        <CloseOutlined />
-                                    </template>
+                                    <i class="pi pi-times"></i>
                                     Limpiar filtros
-                                </a-button>
-                                <a-button 
+                                </button>
+                                <button
                                     v-else
+                                    type="button"
                                     disabled
-                                    size="small"
-                                    block
                                     class="btn-no-filtros-ultra"
                                 >
                                     <span class="no-filtros-text-ultra">Sin filtros</span>
-                                </a-button>
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Paginación -->
                     <div class="pagination-ultra">
-                        <span class="pagination-info-ultra">
-                            Mostrando <span class="pagination-highlight-ultra">{{ personas.from || 0 }}</span> a 
-                            <span class="pagination-highlight-ultra">{{ personas.to || 0 }}</span> de 
+                        <span class="pagination-info-ultra">Mostrando <span class="pagination-highlight-ultra">{{ personas.from || 0 }}</span> a
+                            <span class="pagination-highlight-ultra">{{ personas.to || 0 }}</span> de
                             <span class="pagination-highlight-ultra">{{ personas.total || 0 }}</span> resultados
                         </span>
                         <Pagination :links="personas.links" />
@@ -405,140 +359,48 @@
                 </div>
             </div>
         </div>
-
-        <!-- Modal de Documentos -->
-        <a-modal
-            v-model:open="modalDocumentosVisible"
-            :title="'Documentos de ' + (personaSeleccionada?.razon_social_display || personaSeleccionada?.nombre_completo || '')"
-            width="680px"
-            class="documentos-modal-premium"
-            :footer="null"
-            :closable="true"
-            @cancel="cerrarModalDocumentos"
-        >
-            <!-- ... (contenido del modal igual que antes) ... -->
-        </a-modal>
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed } from 'vue';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Select from 'primevue/select';
 import Pagination from '@/Components/Pagination.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import axios from 'axios';
-import Swal from 'sweetalert2';
-
-// Importar iconos
-import {
-    PlusOutlined,
-    CloseOutlined,
-    MailOutlined,
-    PhoneOutlined,
-    EyeOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    FileOutlined,
-    UploadOutlined,
-    CloudUploadOutlined,
-    DownloadOutlined,
-    CheckOutlined,
-    CheckCircleOutlined,
-} from '@ant-design/icons-vue';
-
-// Importar componentes de Ant Design
-import {
-    Button as AButton,
-    Row as ARow,
-    Col as ACol,
-    Table as ATable,
-    Tag as ATag,
-    Select as ASelect,
-    Tooltip as ATooltip,
-    Avatar as AAvatar,
-    Modal as AModal,
-} from 'ant-design-vue';
-
-const ASelectOption = ASelect.Option;
+import { useNotify } from '@/composables/useNotify';
 
 // ============================================
 // PERMISOS
 // ============================================
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
+const notify = useNotify();
 
 const props = defineProps({
     personas: Object,
     stats: Object,
     filtros: Object,
-    flash: Object
+    flash: Object,
 });
 
 const loading = ref(false);
 
-// Estado para el modal de documentos
-const modalDocumentosVisible = ref(false);
-const personaSeleccionada = ref(null);
-const subiendoDocumento = ref(false);
-const archivoSeleccionado = ref(null);
-const fileInput = ref(null);
-const cargandoDocumentos = ref(false);
-
-const nuevoDocumento = ref({
-    tipo: '',
-    titulo: '',
-    finalizado: false,
-});
-
 // ============================================
-// COLUMNAS DE LA TABLA - CON PORCENTAJES EXACTOS
+// OPCIONES DE FILTROS
 // ============================================
-const columns = [
-    {
-        title: 'Persona',
-        key: 'persona',
-        width: '18%',
-        fixed: 'left'
-    },
-    {
-        title: 'Tipo',
-        key: 'tipo_persona',
-        width: '8%'
-    },
-    {
-        title: 'RFC',
-        key: 'rfc',
-        width: '10%'
-    },
-    {
-        title: 'Ubicación',
-        key: 'ubicacion',
-        width: '12%'
-    },
-    {
-        title: 'Contacto',
-        key: 'contacto',
-        width: '18%'
-    },
-    {
-        title: 'Representante',
-        key: 'representante',
-        width: '12%'
-    },
-    {
-        title: 'Estado',
-        key: 'estado',
-        width: '8%'
-    },
-    {
-        title: 'Acciones',
-        key: 'acciones',
-        width: '10%',
-        align: 'center',
-        fixed: 'right'
-    }
+const tipoOptions = [
+    { label: 'Física', value: 'FISICA' },
+    { label: 'Moral', value: 'MORAL' },
+];
+
+const estadoOptions = [
+    { label: 'Activo', value: 'activo' },
+    { label: 'Inactivo', value: 'inactivo' },
 ];
 
 // ============================================
@@ -546,12 +408,12 @@ const columns = [
 // ============================================
 const filtros = ref({
     search: props.filtros?.search || '',
-    tipo_persona: props.filtros?.tipo_persona || '',
+    tipo_persona: props.filtros?.tipo_persona || null,
     rfc: props.filtros?.rfc || '',
-    ciudad: props.filtros?.ciudad || '',
+    ciudad: props.filtros?.ciudad || null,
     contacto: props.filtros?.contacto || '',
     representante: props.filtros?.representante || '',
-    estado: props.filtros?.estado !== undefined ? props.filtros.estado : null,
+    estado: props.filtros?.estado || null,
 });
 
 const filtrosActivos = computed(() => {
@@ -566,10 +428,6 @@ const ciudadesUnicas = computed(() => {
     return [...new Set(ciudades)].sort();
 });
 
-const filterOption = (input, option) => {
-    return option.value.toLowerCase().includes(input.toLowerCase());
-};
-
 let timeoutId = null;
 const aplicarFiltros = () => {
     clearTimeout(timeoutId);
@@ -578,20 +436,16 @@ const aplicarFiltros = () => {
         const params = {};
         for (const [key, value] of Object.entries(filtros.value)) {
             if (value !== '' && value !== null && value !== undefined) {
-                if (key === 'estado' && value !== null) {
-                    params[key] = value ? 'activo' : 'inactivo';
-                } else {
-                    params[key] = value;
-                }
+                params[key] = value;
             }
         }
-        
+
         router.get(route('personas.index'), params, {
             preserveState: true,
             replace: true,
             onFinish: () => {
                 loading.value = false;
-            }
+            },
         });
     }, 300);
 };
@@ -599,9 +453,9 @@ const aplicarFiltros = () => {
 const limpiarFiltros = () => {
     filtros.value = {
         search: '',
-        tipo_persona: '',
+        tipo_persona: null,
         rfc: '',
-        ciudad: '',
+        ciudad: null,
         contacto: '',
         representante: '',
         estado: null,
@@ -610,401 +464,40 @@ const limpiarFiltros = () => {
 };
 
 // ============================================
-// FUNCIONES PARA DOCUMENTOS
-// ============================================
-const abrirModalDocumentos = async (record) => {
-    personaSeleccionada.value = record;
-    modalDocumentosVisible.value = true;
-    nuevoDocumento.value = { tipo: '', titulo: '', finalizado: false };
-    archivoSeleccionado.value = null;
-    if (fileInput.value) fileInput.value.value = '';
-    await cargarDocumentos(record.id_persona);
-};
-
-const cerrarModalDocumentos = () => {
-    modalDocumentosVisible.value = false;
-    personaSeleccionada.value = null;
-    nuevoDocumento.value = { tipo: '', titulo: '', finalizado: false };
-    archivoSeleccionado.value = null;
-    subiendoDocumento.value = false;
-    if (fileInput.value) fileInput.value.value = '';
-};
-
-const cargarDocumentos = async (personaId) => {
-    cargandoDocumentos.value = true;
-    try {
-        const response = await axios.get(route('personas.documentos', personaId));
-        if (response.data.success) {
-            personaSeleccionada.value.documentos = response.data.data;
-            personaSeleccionada.value.total_documentos = response.data.data.length;
-        }
-    } catch (error) {
-        console.error('Error al cargar documentos:', error);
-    } finally {
-        cargandoDocumentos.value = false;
-    }
-};
-
-const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        if (file.size > 5 * 1024 * 1024) {
-            Swal.fire({
-                title: 'Archivo muy grande',
-                text: 'El archivo no debe superar los 5MB.',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
-            });
-            event.target.value = '';
-            return;
-        }
-        archivoSeleccionado.value = file;
-    }
-};
-
-const removerArchivo = () => {
-    archivoSeleccionado.value = null;
-    if (fileInput.value) fileInput.value.value = '';
-};
-
-const getColorDocumento = (tipo) => {
-    const colores = {
-        'INE': '#3b82f6',
-        'RFC': '#8b5cf6',
-        'CURP': '#10b981',
-        'COMPROBANTE': '#f59e0b',
-        'OTRO': '#6b7280'
-    };
-    return colores[tipo] || '#6b7280';
-};
-
-const formatFecha = (fecha) => {
-    if (!fecha) return '';
-    const d = new Date(fecha);
-    return d.toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-};
-
-const subirDocumento = async () => {
-    if (!archivoSeleccionado.value || !nuevoDocumento.value.tipo) {
-        return;
-    }
-
-    subiendoDocumento.value = true;
-    const formData = new FormData();
-    formData.append('documento', archivoSeleccionado.value);
-    formData.append('tipo_documento', nuevoDocumento.value.tipo);
-    formData.append('titulo', nuevoDocumento.value.titulo || `${nuevoDocumento.value.tipo} - ${personaSeleccionada.value.nombre_completo}`);
-    formData.append('finalizado', nuevoDocumento.value.finalizado ? '1' : '0');
-
-    try {
-        await router.post(
-            route('personas.subir-documento', personaSeleccionada.value.id_persona),
-            formData,
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    subiendoDocumento.value = false;
-                    archivoSeleccionado.value = null;
-                    nuevoDocumento.value = { tipo: '', titulo: '', finalizado: false };
-                    if (fileInput.value) fileInput.value.value = '';
-                    cargarDocumentos(personaSeleccionada.value.id_persona);
-                    
-                    Swal.fire({
-                        title: 'Documento subido',
-                        text: 'El documento se ha subido exitosamente.',
-                        icon: 'success',
-                        confirmButtonColor: '#1a3a5c',
-                        timer: 2500,
-                        timerProgressBar: true
-                    });
-                },
-                onError: (errors) => {
-                    subiendoDocumento.value = false;
-                    Swal.fire({
-                        title: 'Error',
-                        text: Object.values(errors).flat()[0] || 'Error al subir el documento',
-                        icon: 'error',
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
-            }
-        );
-    } catch (error) {
-        subiendoDocumento.value = false;
-        Swal.fire({
-            title: 'Error',
-            text: error.message || 'Error al subir el documento',
-            icon: 'error',
-            confirmButtonColor: '#ef4444'
-        });
-    }
-};
-
-const descargarDocumento = (doc) => {
-    window.open(route('personas.descargar-documento', doc.id), '_blank');
-};
-
-const toggleFinalizado = (doc) => {
-    router.patch(route('personas.toggle-finalizado', doc.id), {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            cargarDocumentos(personaSeleccionada.value.id_persona);
-            Swal.fire({
-                title: 'Estado actualizado',
-                text: 'El estado del documento ha sido actualizado.',
-                icon: 'success',
-                confirmButtonColor: '#1a3a5c',
-                timer: 2000,
-                timerProgressBar: true
-            });
-        },
-        onError: (errors) => {
-            Swal.fire({
-                title: 'Error',
-                text: errors?.error || 'Error al actualizar el estado',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
-            });
-        }
-    });
-};
-
-const eliminarDocumento = (doc) => {
-    Swal.fire({
-        title: 'Eliminar documento',
-        html: `
-            <div class="text-center">
-                <p class="font-medium text-gray-700">${doc.tipo_documento_texto || doc.tipo_documento}</p>
-                <p class="text-sm text-red-600 mt-2 font-medium">Esta acción no se puede deshacer</p>
-                <p class="text-xs text-gray-500 mt-1">El archivo se eliminará permanentemente</p>
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(route('personas.eliminar-documento', doc.id), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    cargarDocumentos(personaSeleccionada.value.id_persona);
-                    Swal.fire({
-                        title: 'Documento eliminado',
-                        text: 'El documento se ha eliminado correctamente.',
-                        icon: 'success',
-                        confirmButtonColor: '#1a3a5c'
-                    });
-                },
-                onError: (errors) => {
-                    Swal.fire({
-                        title: 'Error',
-                        text: errors?.error || 'Error al eliminar el documento',
-                        icon: 'error',
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
-            });
-        }
-    });
-};
-
-// ============================================
-// FUNCIONES PARA ACTIVAR/DESACTIVAR
+// ACTIVAR / DESACTIVAR
 // ============================================
 const confirmarDesactivar = (persona) => {
     const nombre = persona.razon_social_display || persona.nombre_completo || 'Persona';
-    
-    Swal.fire({
-        title: 'Desactivar persona',
-        html: `
-            <div class="text-center">
-                <div class="flex justify-center mb-3">
-                    <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="font-medium text-gray-800 text-lg">${nombre}</p>
-                <div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <p class="text-sm text-amber-700 font-medium">La persona quedará <strong>inactiva</strong></p>
-                    <p class="text-xs text-amber-600 mt-1">Podrás reactivarla más tarde desde el listado</p>
-                </div>
-                ${persona.polizas_count > 0 || persona.total_documentos > 0 ? `
-                    <div class="mt-3 p-2 bg-red-50 rounded-lg border border-red-200">
-                        <p class="text-xs text-red-600">Tiene ${persona.polizas_count > 0 ? persona.polizas_count + ' póliza(s)' : ''} 
-                        ${persona.polizas_count > 0 && persona.total_documentos > 0 ? ' y ' : ''} 
-                        ${persona.total_documentos > 0 ? persona.total_documentos + ' documento(s)' : ''} asociados</p>
-                    </div>
-                ` : ''}
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, desactivar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            procesarCambioEstado(persona, false);
-        }
+    notify.confirmDelete({
+        header: 'Desactivar persona',
+        message: `La persona "${nombre}" quedará inactiva. Podrás reactivarla más tarde desde el listado.`,
+        acceptLabel: 'Sí, desactivar',
+        accept: () => procesarCambioEstado(persona, false),
     });
 };
 
 const confirmarActivar = (persona) => {
     const nombre = persona.razon_social_display || persona.nombre_completo || 'Persona';
-    
-    Swal.fire({
-        title: 'Activar persona',
-        html: `
-            <div class="text-center">
-                <div class="flex justify-center mb-3">
-                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="font-medium text-gray-800 text-lg">${nombre}</p>
-                <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p class="text-sm text-green-700 font-medium">La persona volverá a estar <strong>activa</strong></p>
-                </div>
-            </div>
-        `,
-        icon: 'success',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, activar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            procesarCambioEstado(persona, true);
-        }
+    notify.confirmAction({
+        header: 'Activar persona',
+        message: `La persona "${nombre}" volverá a estar activa.`,
+        acceptLabel: 'Sí, activar',
+        acceptSeverity: 'success',
+        icon: 'pi pi-check-circle',
+        accept: () => procesarCambioEstado(persona, true),
     });
 };
 
-const procesarCambioEstado = (persona, nuevoEstado) => {
-    const nombre = persona.razon_social_display || persona.nombre_completo || 'Persona';
-    const accionTexto = nuevoEstado ? 'activada' : 'desactivada';
-    
-    Swal.fire({
-        title: 'Procesando...',
-        html: `
-            <div class="text-center py-4">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p class="mt-3 font-medium text-gray-700">${nuevoEstado ? 'Activando' : 'Desactivando'} persona</p>
-                <p class="text-sm text-gray-500">Por favor espera un momento</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false
+const procesarCambioEstado = (persona) => {
+    // El controlador responde con redirect()->back()->with('success'|'error', ...);
+    // hay que usar router.post (Inertia) para que el flash — de éxito O de error —
+    // se procese correctamente. El toast lo dispara el manejador global.
+    loading.value = true;
+    router.post(route('personas.toggle-active', persona.id_persona), {}, {
+        preserveScroll: true,
+        onFinish: () => { loading.value = false; },
     });
-    
-    const url = route('personas.toggle-active', persona.id_persona);
-    
-    axios.post(url)
-        .then(response => {
-            Swal.fire({
-                title: 'Completado',
-                html: `
-                    <div class="text-center">
-                        <div class="flex justify-center mb-3">
-                            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <p class="text-gray-700">Persona <strong>${nombre}</strong></p>
-                        <p class="text-sm text-green-600 mt-1">${accionTexto} exitosamente</p>
-                    </div>
-                `,
-                icon: 'success',
-                confirmButtonText: 'Aceptar',
-                confirmButtonColor: '#1a3a5c',
-                timer: 3000,
-                timerProgressBar: true
-            }).then(() => {
-                router.reload();
-            });
-        })
-        .catch(error => {
-            console.error('Error detallado:', error);
-            const errorMsg = error.response?.data?.flash?.error || 
-                           error.response?.data?.message || 
-                           error.message || 
-                           'Error al cambiar el estado';
-            
-            Swal.fire({
-                title: 'Error',
-                text: errorMsg,
-                icon: 'error',
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '#ef4444'
-            });
-        });
 };
-
-// ============================================
-// PROCESAR FLASH
-// ============================================
-const procesarFlash = () => {
-    if (!props.flash) return;
-    
-    const tipoMap = {
-        success: { icon: 'success', title: 'Éxito' },
-        error: { icon: 'error', title: 'Error' },
-        updated: { icon: 'success', title: 'Actualizado' },
-        created: { icon: 'success', title: 'Creado' },
-        deleted: { icon: 'success', title: 'Eliminado' },
-        info: { icon: 'info', title: 'Información' },
-        warning: { icon: 'warning', title: 'Advertencia' }
-    };
-
-    for (const [key, message] of Object.entries(props.flash)) {
-        if (message && tipoMap[key]) {
-            Swal.fire({
-                title: tipoMap[key].title,
-                text: message,
-                icon: tipoMap[key].icon,
-                confirmButtonColor: tipoMap[key].icon === 'success' ? '#1a3a5c' : '#ef4444',
-                timer: 3000,
-                timerProgressBar: true
-            });
-            break;
-        }
-    }
-};
-
-watch(() => props.flash, (newFlash) => {
-    if (newFlash && Object.keys(newFlash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-}, { deep: true, immediate: true });
-
-onMounted(() => {
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-});
 </script>
 
 <style scoped>
@@ -1081,25 +574,47 @@ onMounted(() => {
 
 /* ===== BOTÓN NUEVA PERSONA ===== */
 .btn-nueva-persona-premium {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%) !important;
-    border: none !important;
-    border-radius: 0px !important;
-    font-weight: 700 !important;
-    padding: 0 32px !important;
-    height: 50px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    padding: 0 32px;
+    height: 50px;
+    cursor: pointer;
     box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    font-size: 15px !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 15px;
     letter-spacing: 0.3px;
 }
 
 .btn-nueva-persona-premium:hover {
     transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 30px rgba(26, 58, 92, 0.4) !important;
-    background: linear-gradient(135deg, #2c5282 0%, #1a3a5c 100%) !important;
+    box-shadow: 0 8px 30px rgba(26, 58, 92, 0.4);
+    background: linear-gradient(135deg, #2c5282 0%, #1a3a5c 100%);
 }
 
 /* ===== STATS CARDS ===== */
+.stats-grid-personas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 992px) {
+    .stats-grid-personas {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+    .stats-grid-personas {
+        grid-template-columns: 1fr;
+    }
+}
+
 .stats-card-enhanced {
     background: #ffffff;
     border-radius: 16px;
@@ -1228,15 +743,15 @@ onMounted(() => {
 }
 
 .filter-tag-ultra {
-    border-radius: 30px !important;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
-    border: none !important;
-    color: #1a3a5c !important;
-    font-weight: 600 !important;
-    padding: 4px 16px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1a3a5c;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .filter-dot-active {
@@ -1249,64 +764,44 @@ onMounted(() => {
 }
 
 .btn-limpiar-ultra {
-    border-radius: 0px !important;
-    color: #64748b !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    height: 40px !important;
-    font-weight: 600 !important;
-    background: #ffffff !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    border: 2px solid #d1d5db;
+    transition: all 0.3s ease;
+    height: 40px;
+    padding: 0 16px;
+    font-weight: 600;
+    background: #ffffff;
+    cursor: pointer;
 }
 
 .btn-limpiar-ultra:hover {
-    color: #1a3a5c !important;
-    border-color: #1a3a5c !important;
-    background: #f8faff !important;
+    color: #1a3a5c;
+    border-color: #1a3a5c;
+    background: #f8faff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1) !important;
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1);
 }
 
-/* ===== CONTENEDOR DE TABLA CON SCROLL ===== */
+/* ===== CONTENEDOR DE TABLA ===== */
 .table-scroll-container-full {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: auto;
     border-radius: 8px;
     border: 1px solid #f1f5f9;
-    min-height: 200px;
-    max-height: 500px;
+    overflow: hidden;
 }
 
-.table-scroll-container-full::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+.tabla-vacia {
+    padding: 32px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
 }
 
-.table-scroll-container-full::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.table-scroll-container-full::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-scroll-container-full::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* ===== TABLA ANT DESIGN ===== */
-.persona-table-ultra {
-    width: 100%;
-}
-
-.persona-table-ultra :deep(.ant-table) {
-    border-radius: 0;
-}
-
-.persona-table-ultra :deep(.ant-table-thead > tr > th) {
-    background: linear-gradient(135deg, #f1f5f9, #e8edf2) !important;
+/* ===== DATATABLE PRIMEVUE ===== */
+.persona-table-ultra :deep(.p-datatable-thead > tr > th) {
+    background: linear-gradient(135deg, #f1f5f9, #e8edf2);
     font-weight: 700;
     color: #1e293b;
     border-bottom: 2px solid #d1d5db;
@@ -1315,64 +810,36 @@ onMounted(() => {
     letter-spacing: 0.5px;
     text-transform: uppercase;
     white-space: nowrap;
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 
-.persona-table-ultra :deep(.ant-table-thead > tr > th:first-child) {
-    border-radius: 0 !important;
-}
-
-.persona-table-ultra :deep(.ant-table-thead > tr > th:last-child) {
-    border-radius: 0 !important;
-}
-
-.persona-table-ultra :deep(.ant-table-tbody > tr) {
+.persona-table-ultra :deep(.p-datatable-tbody > tr) {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.persona-table-ultra :deep(.ant-table-tbody > tr:hover) {
-    background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
+.persona-table-ultra :deep(.p-datatable-tbody > tr:hover) {
+    background: linear-gradient(90deg, #f8faff, #f0f7ff);
 }
 
-.persona-table-ultra :deep(.ant-table-tbody > tr:last-child td) {
+.persona-table-ultra :deep(.p-datatable-tbody > tr:last-child > td) {
     border-bottom: none;
 }
 
-.persona-table-ultra :deep(.ant-table-cell) {
+.persona-table-ultra :deep(.p-datatable-tbody > tr > td) {
     padding: 8px 10px;
     border-bottom: 1px solid #f1f5f9;
     font-size: 13px;
 }
 
+.persona-table-ultra :deep(.p-datatable-tbody > tr > td.p-frozen-column),
+.persona-table-ultra :deep(.p-datatable-thead > tr > th.p-frozen-column) {
+    background: #ffffff;
+}
+
 /* ===== CELDAS ===== */
-.persona-cell-ultra {
-    display: flex;
-    align-items: center;
-}
-
-.persona-info-ultra {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    width: 100%;
-}
-
 .persona-nombre-ultra {
     font-size: 14px;
     font-weight: 600;
     color: #0f172a;
-}
-
-.persona-rfc-ultra {
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.tipo-cell-ultra {
-    display: flex;
-    align-items: center;
 }
 
 .tipo-badge {
@@ -1395,21 +862,11 @@ onMounted(() => {
     color: #9d174d;
 }
 
-.rfc-cell-ultra {
-    display: flex;
-    align-items: center;
-}
-
 .rfc-text-ultra {
     font-size: 13px;
     font-weight: 500;
     color: #1a3a5c;
     font-family: 'Courier New', monospace;
-}
-
-.ubicacion-cell-ultra {
-    display: flex;
-    align-items: center;
 }
 
 .ubicacion-text-ultra {
@@ -1447,18 +904,13 @@ onMounted(() => {
 }
 
 .contacto-icon-ultra {
-    font-size: 13px !important;
+    font-size: 13px;
 }
 
 .contacto-vacio-ultra {
     color: #cbd5e1;
     font-size: 12px;
     font-style: italic;
-}
-
-.representante-cell-ultra {
-    display: flex;
-    align-items: center;
 }
 
 .representante-nombre-ultra {
@@ -1470,11 +922,6 @@ onMounted(() => {
 .representante-vacio-ultra {
     color: #cbd5e1;
     font-size: 12px;
-}
-
-.estado-cell-ultra {
-    display: flex;
-    align-items: center;
 }
 
 .estado-badge-ultra {
@@ -1576,7 +1023,7 @@ onMounted(() => {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
-/* ===== FILTROS INFERIOR - ALINEADOS PERFECTAMENTE ===== */
+/* ===== FILTROS INFERIOR ===== */
 .filtros-ultra-full {
     margin-top: 16px;
     padding-top: 16px;
@@ -1663,60 +1110,72 @@ onMounted(() => {
     min-width: 90px;
 }
 
+/* ===== SELECT PRIMEVUE ===== */
 .filtro-select-ultra {
     width: 100% !important;
 }
 
-.filtro-select-ultra :deep(.ant-select-selector) {
-    border-radius: 0px !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    background: #ffffff !important;
-    height: 36px !important;
-    font-size: 12px !important;
-    width: 100% !important;
-    box-shadow: none !important;
+.filtro-select-ultra :deep(.p-select) {
+    width: 100%;
 }
 
-.filtro-select-ultra :deep(.ant-select-selector:hover) {
-    border-color: #1a3a5c !important;
-    background: #fafbfc !important;
+.filtro-select-ultra.p-select {
+    border-radius: 0px;
+    border: 2px solid #d1d5db;
+    background: #ffffff;
+    height: 36px;
+    box-shadow: none;
+    transition: all 0.3s ease;
 }
 
-.filtro-select-ultra :deep(.ant-select-focused .ant-select-selector) {
-    border-color: #1a3a5c !important;
-    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
-    background: #fafbfc !important;
+.filtro-select-ultra.p-select:hover {
+    border-color: #1a3a5c;
+    background: #fafbfc;
 }
 
-.filtro-select-ultra :deep(.ant-select-selection-item) {
-    line-height: 34px !important;
+.filtro-select-ultra.p-select.p-focus {
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
+}
+
+.filtro-select-ultra :deep(.p-select-label) {
+    font-size: 12px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
 }
 
 .btn-clear-ultra {
-    border-radius: 0px !important;
-    background: linear-gradient(135deg, #1a3a5c, #2c5282) !important;
-    border: none !important;
-    color: white !important;
-    height: 36px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    transition: all 0.3s ease !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    border-radius: 0px;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border: none;
+    color: white;
+    height: 36px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
 }
 
 .btn-clear-ultra:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
 }
 
 .btn-no-filtros-ultra {
-    border-radius: 0px !important;
-    background: #f8fafc !important;
-    border: 2px dashed #d1d5db !important;
-    cursor: not-allowed !important;
-    height: 36px !important;
-    font-size: 12px !important;
+    width: 100%;
+    border-radius: 0px;
+    background: #f8fafc;
+    border: 2px dashed #d1d5db;
+    cursor: not-allowed;
+    height: 36px;
+    font-size: 12px;
 }
 
 .no-filtros-text-ultra {

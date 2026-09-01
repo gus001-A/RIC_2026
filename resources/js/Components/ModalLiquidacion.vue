@@ -1,12 +1,11 @@
 <template>
-    <a-modal
+    <Dialog
         v-model:visible="visible"
-        title="Confirmar Liquidación"
-        :confirm-loading="loading"
-        :footer="null"
-        width="500px"
+        modal
+        header="Confirmar Liquidación"
+        :style="{ width: '500px' }"
         class="modal-liquidacion"
-        @cancel="cerrar"
+        @hide="cerrar"
     >
         <div class="modal-content">
             <div class="modal-icon">
@@ -16,7 +15,7 @@
             </div>
 
             <h3 class="modal-title">¿Liquidar esta póliza?</h3>
-            
+
             <div class="modal-info">
                 <div class="info-row">
                     <span class="info-label">Referencia:</span>
@@ -41,33 +40,23 @@
             </div>
 
             <div class="modal-actions">
-                <a-button 
-                    class="btn-cancelar"
-                    @click="cerrar"
-                    :disabled="loading"
-                >
-                    Cancelar
-                </a-button>
-                <a-button 
-                    class="btn-confirmar"
-                    :loading="loading"
-                    @click="confirmarLiquidacion"
-                >
-                    <template #icon>
-                        <CheckOutlined />
-                    </template>
-                    Confirmar Liquidación
-                </a-button>
+                <button type="button" class="btn-cancelar" @click="cerrar" :disabled="loading">Cancelar
+                </button>
+                <button type="button" class="btn-confirmar" :disabled="loading" @click="confirmarLiquidacion">
+                    <i class="pi" :class="loading ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                    {{ loading ? 'Procesando...' : 'Confirmar Liquidación' }}
+                </button>
             </div>
         </div>
-    </a-modal>
+    </Dialog>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { CheckOutlined } from '@ant-design/icons-vue';
-import Swal from 'sweetalert2';
+import axios from 'axios';
+import Dialog from 'primevue/dialog';
+import { useNotify } from '@/composables/useNotify';
 
 const props = defineProps({
     movimiento: {
@@ -82,31 +71,28 @@ const props = defineProps({
 
 const emit = defineEmits(['liquidado', 'close']);
 
+const notify = useNotify();
 const visible = ref(false);
 const loading = ref(false);
 
-// Computed para obtener el nombre de la cuenta fondeadora
 const cuentaFondeadoraNombre = computed(() => {
     if (!props.movimiento) return '—';
-    
-    // Si el movimiento ya tiene una cuenta fondeadora asignada
+
     if (props.movimiento.cuenta_fondeadora) {
         return props.movimiento.cuenta_fondeadora;
     }
-    
-    // Si tiene id_cuenta_fondeadora, buscar en el listado
+
     if (props.movimiento.id_cuenta_fondeadora && props.cuentasFondeadoras.length > 0) {
         const cuenta = props.cuentasFondeadoras.find(c => c.id === props.movimiento.id_cuenta_fondeadora);
         if (cuenta) {
             return cuenta.nombre_cuenta || cuenta.cuenta || 'Cuenta fondeadora';
         }
     }
-    
-    // Si es un traspaso, mostrar la cuenta origen
+
     if (props.movimiento.es_traspaso && props.movimiento.cuenta) {
         return props.movimiento.cuenta;
     }
-    
+
     return 'Sin cuenta fondeadora';
 });
 
@@ -127,12 +113,7 @@ const cerrar = () => {
 
 const confirmarLiquidacion = async () => {
     if (!props.movimiento) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No hay movimiento seleccionado',
-            confirmButtonColor: '#1a3a5c'
-        });
+        notify.error('No hay movimiento seleccionado');
         return;
     }
 
@@ -143,7 +124,6 @@ const confirmarLiquidacion = async () => {
             route('movimientos.liquidar', props.movimiento.id_movimiento),
             {
                 _method: 'PUT',
-                // Solo enviamos el ID del movimiento, la cuenta fondeadora ya está asociada
                 id_movimiento: props.movimiento.id_movimiento
             },
             {
@@ -155,15 +135,7 @@ const confirmarLiquidacion = async () => {
         );
 
         if (response.data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Liquidación exitosa!',
-                text: response.data.message || 'La póliza ha sido liquidada correctamente.',
-                confirmButtonColor: '#1a3a5c',
-                timer: 3000,
-                timerProgressBar: true
-            });
-
+            notify.success(response.data.message || 'La póliza ha sido liquidada correctamente.', '¡Liquidación exitosa!');
             emit('liquidado', response.data);
             cerrar();
         } else {
@@ -171,12 +143,7 @@ const confirmarLiquidacion = async () => {
         }
     } catch (error) {
         console.error('Error en liquidación:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response?.data?.message || 'Ocurrió un error al liquidar la póliza',
-            confirmButtonColor: '#1a3a5c'
-        });
+        notify.error(error.response?.data?.message || 'Ocurrió un error al liquidar la póliza');
     } finally {
         loading.value = false;
     }
@@ -189,26 +156,19 @@ defineExpose({
 </script>
 
 <style scoped>
-.modal-liquidacion :deep(.ant-modal-content) {
-    border-radius: 16px;
-    padding: 0;
-    overflow: hidden;
-}
-
-.modal-liquidacion :deep(.ant-modal-header) {
+.modal-liquidacion :deep(.p-dialog-header) {
     padding: 16px 24px;
     border-bottom: 2px solid #f1f5f9;
     background: linear-gradient(135deg, #f8fafc, #ffffff);
-    margin: 0;
 }
 
-.modal-liquidacion :deep(.ant-modal-title) {
+.modal-liquidacion :deep(.p-dialog-title) {
     font-size: 18px;
     font-weight: 700;
     color: #0f172a;
 }
 
-.modal-liquidacion :deep(.ant-modal-body) {
+.modal-liquidacion :deep(.p-dialog-content) {
     padding: 0;
 }
 
@@ -286,7 +246,7 @@ defineExpose({
 .info-value-fondeadora {
     font-size: 14px;
     font-weight: 600;
-    color: #7c3aed;
+    color: #132a44;
     background: #ede9fe;
     padding: 2px 12px;
     border-radius: 4px;
@@ -300,36 +260,42 @@ defineExpose({
 }
 
 .btn-cancelar {
-    padding: 0 24px !important;
-    height: 40px !important;
-    border-radius: 8px !important;
-    border: 2px solid #d1d5db !important;
-    color: #64748b !important;
-    font-weight: 600 !important;
-    transition: all 0.3s ease !important;
+    padding: 0 24px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid #d1d5db;
+    color: #64748b;
+    font-weight: 600;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .btn-cancelar:hover {
-    border-color: #1a3a5c !important;
-    color: #1a3a5c !important;
+    border-color: #1a3a5c;
+    color: #1a3a5c;
     transform: translateY(-2px);
 }
 
 .btn-confirmar {
-    padding: 0 24px !important;
-    height: 40px !important;
-    border-radius: 8px !important;
-    background: linear-gradient(135deg, #10b981, #059669) !important;
-    border: none !important;
-    color: white !important;
-    font-weight: 600 !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 
 .btn-confirmar:hover:not(:disabled) {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
 }
 
 .btn-confirmar:disabled {
@@ -337,27 +303,26 @@ defineExpose({
     cursor: not-allowed;
 }
 
-/* Responsive */
 @media (max-width: 480px) {
     .modal-content {
         padding: 16px;
     }
-    
+
     .info-row {
         flex-direction: column;
         align-items: flex-start;
         gap: 2px;
     }
-    
+
     .info-value {
         text-align: left;
         width: 100%;
     }
-    
+
     .modal-actions {
         flex-direction: column;
     }
-    
+
     .btn-cancelar,
     .btn-confirmar {
         width: 100%;

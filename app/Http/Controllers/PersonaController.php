@@ -174,8 +174,6 @@ class PersonaController extends Controller
             ];
 
             // 🔥 LOG PARA DEPURAR
-            \Log::info('Personas encontradas: ' . $personas->total());
-            \Log::info('Primera persona: ' . json_encode($items[0] ?? []));
 
             return Inertia::render('Personas/Index', [
                 'personas' => $personasData,
@@ -403,7 +401,7 @@ class PersonaController extends Controller
     public function destroy(string $id)
     {
         // ✅ Verificar permiso para eliminar personas
-        if (!Gate::allows('eliminar-movimientos')) {
+        if (!Gate::allows('eliminar-personas')) {
             return redirect()->route('personas.index')
                 ->with('error', 'No tienes permiso para eliminar personas');
         }
@@ -661,7 +659,8 @@ class PersonaController extends Controller
             $request->validate([
                 'documento' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
                 'tipo_documento' => 'required|string|in:INE,RFC,CURP,COMPROBANTE,OTRO',
-                'titulo' => 'nullable|string|max:255',
+                // La columna `titulo` es VARCHAR(100); no permitir más de eso.
+                'titulo' => 'nullable|string|max:100',
                 'finalizado' => 'nullable|boolean',
             ]);
 
@@ -679,7 +678,11 @@ class PersonaController extends Controller
 
             $documento = DocumentoPersona::create([
                 'id_persona' => $id,
-                'titulo' => $request->titulo ?? $this->getTipoDocumentoTexto($request->tipo_documento) . ' - ' . $persona->nombre_completo,
+                'titulo' => mb_substr(
+                    $request->titulo ?: ($this->getTipoDocumentoTexto($request->tipo_documento) . ' - ' . $persona->nombre_completo),
+                    0,
+                    100
+                ),
                 'tipo_documento' => $request->tipo_documento,
                 'ruta_archivo' => $rutaRelativa,
                 'fecha_subida' => now(),
@@ -828,7 +831,7 @@ class PersonaController extends Controller
             'sexo' => 'required|in:MASCULINO,FEMENINO,NO_ESPECIFICADO',
             'rfc' => 'nullable|string|max:20|unique:personas,rfc,' . $id . ',id_persona',
             'curp' => 'nullable|string|max:18|unique:personas,curp,' . $id . ',id_persona',
-            'email' => 'nullable|email|max:100|unique:personas,email,' . $id . ',id_persona',
+            'email' => 'nullable|email|max:100',
             'telefono_particular' => 'nullable|string|max:20',
             'telefono_trabajo' => 'nullable|string|max:20',
             'extension_trabajo' => 'nullable|string|max:10',
@@ -868,7 +871,6 @@ class PersonaController extends Controller
             'sexo.required' => 'El sexo es obligatorio',
             'rfc.unique' => 'Este RFC ya está registrado en el sistema',
             'curp.unique' => 'Este CURP ya está registrado en el sistema',
-            'email.unique' => 'Este correo electrónico ya está registrado en el sistema',
             'representante_paterno.required' => 'El apellido paterno del representante es obligatorio',
             'representante_fecha_nacimiento.required' => 'La fecha de nacimiento del representante es obligatoria',
         ];
@@ -881,56 +883,58 @@ class PersonaController extends Controller
      */
     private function buildPersonaData($validated, ?Persona $persona = null)
     {
+        $esCreacion = $persona === null;
+
+        // Campos de texto/fecha. En EDICIÓN sólo se tocan si el request los trae:
+        // así una edición no borra datos que el formulario no envía (p. ej. la
+        // columna legacy `direccion`, que el formulario ya no usa).
+        $camposOpcionales = [
+            'Nombre', 'Paterno', 'Materno', 'Fecha_nacimiento', 'rfc', 'curp', 'email',
+            'telefono_particular', 'telefono_trabajo', 'extension_trabajo',
+            'direccion', 'calle', 'numero_exterior', 'numero_interior', 'colonia',
+            'ciudad', 'municipio', 'estado', 'codigo_postal',
+            'representante_nombre', 'representante_paterno', 'representante_materno',
+            'representante_fecha_nacimiento', 'representante_email',
+            'representante_telefono_particular', 'representante_telefono_trabajo',
+            'representante_extension_trabajo', 'notas',
+        ];
+
         $data = [
             'tipo_persona' => $validated['tipo_persona'],
-            'Nombre' => $validated['Nombre'] ?? null,
-            'Paterno' => $validated['Paterno'] ?? null,
-            'Materno' => $validated['Materno'] ?? null,
-            'Fecha_nacimiento' => $validated['Fecha_nacimiento'] ?? null,
-            'sexo' => $validated['sexo'] ?? 'NO_ESPECIFICADO',
-            'rfc' => $validated['rfc'] ?? null,
-            'curp' => $validated['curp'] ?? null,
-            'email' => $validated['email'] ?? null,
-            'telefono_particular' => $validated['telefono_particular'] ?? null,
-            'telefono_trabajo' => $validated['telefono_trabajo'] ?? null,
-            'extension_trabajo' => $validated['extension_trabajo'] ?? null,
-            'direccion' => $validated['direccion'] ?? null,
-            'calle' => $validated['calle'] ?? null,
-            'numero_exterior' => $validated['numero_exterior'] ?? null,
-            'numero_interior' => $validated['numero_interior'] ?? null,
-            'colonia' => $validated['colonia'] ?? null,
-            'ciudad' => $validated['ciudad'] ?? null,
-            'municipio' => $validated['municipio'] ?? null,
-            'estado' => $validated['estado'] ?? null,
-            'codigo_postal' => $validated['codigo_postal'] ?? null,
-            'representante_nombre' => $validated['representante_nombre'] ?? null,
-            'representante_paterno' => $validated['representante_paterno'] ?? null,
-            'representante_materno' => $validated['representante_materno'] ?? null,
-            'representante_fecha_nacimiento' => $validated['representante_fecha_nacimiento'] ?? null,
-            'representante_sexo' => $validated['representante_sexo'] ?? 'NO_ESPECIFICADO',
-            'representante_email' => $validated['representante_email'] ?? null,
-            'representante_telefono_particular' => $validated['representante_telefono_particular'] ?? null,
-            'representante_telefono_trabajo' => $validated['representante_telefono_trabajo'] ?? null,
-            'representante_extension_trabajo' => $validated['representante_extension_trabajo'] ?? null,
-            'notas' => $validated['notas'] ?? null,
         ];
+
+        foreach ($camposOpcionales as $campo) {
+            if (array_key_exists($campo, $validated)) {
+                $valor = $validated[$campo];
+                $data[$campo] = ($valor === '' ? null : $valor);
+            } elseif ($esCreacion) {
+                $data[$campo] = null;
+            }
+        }
+
+        // `sexo` / `representante_sexo`: enum con default 'NO_ESPECIFICADO'.
+        foreach (['sexo', 'representante_sexo'] as $campoSexo) {
+            if (array_key_exists($campoSexo, $validated) && $validated[$campoSexo] !== '') {
+                $data[$campoSexo] = $validated[$campoSexo];
+            } elseif ($esCreacion) {
+                $data[$campoSexo] = 'NO_ESPECIFICADO';
+            }
+        }
 
         // 🔥 `activo` NO viene en el formulario de edición. Si lo pusiéramos con
         // un valor por defecto (`?? true`) cada edición reactivaría a una persona
         // que estaba dada de baja. Por eso:
-        //  - al crear (sin $persona): default true
+        //  - al crear: default true
         //  - al editar: sólo se toca si el request lo trae explícitamente
         if (array_key_exists('activo', $validated)) {
             $data['activo'] = (bool) $validated['activo'];
-        } elseif ($persona === null) {
+        } elseif ($esCreacion) {
             $data['activo'] = true;
         }
 
-        // `empleado` sí viene en el formulario, pero aplicamos la misma lógica
-        // defensiva por si algún día se envía sin ese campo.
         if (array_key_exists('empleado', $validated)) {
             $data['empleado'] = (bool) $validated['empleado'];
-        } elseif ($persona === null) {
+        } elseif ($esCreacion) {
             $data['empleado'] = false;
         }
 

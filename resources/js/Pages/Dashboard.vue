@@ -10,8 +10,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h2 class="header-title-premium">
-                                Dashboard
+                            <h2 class="header-title-premium">Dashboard
                             </h2>
                             <p class="header-subtitle-premium">
                                 <span class="subtitle-line"></span>
@@ -248,24 +247,13 @@
                 </div>
             </div>
         </div>
-
-        <!-- Modal de validaciones personalizado -->
-        <AlertModal ref="alertModal" />
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
-import AlertModal from '@/Components/AlertModal.vue';
-
-// Importar componentes de Ant Design
-import {
-    Row as ARow,
-    Col as ACol,
-    Table as ATable,
-} from 'ant-design-vue';
+import { ref, computed, onMounted } from 'vue';
 
 // ============================================
 // PERMISOS DESDE EL BACKEND
@@ -298,9 +286,7 @@ const props = defineProps({
     }
 });
 
-const loading = ref(false);
 const fechaActual = ref('');
-const alertModal = ref(null);
 
 // ============================================
 // FILTRAR PÓLIZAS DE HOY
@@ -314,107 +300,6 @@ const polizasHoy = computed(() => {
     });
 });
 
-// ============================================
-// SISTEMA DE ALERTAS CON SWEETALERT2
-// ============================================
-
-const mostrarModal = (type, title, message, duration = 4000, onConfirm = null) => {
-    if (alertModal.value && alertModal.value.show) {
-        alertModal.value.show({
-            type,
-            title,
-            message,
-            duration,
-            buttonText: type === 'error' ? 'Entendido' : 'Aceptar'
-        }, onConfirm);
-    } else {
-        console.warn('AlertModal no disponible');
-        alert(`${title}: ${message}`);
-        if (onConfirm) onConfirm();
-    }
-};
-
-const procesarFlash = () => {
-    if (!props.flash) return;
-    
-    const tipoMap = {
-        success: { type: 'success', title: 'Exito!' },
-        error: { type: 'error', title: 'Error' },
-        updated: { type: 'success', title: 'Actualizado!' },
-        created: { type: 'success', title: 'Creado!' },
-        deleted: { type: 'success', title: 'Eliminado!' },
-        info: { type: 'info', title: 'Informacion' },
-        warning: { type: 'warning', title: 'Advertencia' }
-    };
-
-    for (const [key, message] of Object.entries(props.flash)) {
-        if (message && tipoMap[key]) {
-            mostrarModal(
-                tipoMap[key].type,
-                tipoMap[key].title,
-                message
-            );
-            break;
-        }
-    }
-};
-
-watch(() => props.flash, (newFlash) => {
-    if (newFlash && Object.keys(newFlash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-}, { deep: true, immediate: true });
-
-watch(() => page.props.flash, (newFlash) => {
-    if (newFlash && Object.keys(newFlash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-}, { deep: true, immediate: true });
-
-// ============================================
-// FIN DEL SISTEMA DE ALERTAS
-// ============================================
-
-const columnsMovimientos = [
-    {
-        title: 'Folio',
-        key: 'folio',
-        width: 120,
-    },
-    {
-        title: 'Tipo',
-        key: 'tipo',
-        width: 100,
-        align: 'center'
-    },
-    {
-        title: 'Persona',
-        key: 'persona',
-        width: 200,
-    },
-    {
-        title: 'Fecha',
-        key: 'fecha',
-        width: 150,
-    },
-    {
-        title: 'Total',
-        key: 'total',
-        width: 120,
-        align: 'right'
-    },
-    {
-        title: 'Estatus',
-        key: 'estatus',
-        width: 120,
-        align: 'center'
-    }
-];
-
 const formatNumber = (value) => {
     if (value === null || value === undefined) return '0.00';
     return Number(value).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -426,56 +311,10 @@ const obtenerFechaActual = () => {
     return now.toLocaleDateString('es-MX', options);
 };
 
-const agregarEstilosSwal = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-premium-popup {
-            border-radius: 20px !important;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-        .swal-premium-confirm {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-confirm:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-        }
-        .swal-premium-cancel {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-cancel:hover {
-            transform: translateY(-2px);
-            background: #f1f5f9 !important;
-        }
-        .swal2-actions {
-            padding: 0 32px 24px !important;
-            gap: 12px !important;
-        }
-        .swal2-timer-progress-bar {
-            height: 4px !important;
-            background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
-        }
-    `;
-    document.head.appendChild(style);
-};
+// Los flash messages ahora se muestran de forma global (AppLayout useFlashMessages)
 
 onMounted(() => {
     fechaActual.value = obtenerFechaActual();
-    agregarEstilosSwal();
-    
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
 });
 </script>
 
@@ -499,7 +338,7 @@ onMounted(() => {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #1a3a5c, #3b82f6, #8b5cf6);
+    background: linear-gradient(90deg, #1a3a5c, #3b82f6, #1a3a5c);
 }
 
 .header-content-premium {
@@ -623,17 +462,32 @@ onMounted(() => {
 }
 
 .stats-card-modern {
+    position: relative;
     background: #ffffff;
     border-radius: 20px;
-    border: 1px solid #f1f5f9;
+    border: 1px solid #eef2f7;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
 }
+
+/* Barra de acento superior según el color de la tarjeta */
+.stats-card-modern::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1a3a5c, #3d6ea5);
+}
+
+.stats-card-modern:has(.stats-card-modern-icon.blue)::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.stats-card-modern:has(.stats-card-modern-icon.green)::before { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.stats-card-modern:has(.stats-card-modern-icon.gold)::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+.stats-card-modern:has(.stats-card-modern-icon.purple)::before { background: linear-gradient(90deg, #1a3a5c, #3d6ea5); }
 
 .stats-card-modern:hover {
     transform: translateY(-6px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
     border-color: #e2e8f0;
 }
 
@@ -668,10 +522,11 @@ onMounted(() => {
 }
 
 .stats-card-modern-value {
-    font-size: 32px;
-    font-weight: 800;
-    color: #0f172a;
-    line-height: 1.1;
+    font-size: 34px;
+    font-weight: 850;
+    color: #0b1426;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
 }
 
 .stats-card-modern-trend {
@@ -696,38 +551,42 @@ onMounted(() => {
 }
 
 .stats-card-modern-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    color: #fff;
     transition: all 0.3s ease;
 }
 
+.stats-card-modern-icon :deep(svg),
+.stats-card-modern-icon svg { stroke: #fff; }
+
 .stats-card-modern:hover .stats-card-modern-icon {
-    transform: scale(1.1) rotate(-5deg);
+    transform: scale(1.08) rotate(-4deg);
 }
 
 .stats-card-modern-icon.blue {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    color: #2563eb;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 8px 18px -6px rgba(37, 99, 235, 0.5);
 }
 
 .stats-card-modern-icon.purple {
-    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-    color: #7c3aed;
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
+    box-shadow: 0 8px 18px -6px rgba(26, 58, 92, 0.5);
 }
 
 .stats-card-modern-icon.green {
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    color: #16a34a;
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    box-shadow: 0 8px 18px -6px rgba(22, 163, 74, 0.5);
 }
 
 .stats-card-modern-icon.gold {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    color: #d97706;
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 8px 18px -6px rgba(217, 119, 6, 0.5);
 }
 
 .stats-card-modern-footer {
@@ -756,7 +615,7 @@ onMounted(() => {
 }
 
 .stats-progress-fill.purple {
-    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(90deg, #1a3a5c, #132a44);
 }
 
 .stats-progress-fill.green {
@@ -971,53 +830,6 @@ onMounted(() => {
     border: 1px solid #f1f5f9;
 }
 
-/* ===== TABLE ANT DESIGN MODERN ===== */
-.movimientos-table-modern {
-    width: 100%;
-}
-
-.movimientos-table-modern :deep(.ant-table) {
-    border-radius: 0;
-}
-
-.movimientos-table-modern :deep(.ant-table-thead > tr > th) {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9) !important;
-    font-weight: 700;
-    color: #1e293b;
-    border-bottom: 2px solid #e2e8f0;
-    padding: 14px 18px;
-    font-size: 11px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.movimientos-table-modern :deep(.ant-table-thead > tr > th:first-child) {
-    border-radius: 0 !important;
-}
-
-.movimientos-table-modern :deep(.ant-table-thead > tr > th:last-child) {
-    border-radius: 0 !important;
-}
-
-.movimientos-table-modern :deep(.ant-table-tbody > tr) {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.movimientos-table-modern :deep(.ant-table-tbody > tr:hover) {
-    background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
-    box-shadow: inset 0 0 0 1px #dbeafe;
-}
-
-.movimientos-table-modern :deep(.ant-table-tbody > tr:last-child td) {
-    border-bottom: none;
-}
-
-.movimientos-table-modern :deep(.ant-table-cell) {
-    padding: 12px 18px;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 13px;
-}
-
 .folio-cell {
     font-weight: 600;
     color: #0f172a;
@@ -1172,7 +984,7 @@ onMounted(() => {
 .text-green-600 { color: #16a34a; }
 .text-red-600 { color: #dc2626; }
 .text-blue-600 { color: #2563eb; }
-.text-purple-600 { color: #7c3aed; }
+.text-purple-600 { color: #132a44; }
 .w-3 { width: 0.75rem; }
 .h-3 { height: 0.75rem; }
 .w-4 { width: 1rem; }
@@ -1260,65 +1072,4 @@ onMounted(() => {
     }
 }
 
-/* ===== SCROLLBAR ===== */
-.table-scroll-modern :deep(.ant-table-body)::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.table-scroll-modern :deep(.ant-table-body)::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.table-scroll-modern :deep(.ant-table-body)::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-scroll-modern :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* ===== SWEETALERT2 ===== */
-:deep(.swal-premium-popup) {
-    border-radius: 20px !important;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-
-:deep(.swal-premium-confirm) {
-    padding: 10px 28px !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease !important;
-}
-
-:deep(.swal-premium-confirm:hover) {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-}
-
-:deep(.swal-premium-cancel) {
-    padding: 10px 28px !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease !important;
-}
-
-:deep(.swal-premium-cancel:hover) {
-    transform: translateY(-2px);
-    background: #f1f5f9 !important;
-}
-
-:deep(.swal2-actions) {
-    padding: 0 32px 24px !important;
-    gap: 12px !important;
-}
-
-:deep(.swal2-timer-progress-bar) {
-    height: 4px !important;
-    background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
-}
 </style>

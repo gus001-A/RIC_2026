@@ -16,7 +16,7 @@
         <!-- Dropdown -->
         <div v-if="showDropdown" class="dropdown-panel" ref="dropdownRef">
             <div class="dropdown-header">
-                <span class="dropdown-title">👁️ Mostrar columnas</span>
+                <span class="dropdown-title">Mostrar columnas</span>
                 <div class="dropdown-actions">
                     <button @click.stop="seleccionarTodas" class="dropdown-action-btn">Todas</button>
                     <button @click.stop="deseleccionarTodas" class="dropdown-action-btn">Ninguna</button>
@@ -101,7 +101,6 @@ const columnasActivasCount = computed(() => {
 // ============================================
 const toggleDropdown = () => {
     showDropdown.value = !showDropdown.value;
-    console.log('Dropdown toggled:', showDropdown.value);
 };
 
 const toggleColumna = (key) => {
@@ -233,11 +232,11 @@ watch(() => props.columnas, () => {
 }
 
 .btn-column-selector:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     color: #1a3a5c;
     background: #f8faff;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.15);
 }
 
 .btn-column-selector:active {
@@ -263,7 +262,7 @@ watch(() => props.columnas, () => {
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
     border-radius: 20px;
     font-size: 10px;
@@ -330,7 +329,7 @@ watch(() => props.columnas, () => {
 }
 
 .dropdown-action-btn:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     color: #1a3a5c;
     background: #eff6ff;
 }
@@ -377,7 +376,7 @@ watch(() => props.columnas, () => {
     width: 16px;
     height: 16px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: #1a3a5c;
     flex-shrink: 0;
 }
 
@@ -427,7 +426,7 @@ watch(() => props.columnas, () => {
 }
 
 .dropdown-reset-btn:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     color: #1a3a5c;
     background: #eff6ff;
 }

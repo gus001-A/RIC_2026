@@ -1,23 +1,6 @@
 <template>
     <AppLayout :title="'Generar Pólizas de Nómina'">
-        <!-- FLASH MESSAGES -->
-        <div v-if="$page.props.flash" class="flash-container">
-            <div v-if="$page.props.flash.success" class="flash-message flash-success">
-                <span class="flash-icon">✔</span>
-                <span class="flash-text">{{ $page.props.flash.success }}</span>
-                <button @click="$page.props.flash.success = null" class="flash-close">×</button>
-            </div>
-            <div v-if="$page.props.flash.error" class="flash-message flash-error">
-                <span class="flash-icon">✖</span>
-                <span class="flash-text">{{ $page.props.flash.error }}</span>
-                <button @click="$page.props.flash.error = null" class="flash-close">×</button>
-            </div>
-            <div v-if="$page.props.flash.info" class="flash-message flash-info">
-                <span class="flash-icon">ℹ</span>
-                <span class="flash-text">{{ $page.props.flash.info }}</span>
-                <button @click="$page.props.flash.info = null" class="flash-close">×</button>
-            </div>
-        </div>
+        <!-- Los flash messages se muestran de forma global (AppLayout useFlashMessages) -->
 
         <template #header>
             <div class="header-wrapper">
@@ -38,17 +21,21 @@
         <div class="page-content">
             <div class="container-custom">
                 <div class="form-card">
-                    <!-- Mostrar mensaje si no hay empleados -->
-                    <div v-if="empleados.length === 0" class="empty-state-premium" style="padding: 40px; text-align: center;">
-                        <span class="empty-icon">👤</span>
-                        <h3 style="margin-top: 16px;">No hay empleados disponibles</h3>
-                        <p style="color: #6b7280; margin-top: 8px;">Registra personas en el módulo de personas para poder generar nóminas.</p>
-                        <Link :href="route('personas.index')" class="btn-premium btn-submit-premium" style="margin-top: 16px;">
-                            Ir a Personas
+                    <!-- Aviso: no hay empleados. El formulario se muestra igual. -->
+                    <div v-if="empleados.length === 0" class="nomina-aviso">
+                        <div class="nomina-aviso-icon"><i class="pi pi-exclamation-triangle"></i></div>
+                        <div class="nomina-aviso-text">
+                            <strong>No hay personas marcadas como empleado.</strong>
+                            Puedes revisar el formulario, pero para generar la nómina primero
+                            edita a cada persona en el módulo de Personas y activa
+                            <em>«¿Es empleado?»</em>.
+                        </div>
+                        <Link :href="route('personas.index')" class="nomina-aviso-btn">
+                            <i class="pi pi-users"></i> Ir a Personas
                         </Link>
                     </div>
 
-                    <form v-else @submit.prevent="submit" id="nominaForm" novalidate>
+                    <form @submit.prevent="submit" id="nominaForm" novalidate>
                         <!-- ============================================ -->
                         <!-- SECCION 1: CONFIGURACION DE LA NOMINA -->
                         <!-- ============================================ -->
@@ -68,8 +55,7 @@
                             <div class="form-grid-premium">
                                 <!-- Fecha de Pago (automatica - fecha del sistema) -->
                                 <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        Fecha de Pago <span class="required-star">*</span>
+                                    <label class="form-label-premium">Fecha de Pago <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper-premium">
                                         <input type="date" v-model="formData.fecha_pago"
@@ -89,8 +75,7 @@
 
                                 <!-- Caja Fondo -->
                                 <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        Caja Fondo <span class="required-star">*</span>
+                                    <label class="form-label-premium">Caja Fondo <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper-premium">
                                         <select v-model="formData.id_cuenta_fondeadora"
@@ -113,8 +98,7 @@
 
                                 <!-- Tipo de Poliza (Egreso por defecto) -->
                                 <div class="form-group-premium">
-                                    <label class="form-label-premium">
-                                        Tipo de Póliza <span class="required-star">*</span>
+                                    <label class="form-label-premium">Tipo de Póliza <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper-premium">
                                         <select v-model="formData.tipo_poliza"
@@ -143,7 +127,7 @@
                                                 {{ m.nombre_marcador }}
                                             </option>
                                         </select>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador-premium" title="Nuevo marcador">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador-premium" title="Nuevo marcador">
                                             <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -153,8 +137,7 @@
 
                                 <!-- Observación General (se replica en todos los empleados) -->
                                 <div class="form-group-premium full-width-premium">
-                                    <label class="form-label-premium">
-                                        Observación General <span class="required-star">*</span>
+                                    <label class="form-label-premium">Observación General <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper-premium">
                                         <input type="text" v-model="formData.observacion_general"
@@ -267,7 +250,7 @@
                                         </tr>
                                         <tr v-if="empleados.length === 0">
                                             <td colspan="5" class="empty-state-premium">
-                                                <span class="empty-icon">📭</span>
+                                                <i class="pi pi-users empty-icon"></i>
                                                 <span>No hay empleados disponibles</span>
                                             </td>
                                         </tr>
@@ -280,7 +263,7 @@
                         <!-- BOTONES -->
                         <!-- ============================================ -->
                         <div class="info-box-premium">
-                            <svg class="info-icon-premium" fill="none" stroke="#667eea" viewBox="0 0 24 24">
+                            <svg class="info-icon-premium" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <span>Los campos con <strong class="text-danger-premium">*</strong> son obligatorios</span>
@@ -315,6 +298,8 @@
         </div>
 
         <!-- Modal Marcador -->
+        <MarcadoresModal v-model="marcadorGestorVisible" :marcadores="marcadores" @changed="(l) => marcadores = l" />
+
         <div v-if="modalMarcadorVisible" class="modal-overlay-premium" @click.self="cerrarModalMarcador">
             <div class="modal-container-premium">
                 <div class="modal-header-premium">
@@ -354,17 +339,18 @@
                 </div>
             </div>
         </div>
-
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import MarcadoresModal from '@/Components/MarcadoresModal.vue';
 import { Link, router } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import { ref, computed, onMounted, watch, reactive } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+
+const notify = useNotify();
 
 // ============================================
 // PROPS
@@ -374,14 +360,15 @@ const props = defineProps({
     empleados: { type: Array, default: () => [] },
     cuentas_fondeadoras: { type: Array, default: () => [] },
     cuentas_nomina: { type: Array, default: () => [] },
-    marcadores: { type: Array, default: () => [] }
+    marcadores: { type: Array, default: () => [] },
+    sin_empleados: { type: Boolean, default: false }
 });
 
 // ============================================
 // REFS
 // ============================================
-const alertRef = ref(null);
 const modalMarcadorVisible = ref(false);
+const marcadorGestorVisible = ref(false);
 const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
@@ -529,20 +516,10 @@ const guardarMarcador = async () => {
             marcadores.value.push(res.data.data);
             formData.id_marcador = res.data.data.id;
             cerrarModalMarcador();
-            alertRef.value?.show({ 
-                type: 'success', 
-                title: 'Marcador creado', 
-                message: 'El marcador se ha creado y seleccionado correctamente.', 
-                buttonText: 'Aceptar' 
-            });
+            notify.success('El marcador se ha creado y seleccionado correctamente.', 'Marcador creado');
         }
     } catch (error) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: error.response?.data?.message || 'Error al crear el marcador', 
-            buttonText: 'Entendido' 
-        });
+        notify.error(error.response?.data?.message || 'Error al crear el marcador', 'Error');
     } finally { 
         guardandoMarcador.value = false; 
     }
@@ -588,12 +565,7 @@ const submit = () => {
     // Validar empleados seleccionados
     const empleadosSeleccionados = empleados.value.filter(e => e.seleccionado);
     if (empleadosSeleccionados.length === 0) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: 'Selecciona al menos un empleado para generar la póliza',
-            buttonText: 'Entendido'
-        });
+        notify.error('Selecciona al menos un empleado para generar la póliza', 'Error');
         processing.value = false;
         return;
     }
@@ -602,12 +574,7 @@ const submit = () => {
     const empleadosSinMonto = empleadosSeleccionados.filter(e => e.monto <= 0);
     if (empleadosSinMonto.length > 0) {
         const nombres = empleadosSinMonto.map(e => e.nombre_completo).join(', ');
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: `Los siguientes empleados no tienen un monto válido: ${nombres}`,
-            buttonText: 'Entendido'
-        });
+        notify.error(`Los siguientes empleados no tienen un monto válido: ${nombres}`, 'Error');
         processing.value = false;
         return;
     }
@@ -616,12 +583,7 @@ const submit = () => {
     const empleadosSinCuenta = empleadosSeleccionados.filter(e => !e.id_cuenta_fondeadora);
     if (empleadosSinCuenta.length > 0) {
         const nombres = empleadosSinCuenta.map(e => e.nombre_completo).join(', ');
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: `Los siguientes empleados no tienen una cuenta de fondo seleccionada: ${nombres}`,
-            buttonText: 'Entendido'
-        });
+        notify.error(`Los siguientes empleados no tienen una cuenta de fondo seleccionada: ${nombres}`, 'Error');
         processing.value = false;
         return;
     }
@@ -646,12 +608,7 @@ const submit = () => {
     axios.post(route('movimientos.nomina.store'), data)
         .then(() => {
             processing.value = false;
-            alertRef.value?.show({ 
-                type: 'success', 
-                title: 'Exito', 
-                message: 'Las pólizas de nómina se han generado correctamente.',
-                buttonText: 'Ir al listado'
-            });
+            notify.success('Las pólizas de nómina se han generado correctamente.', 'Exito');
             setTimeout(() => {
                 router.visit(route('movimientos.index'), { 
                     method: 'get', 
@@ -669,19 +626,9 @@ const submit = () => {
                     errors[key] = Array.isArray(err[key]) ? err[key][0] : err[key];
                 });
                 const firstError = Object.values(errors)[0];
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error de validación', 
-                    message: firstError,
-                    buttonText: 'Entendido' 
-                });
+                notify.error(firstError, 'Error de validación');
             } else {
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error', 
-                    message: error.response?.data?.message || 'Error al generar las pólizas. Intenta nuevamente.',
-                    buttonText: 'Entendido' 
-                });
+                notify.error(error.response?.data?.message || 'Error al generar las pólizas. Intenta nuevamente.', 'Error');
             }
         });
 };
@@ -707,9 +654,8 @@ watch(
 // MOUNTED
 // ============================================
 onMounted(() => {
-    console.log('Props recibidas:', props);
     
-    // 🔥 Fecha del sistema autocompletada
+    // Fecha del sistema autocompletada
     const hoy = new Date();
     const year = hoy.getFullYear();
     const month = String(hoy.getMonth() + 1).padStart(2, '0');
@@ -742,7 +688,6 @@ onMounted(() => {
             id_cuenta_fondeadora: props.cuentas_fondeadoras?.length > 0 ? props.cuentas_fondeadoras[0].id_cuenta : null,
             observacion: ''
         }));
-        console.log('Empleados inicializados:', empleados.value.length);
     } else {
         console.warn('No hay empleados en props');
     }
@@ -931,10 +876,10 @@ onMounted(() => {
     color: white;
     flex-shrink: 0;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 
-.section-icon-premium.blue { background: linear-gradient(135deg, #667eea, #764ba2); }
+.section-icon-premium.blue { background: linear-gradient(135deg, #1a3a5c, #3d6ea5); }
 .section-icon-premium.green { background: linear-gradient(135deg, #10b981, #059669); }
 
 .icon-svg-premium {
@@ -1006,8 +951,8 @@ onMounted(() => {
 }
 
 .form-input-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
     transform: translateY(-1px);
 }
 
@@ -1222,7 +1167,7 @@ onMounted(() => {
 .checkbox-input-premium {
     width: 18px;
     height: 18px;
-    accent-color: #667eea;
+    accent-color: #1a3a5c;
     cursor: pointer;
     border-radius: 4px;
 }
@@ -1274,14 +1219,14 @@ onMounted(() => {
 }
 
 .btn-submit-premium {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 20px rgba(26, 58, 92, 0.3);
 }
 
 .btn-submit-premium:hover:not(:disabled) {
     transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 32px rgba(26, 58, 92, 0.4);
 }
 
 .btn-submit-premium:disabled {
@@ -1299,14 +1244,14 @@ onMounted(() => {
     border: 2px dashed #d1d5db;
     border-radius: 10px;
     background: white;
-    color: #667eea;
+    color: #1a3a5c;
     cursor: pointer;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
 .btn-add-marcador-premium:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: linear-gradient(135deg, #f8f7ff, #eef2ff);
     transform: scale(1.05) rotate(90deg);
 }
@@ -1335,9 +1280,9 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 12px 20px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06));
+    background: linear-gradient(135deg, rgba(26, 58, 92, 0.06), rgba(118, 75, 162, 0.06));
     border-radius: 12px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     font-size: 0.85rem;
     color: #4b5563;
     margin-top: 4px;
@@ -1595,5 +1540,139 @@ onMounted(() => {
     .selected-count-premium {
         font-size: 0.75rem;
     }
+}
+
+/* ===== Estado vacío de nómina (sin empleados) ===== */
+.nomina-aviso {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1px solid #fcd34d;
+    border-left: 4px solid #d97706;
+    border-radius: 12px;
+}
+
+.nomina-aviso-icon {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: rgba(217, 119, 6, 0.15);
+    color: #b45309;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+}
+
+.nomina-aviso-text {
+    flex: 1;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #78350f;
+}
+
+.nomina-aviso-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #1a3a5c;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 650;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+}
+
+.nomina-aviso-btn:hover { filter: brightness(1.1); }
+
+@media (max-width: 640px) {
+    .nomina-aviso { flex-direction: column; align-items: flex-start; }
+}
+
+.nomina-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 24px 40px;
+    max-width: 460px;
+    margin: 0 auto;
+}
+
+.nomina-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: rgba(26, 58, 92, 0.09);
+    color: #1a3a5c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 18px;
+}
+
+.nomina-empty h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f2136;
+    margin: 0 0 8px;
+}
+
+.nomina-empty p {
+    font-size: 0.88rem;
+    color: #64748b;
+    line-height: 1.55;
+    margin: 0 0 22px;
+}
+
+.nomina-empty p strong {
+    color: #1a3a5c;
+}
+
+.nomina-empty-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.nomina-empty-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.nomina-empty-btn.primary {
+    background: #1a3a5c;
+    color: #fff;
+}
+
+.nomina-empty-btn.primary:hover {
+    background: #14304c;
+    transform: translateY(-1px);
+}
+
+.nomina-empty-btn.ghost {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.nomina-empty-btn.ghost:hover {
+    background: #e2e8f0;
 }
 </style>

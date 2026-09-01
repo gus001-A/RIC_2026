@@ -87,39 +87,27 @@ class Poliza extends Model
     }
 
     /**
-     * Genera el siguiente folio secuencial (0001, 0002, 0003...)
+     * Genera el siguiente folio: SÓLO números, secuencial (0001, 0002, 0003...).
+     * Ignora folios antiguos que traían letras (P-..., NOM-...).
      */
     public static function generarSiguienteFolio()
     {
-        $ultimoFolio = self::orderBy('id', 'desc')->value('folio');
-        
-        if (!$ultimoFolio) {
-            return '0001';
-        }
-        
-        // Extraer el número del folio
-        $numero = (int) $ultimoFolio;
-        $siguiente = $numero + 1;
-        
-        // Formatear con ceros a la izquierda (4 dígitos)
-        return str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return self::obtenerSiguienteFolio();
     }
 
     /**
-     * Obtener el siguiente folio sin guardar (para previsualización)
+     * Obtener el siguiente folio sin guardar (para previsualización).
+     * Toma el mayor folio 100% numérico y le suma 1.
      */
     public static function obtenerSiguienteFolio()
     {
-        $ultimoFolio = self::orderBy('id', 'desc')->value('folio');
-        
-        if (!$ultimoFolio) {
-            return '0001';
-        }
-        
-        $numero = (int) $ultimoFolio;
-        $siguiente = $numero + 1;
-        
-        return str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        // MAX(CAST(folio AS UNSIGNED)) sólo sobre folios formados por dígitos.
+        $maximo = (int) self::query()
+            ->whereRaw("folio REGEXP '^[0-9]+$'")
+            ->selectRaw('MAX(CAST(folio AS UNSIGNED)) as m')
+            ->value('m');
+
+        return str_pad($maximo + 1, 4, '0', STR_PAD_LEFT);
     }
 
     /**

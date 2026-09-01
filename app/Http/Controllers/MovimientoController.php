@@ -953,7 +953,8 @@ public function store(Request $request)
     } catch (\Illuminate\Validation\ValidationException $e) {
         DB::rollBack();
         return redirect()->back()
-            ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+            ->withErrors($e->errors())
+            ->with('error', 'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())))
             ->withInput();
     } catch (\Exception $e) {
         DB::rollBack();
@@ -3560,17 +3561,15 @@ public function showAbono(string $id)
                 ];
             });
 
-        if ($empleados->isEmpty()) {
-            return redirect()->route('movimientos.index')
-                ->with('info', 'No hay empleados registrados. Primero debes registrar empleados (marcar campo "empleado" como 1).');
-        }
-
+        // Antes: si no había empleados se redirigía al índice. Ahora se muestra
+        // siempre el formulario y la vista indica que no hay empleados.
         return Inertia::render('Movimientos/NominaCreate', [
             'empresa_id' => (int) $empresaId,
             'empleados' => $empleados,
             'cuentas_fondeadoras' => $cuentasFondeadoras,
             'cuentas_nomina' => $cuentasNomina,
-            'marcadores' => $marcadores
+            'marcadores' => $marcadores,
+            'sin_empleados' => $empleados->isEmpty(),
         ]);
     }
 
@@ -5585,6 +5584,91 @@ public function showAbono(string $id)
                 'message' => 'Error al crear el marcador: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Lista todos los marcadores activos (para el gestor / modal).
+     */
+    public function indexMarcadores()
+    {
+        $marcadores = Marcador::where('activo', true)
+            ->orderBy('nombre_marcador')
+            ->get(['id', 'nombre_marcador', 'descripcion', 'activo']);
+
+        return response()->json(['success' => true, 'data' => $marcadores]);
+    }
+
+    /**
+     * Actualiza el nombre / descripción de un marcador.
+     */
+    public function updateMarcador(Request $request, $id)
+    {
+        if (!Gate::allows('crear-movimientos')) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para editar marcadores'], 403);
+        }
+
+        $marcador = Marcador::find($id);
+        if (!$marcador) {
+            return response()->json(['success' => false, 'message' => 'El marcador no existe'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'nombre_marcador' => 'required|string|max:100|unique:marcadores,nombre_marcador,' . $id,
+            'descripcion' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $marcador->update([
+            'nombre_marcador' => $request->nombre_marcador,
+            'descripcion' => $request->descripcion,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Marcador actualizado',
+            'data' => [
+                'id' => $marcador->id,
+                'nombre_marcador' => $marcador->nombre_marcador,
+                'descripcion' => $marcador->descripcion,
+                'activo' => $marcador->activo,
+            ],
+        ]);
+    }
+
+    /**
+     * Elimina (desactiva) un marcador. No se puede si está en uso por movimientos.
+     */
+    public function destroyMarcador($id)
+    {
+        if (!Gate::allows('crear-movimientos')) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar marcadores'], 403);
+        }
+
+        $marcador = Marcador::find($id);
+        if (!$marcador) {
+            return response()->json(['success' => false, 'message' => 'El marcador no existe'], 404);
+        }
+
+        $enUso = DB::table('polizas')->where('id_marcador', $id)->exists()
+            || DB::table('empresas_usuarios_marcadores')->where('id_marcador', $id)->exists();
+
+        if ($enUso) {
+            // En uso: sólo se desactiva para no romper referencias históricas.
+            $marcador->update(['activo' => false]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'El marcador está en uso, se archivó en lugar de eliminarlo.',
+                'archived' => true,
+            ]);
+        }
+
+        $marcador->delete();
+
+        return response()->json(['success' => true, 'message' => 'Marcador eliminado']);
     }
 
 } // FIN DEL CONTROLADOR

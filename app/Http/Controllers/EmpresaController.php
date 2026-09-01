@@ -210,7 +210,8 @@ class EmpresaController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->withErrors($e->errors())
+                ->with('error', 'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())))
                 ->withInput();
         } catch (\Exception $e) {
             return redirect()->back()
@@ -999,7 +1000,8 @@ class EmpresaController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->withErrors($e->errors())
+                ->with('error', 'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())))
                 ->withInput();
         } catch (\Exception $e) {
             return redirect()->back()

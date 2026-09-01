@@ -6,7 +6,7 @@
                 <div v-if="empresas.length > 0" class="empresa-selector-premium">
                     <div class="empresa-selector-content">
                         <div class="empresa-selector-label">
-                            <ShopOutlined style="font-size: 16px; color: #667eea;" />
+                            <i class="pi pi-building" style="font-size: 16px; color: #1a3a5c;"></i>
                             <span>Empresa</span>
                         </div>
                         <div class="empresa-selector-field">
@@ -85,27 +85,19 @@
                             />
                         </div>
                         <div class="fecha-item fecha-actions">
-                            <a-button 
-                                size="small" 
-                                class="btn-hoy-premium"
-                                @click="setFechaHoy"
-                            >
-                                <template #icon>
-                                    <CalendarOutlined />
-                                </template>
+                            <button type="button" class="btn-hoy-premium" @click="setFechaHoy">
+                                <i class="pi pi-calendar"></i>
                                 Hoy
-                            </a-button>
-                            <a-button 
-                                v-if="filtros.fecha_desde || filtros.fecha_hasta" 
-                                size="small" 
+                            </button>
+                            <button
+                                v-if="filtros.fecha_desde || filtros.fecha_hasta"
+                                type="button"
                                 class="btn-limpiar-fechas"
                                 @click="limpiarFechas"
                             >
-                                <template #icon>
-                                    <CloseOutlined />
-                                </template>
+                                <i class="pi pi-times"></i>
                                 Limpiar
-                            </a-button>
+                            </button>
                         </div>
 
                         <!-- Separador -->
@@ -114,14 +106,14 @@
                         <!-- FILTRO: SOLO FISCALES -->
                         <div class="fecha-item checkbox-fiscal-item">
                             <label class="checkbox-fiscal-label">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     v-model="soloFiscales"
                                     @change="aplicarFiltros"
                                     class="checkbox-fiscal-input"
                                 />
                                 <span class="checkbox-fiscal-text">
-                                    <FilePdfOutlined style="font-size: 14px;" />
+                                    <i class="pi pi-file-pdf" style="font-size: 14px;"></i>
                                     Solo Fiscales
                                 </span>
                             </label>
@@ -132,26 +124,14 @@
 
                         <!-- Botones Exportacion -->
                         <div class="fecha-item fecha-actions-export">
-                            <a-button 
-                                size="small" 
-                                class="btn-export-excel-mini"
-                                @click="exportarExcel"
-                            >
-                                <template #icon>
-                                    <FileExcelOutlined />
-                                </template>
+                            <button type="button" class="btn-export-excel-mini" @click="exportarExcel">
+                                <i class="pi pi-file-excel"></i>
                                 Excel
-                            </a-button>
-                            <a-button 
-                                size="small" 
-                                class="btn-export-pdf-mini"
-                                @click="exportarPdf"
-                            >
-                                <template #icon>
-                                    <FilePdfOutlined />
-                                </template>
+                            </button>
+                            <button type="button" class="btn-export-pdf-mini" @click="exportarPdf">
+                                <i class="pi pi-file-pdf"></i>
                                 PDF
-                            </a-button>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -161,10 +141,10 @@
                     <!-- Header de la tabla -->
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
-                            <a-tag v-if="filtrosActivos && vistaActual !== 'diferidas'" color="blue" class="filter-tag-ultra">
+                            <span v-if="filtrosActivos && vistaActual !== 'diferidas'" class="filter-tag-ultra">
                                 <span class="filter-dot-active"></span>
                                 Filtros activos
-                            </a-tag>
+                            </span>
                             <span v-if="vistaActual === 'diferidas' && movimientos.data && movimientos.data.length > 0" class="total-pendiente-badge">
                                 <span class="total-pendiente-label">Total pendiente:</span>
                                 <span class="total-pendiente-value">${{ formatNumber(totalPendiente) }}</span>
@@ -181,12 +161,12 @@
                                 />
 
                                 <!-- NUEVA POLIZA -->
-                                <Link 
-                                    v-if="permisos?.puede_crear" 
-                                    :href="route('movimientos.create')" 
+                                <Link
+                                    v-if="permisos?.puede_crear"
+                                    :href="route('movimientos.create')"
                                     class="btn-nueva-poliza"
                                 >
-                                    <PlusOutlined />
+                                    <i class="pi pi-plus"></i>
                                     Nueva Poliza
                                 </Link>
                                 
@@ -207,32 +187,44 @@
 
                     <!-- TABLA UNIFICADA -->
                     <div v-if="movimientos.data && movimientos.data.length > 0" class="table-scroll-container">
-                        <a-table
-                            :columns="columnasActuales"
-                            :data-source="movimientos.data"
-                            :pagination="false"
+                        <DataTable
+                            :value="movimientos.data"
                             :loading="loading"
-                            row-key="id_movimiento"
+                            data-key="id_movimiento"
+                            lazy
+                            :sort-field="filtros.sort_by === 'fecha_vencimiento' ? 'vencimiento' : 'fecha_poliza'"
+                            :sort-order="filtros.sort_order === 'asc' ? 1 : -1"
+                            scrollable
+                            scroll-height="500px"
+                            row-hover
+                            :row-class="getRowClassName"
+                            table-style="min-width: max-content"
                             class="movimiento-table-ultra"
-                            size="middle"
-                            :scroll="{ x: 'max-content', y: 500 }"
-                            sticky
-                            @change="handleTableChange"
-                            :row-class-name="getRowClassName"
+                            @sort="handleTableChange"
                         >
-                            <template #bodyCell="{ column, record }">
+                            <Column
+                                v-for="col in columnasActuales"
+                                :key="col.key"
+                                :header="col.title"
+                                :sort-field="col.sorter ? col.key : undefined"
+                                :sortable="!!col.sorter"
+                                :frozen="col.fixed === 'left' || col.fixed === 'right'"
+                                :align-frozen="col.fixed === 'right' ? 'right' : 'left'"
+                                :style="{ minWidth: col.width, textAlign: col.align || 'left' }"
+                            >
+                                <template #body="{ data: record }">
                                 <!-- REFERENCIA -->
-                                <template v-if="column.key === 'referencia'">
-                                    <Link 
-                                        :href="route('movimientos.show', record.id_movimiento)" 
+                                <template v-if="col.key === 'referencia'">
+                                    <Link
+                                        :href="route('movimientos.show', record.id_movimiento)"
                                         class="referencia-link"
                                     >
                                         <span class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
                                         <span v-if="record.es_fiscal" class="fiscal-icon" title="Poliza Fiscal">
-                                            <FilePdfOutlined style="font-size: 12px; color: #10b981;" />
+                                            <i class="pi pi-file-pdf" style="font-size: 12px; color: #10b981;"></i>
                                         </span>
                                         <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
-                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #8b5cf6;">
+                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #1a3a5c;">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                                             </svg>
                                         </span>
@@ -240,21 +232,21 @@
                                 </template>
 
                                 <!-- TIPO POLIZA -->
-                                <template v-if="column.key === 'tipo_poliza'">
+                                <template v-else-if="col.key === 'tipo_poliza'">
                                     <span class="tipo-badge" :class="getTipoClass(record.tipo_poliza)">
                                         {{ record.tipo_poliza || '—' }}
                                     </span>
                                 </template>
 
                                 <!-- CUENTA DESTINO (para traspasos) -->
-                                <template v-if="column.key === 'cuenta_destino'">
+                                <template v-else-if="col.key === 'cuenta_destino'">
                                     <span class="cuenta-text-ultra">
                                         {{ record.cuenta_destino || '—' }}
                                     </span>
                                 </template>
 
                                 <!-- FECHA POLIZA -->
-                                <template v-if="column.key === 'fecha_poliza'">
+                                <template v-else-if="col.key === 'fecha_poliza'">
                                     <div class="fecha-usuario-cell">
                                         <span class="fecha-text-ultra">{{ formatFecha(record.fecha_poliza) }}</span>
                                         <span v-if="record.usuario" class="usuario-fecha-creacion">
@@ -264,58 +256,57 @@
                                 </template>
 
                                 <!-- ESTATUS -->
-                                <template v-if="column.key === 'estatus'">
+                                <template v-else-if="col.key === 'estatus'">
                                     <span class="estatus-badge" :class="getEstatusClass(record.estatus)">
                                         {{ record.estatus || '—' }}
                                     </span>
                                 </template>
 
                                 <!-- PERSONA -->
-                                <template v-if="column.key === 'persona'">
+                                <template v-else-if="col.key === 'persona'">
                                     <span class="persona-text-ultra">{{ record.persona || '—' }}</span>
                                 </template>
 
                                 <!-- CUENTA -->
-                                <template v-if="column.key === 'cuenta'">
+                                <template v-else-if="col.key === 'cuenta'">
                                     <span class="cuenta-text-ultra">{{ record.cuenta || '—' }}</span>
                                 </template>
 
                                 <!-- CUENTA FONDEADORA -->
-                                <template v-if="column.key === 'cuenta_fondeadora'">
+                                <template v-else-if="col.key === 'cuenta_fondeadora'">
                                     <span class="cuenta-text-ultra">{{ record.cuenta_fondeadora || '—' }}</span>
                                 </template>
 
                                 <!-- NOTA -->
-                                <template v-if="column.key === 'nota'">
+                                <template v-else-if="col.key === 'nota'">
                                     <span class="nota-text-ultra">{{ record.nota || '—' }}</span>
                                 </template>
 
                                 <!-- MONTO -->
-                                <template v-if="column.key === 'monto'">
+                                <template v-else-if="col.key === 'monto'">
                                     <span class="monto-text-ultra" :class="getMontoClass(record.monto)">
                                         ${{ formatNumber(Math.abs(record.monto)) }}
                                     </span>
-                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Traspaso">
-                                        T
+                                    <span v-if="record.es_traspaso" class="traspaso-amount-badge" title="Traspaso">T
                                     </span>
                                 </template>
 
                                 <!-- ABONADO -->
-                                <template v-if="column.key === 'abonado'">
+                                <template v-else-if="col.key === 'abonado'">
                                     <span class="monto-text-ultra abonado-text">
                                         ${{ formatNumber(record.abonado || 0) }}
                                     </span>
                                 </template>
 
                                 <!-- SALDO PENDIENTE -->
-                                <template v-if="column.key === 'saldo_pendiente'">
+                                <template v-else-if="col.key === 'saldo_pendiente'">
                                     <span class="monto-text-ultra" :class="getSaldoPendienteClass(record.saldo_pendiente)">
                                         ${{ formatNumber(record.saldo_pendiente || 0) }}
                                     </span>
                                 </template>
 
                                 <!-- VENCIMIENTO -->
-                                <template v-if="column.key === 'vencimiento'">
+                                <template v-else-if="col.key === 'vencimiento'">
                                     <span class="fecha-text-ultra" :class="getVencimientoClass(record.fecha_vencimiento)">
                                         {{ formatFecha(record.fecha_vencimiento) }}
                                     </span>
@@ -323,7 +314,7 @@
                                 </template>
 
                                 <!-- USUARIO -->
-                                <template v-if="column.key === 'usuario'">
+                                <template v-else-if="col.key === 'usuario'">
                                     <div class="usuario-cell">
                                         <span class="usuario-text-ultra">{{ record.usuario || '—' }}</span>
                                         <span v-if="record.created_at" class="usuario-fecha-ultra">
@@ -333,9 +324,9 @@
                                 </template>
 
                                 <!-- RECURSO -->
-                                <template v-if="column.key === 'recurso'">
+                                <template v-else-if="col.key === 'recurso'">
                                     <div class="recurso-cell">
-                                        <button 
+                                        <button
                                             v-if="record.tiene_recurso"
                                             class="btn-recurso btn-recurso-verde"
                                             @click="verRecurso(record)"
@@ -347,7 +338,7 @@
                                             </svg>
                                             <span class="btn-recurso-texto">Ver</span>
                                         </button>
-                                        <button 
+                                        <button
                                             v-else
                                             class="btn-recurso btn-recurso-azul"
                                             @click="abrirModalSubir(record)"
@@ -362,29 +353,24 @@
                                 </template>
 
                                 <!-- PDF FISCAL -->
-                                <template v-if="column.key === 'pdf'">
+                                <template v-else-if="col.key === 'pdf'">
                                     <div class="pdf-cell">
-                                        <a-button 
-                                            size="small" 
-                                            type="link" 
+                                        <button
+                                            type="button"
                                             @click="verPdf(record)"
                                             :disabled="!record.tiene_pdf_fiscal"
                                             class="btn-pdf"
                                             :title="record.tiene_pdf_fiscal ? 'Abrir Comprobante Fiscal PDF' : 'Sin PDF Fiscal'"
                                         >
-                                            <FilePdfOutlined :style="{ 
-                                                color: getPdfColor(record),
-                                                fontSize: '18px',
-                                                transition: 'color 0.3s ease'
-                                            }" />
-                                        </a-button>
+                                            <i class="pi pi-file-pdf" :style="{ color: getPdfColor(record), fontSize: '18px' }"></i>
+                                        </button>
                                     </div>
                                 </template>
 
                                 <!-- ============================================ -->
                                 <!-- ACCIONES -->
                                 <!-- ============================================ -->
-                                <template v-if="column.key === 'acciones'">
+                                <template v-else-if="col.key === 'acciones'">
                                     <div class="acciones-cell">
                                         <!-- Botón Abonar -->
                                         <button 
@@ -428,13 +414,14 @@
                                         </button>
                                     </div>
                                 </template>
-                            </template>
-                        </a-table>
+                                </template>
+                            </Column>
+                        </DataTable>
                     </div>
 
                     <!-- Mensaje si no hay movimientos -->
                     <div v-if="(!movimientos.data || movimientos.data.length === 0) && !loading" class="text-center py-12">
-                        <div class="text-6xl mb-4">📭</div>
+                        <i class="pi pi-inbox empty-state-icon"></i>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay movimientos</h3>
                         <p class="text-gray-500">Comienza creando tu primera poliza.</p>
                     </div>
@@ -517,12 +504,12 @@
                             </div>
 
                             <div class="filtro-inferior-item filtro-inferior-actions">
-                                <button 
-                                    v-if="filtrosActivos" 
+                                <button
+                                    v-if="filtrosActivos"
                                     class="btn-limpiar-filtros-inferior"
                                     @click="limpiarFiltros"
                                 >
-                                    <CloseOutlined />
+                                    <i class="pi pi-times"></i>
                                     Limpiar filtros
                                 </button>
                             </div>
@@ -589,8 +576,7 @@
 
                     <!-- Paginacion -->
                     <div v-if="movimientos.data && movimientos.data.length > 0" class="pagination-ultra">
-                        <span class="pagination-info-ultra">
-                            Mostrando <span class="pagination-highlight-ultra">{{ movimientos.from || 0 }}</span> a 
+                        <span class="pagination-info-ultra">Mostrando <span class="pagination-highlight-ultra">{{ movimientos.from || 0 }}</span> a 
                             <span class="pagination-highlight-ultra">{{ movimientos.to || 0 }}</span> de 
                             <span class="pagination-highlight-ultra">{{ movimientos.total || 0 }}</span> resultados
                         </span>
@@ -601,7 +587,7 @@
                 <!-- Mensaje si no hay empresas -->
                 <div v-else class="table-wrapper-premium">
                     <div class="text-center py-12">
-                        <div class="text-6xl mb-4">🏢</div>
+                        <i class="pi pi-building empty-state-icon"></i>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No tienes empresas asignadas</h3>
                         <p class="text-gray-500">Contacta al administrador para que te asigne una empresa.</p>
                     </div>
@@ -609,11 +595,8 @@
             </div>
         </div>
 
-        <!-- MODAL DE ALERTAS -->
-        <ModalAlert ref="modalAlert" />
-
         <!-- MODAL DE LIQUIDACIÓN -->
-        <ModalLiquidacion 
+        <ModalLiquidacion
             ref="modalLiquidacion"
             :movimiento="movimientoSeleccionado"
             :cuentas-fondeadoras="cuentasFondeadorasDisponibles"
@@ -621,13 +604,12 @@
         />
 
         <!-- MODAL PARA SUBIR/VER RECURSO -->
-        <a-modal
-            v-model:open="modalRecursoVisible"
-            :title="modalRecursoTitulo"
-            width="90%"
-            :footer="null"
+        <Dialog
+            v-model:visible="modalRecursoVisible"
+            modal
+            :header="modalRecursoTitulo"
             class="modal-recurso-premium"
-            :style="{ maxWidth: '900px' }"
+            :style="{ width: '90vw', maxWidth: '900px' }"
         >
             <div class="modal-recurso-content">
                 <!-- Si es para ver -->
@@ -715,36 +697,23 @@
                     Descargar
                 </a>
             </div>
-        </a-modal>
+        </Dialog>
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import Pagination from '@/Components/Pagination.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import ModalAlert from '@/Components/AlertModal.vue';
 import ColumnSelector from '@/Components/ColumnSelector.vue';
 import ModalLiquidacion from '@/Components/ModalLiquidacion.vue';
-import Swal from 'sweetalert2';
 import axios from 'axios';
-import {
-    PlusOutlined,
-    CloseOutlined,
-    ShopOutlined,
-    FileExcelOutlined,
-    FilePdfOutlined,
-    CalendarOutlined,
-} from '@ant-design/icons-vue';
-import {
-    Button as AButton,
-    Table as ATable,
-    Tag as ATag,
-    Modal as AModal,
-} from 'ant-design-vue';
-
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Dialog from 'primevue/dialog';
+import { useNotify } from '@/composables/useNotify';
 import { useEmpresa } from '@/composables/useEmpresa';
 
 // ============================================
@@ -793,8 +762,8 @@ const { empresaSeleccionada, cargarEmpresaGuardada, guardarEmpresa } = useEmpres
 // ============================================
 // REFS
 // ============================================
+const notify = useNotify();
 const loading = ref(false);
-const modalAlert = ref(null);
 const modalLiquidacion = ref(null);
 const movimientoSeleccionado = ref(null);
 
@@ -1092,11 +1061,11 @@ const cambiarVista = (vista) => {
     aplicarFiltros();
 };
 
-const handleTableChange = (pagination, filters, sorter) => {
-    if (sorter && sorter.columnKey) {
-        const map = { 'vencimiento': 'fecha_vencimiento', 'fecha_poliza': 'fecha_poliza' };
-        filtros.value.sort_by = map[sorter.columnKey] || sorter.columnKey;
-        filtros.value.sort_order = sorter.order === 'ascend' ? 'asc' : 'desc';
+const handleTableChange = (event) => {
+    if (event && event.sortField) {
+        const map = { vencimiento: 'fecha_vencimiento', fecha_poliza: 'fecha_poliza' };
+        filtros.value.sort_by = map[event.sortField] || event.sortField;
+        filtros.value.sort_order = event.sortOrder === 1 ? 'asc' : 'desc';
         aplicarFiltros();
     }
 };
@@ -1351,36 +1320,17 @@ const subirRecurso = async () => {
 // ============================================
 // ACCIONES
 // ============================================
-const mostrarModal = (type, title, message, duration = 4000, onConfirm = null) => {
-    if (modalAlert.value && modalAlert.value.show) {
-        modalAlert.value.show({ 
-            type, 
-            title, 
-            message, 
-            buttonText: type === 'error' ? 'Entendido' : 'Aceptar', 
-            duration,
-            onConfirm: onConfirm || null
-        });
-    } else {
-        const iconMap = { success: 'success', error: 'error', info: 'info', warning: 'warning' };
-        Swal.fire({ 
-            icon: iconMap[type] || 'info', 
-            title: title || 'Información', 
-            text: message, 
-            confirmButtonColor: '#1a3a5c', 
-            confirmButtonText: 'Aceptar', 
-            timer: duration || 4000, 
-            timerProgressBar: true 
-        });
-    }
+const mostrarModal = (type, title, message) => {
+    const map = { success: 'success', error: 'error', info: 'info', warning: 'warn' };
+    const fn = notify[map[type] || 'info'];
+    fn(message, title);
 };
 
 const mostrarModalExito = (message, redirectUrl = null) => {
-    const onConfirm = redirectUrl ? () => {
-        router.visit(redirectUrl, { method: 'get', replace: true });
-    } : null;
-    
-    mostrarModal('success', '✅ ¡Abono registrado!', message, 4000, onConfirm);
+    mostrarModal('success', '¡Abono registrado!', message);
+    if (redirectUrl) {
+        setTimeout(() => router.visit(redirectUrl, { method: 'get', replace: true }), 1500);
+    }
 };
 
 const accionAbonar = (record) => {
@@ -1404,25 +1354,23 @@ const accionLiquidar = (record) => {
     }
 };
 
-const onLiquidado = (data) => {
-    mostrarModal('success', 'Liquidación exitosa', data.message || 'La poliza ha sido liquidada completamente.');
+const onLiquidado = () => {
+    // ModalLiquidacion ya muestra su propio toast de éxito.
     setTimeout(() => {
-        window.location.reload();
-    }, 1500);
+        router.reload({ only: ['movimientos'] });
+    }, 1200);
 };
 
 const accionEditar = (record) => {
-    console.log('🟢 Editando póliza ID:', record.id_movimiento);
     if (record.id_movimiento) {
         router.get(route('movimientos.edit', record.id_movimiento));
     } else {
-        console.error('❌ ID de movimiento no válido:', record);
+        console.error(' ID de movimiento no válido:', record);
         mostrarModal('error', 'Error', 'No se puede editar esta póliza: ID no válido');
     }
 };
 
 const accionVer = (record) => {
-    console.log('🔵 Viendo póliza ID:', record.id_movimiento);
     router.get(route('movimientos.show', record.id_movimiento));
 };
 
@@ -1515,26 +1463,8 @@ onMounted(() => {
         }
         aplicarFiltros();
     }
-    
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => {
-            const tipoMap = {
-                success: { type: 'success', title: 'Éxito' },
-                error: { type: 'error', title: 'Error' },
-                updated: { type: 'success', title: 'Actualizado' },
-                created: { type: 'success', title: 'Creado' },
-                deleted: { type: 'success', title: 'Eliminado' },
-                info: { type: 'info', title: 'Información' },
-                warning: { type: 'warning', title: 'Advertencia' }
-            };
-            for (const [key, message] of Object.entries(props.flash)) {
-                if (message && tipoMap[key]) {
-                    mostrarModal(tipoMap[key].type, tipoMap[key].title, message);
-                    break;
-                }
-            }
-        });
-    }
+
+    // Los flash messages se muestran de forma global (AppLayout useFlashMessages)
 });
 </script>
 
@@ -1593,8 +1523,8 @@ onMounted(() => {
 }
 
 .empresa-select-native:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
     background: #ffffff;
 }
 
@@ -1688,8 +1618,8 @@ onMounted(() => {
 }
 
 .fecha-input-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
 }
 
 .filtros-separator {
@@ -1722,6 +1652,17 @@ onMounted(() => {
         width: 100%;
         flex-wrap: wrap;
     }
+}
+
+.btn-hoy-premium,
+.btn-limpiar-fechas,
+.btn-export-excel-mini,
+.btn-export-pdf-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
 }
 
 .btn-hoy-premium {
@@ -1858,7 +1799,7 @@ onMounted(() => {
     gap: 8px;
     padding: 0 20px;
     height: 36px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #1a3a5c, #132a44);
     color: white;
     border: none;
     border-radius: 8px;
@@ -1867,12 +1808,12 @@ onMounted(() => {
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
 }
 
 .btn-nomina-poliza:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.4);
     color: white;
 }
 
@@ -1897,27 +1838,27 @@ onMounted(() => {
     border: 1px solid #f1f5f9;
 }
 
-.table-scroll-container :deep(.ant-table-body) {
+.table-scroll-container :deep(.p-datatable-table-container) {
     max-height: 500px !important;
     overflow-y: auto !important;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-track {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar-track {
     background: #f1f5f9;
     border-radius: 4px;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
 
@@ -2001,7 +1942,7 @@ onMounted(() => {
     width: 100%;
 }
 
-.movimiento-table-ultra :deep(.ant-table-thead > tr > th) {
+.movimiento-table-ultra :deep(.p-datatable-thead > tr > th) {
     background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%) !important;
     font-weight: 700;
     color: #ffffff !important;
@@ -2016,58 +1957,58 @@ onMounted(() => {
     box-shadow: 0 2px 8px rgba(26, 58, 92, 0.15);
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr) {
     transition: all 0.2s ease;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida) {
     background: linear-gradient(90deg, #fef2f2, #fecaca) !important;
     border-left: 4px solid #dc2626 !important;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida:hover) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida:hover) {
     background: linear-gradient(90deg, #fecaca, #fca5a5) !important;
     box-shadow: inset 0 0 0 1px #dc2626 !important;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida td) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida td) {
     color: #991b1b !important;
     font-weight: 600 !important;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr:not(.row-vencida):hover) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr:not(.row-vencida):hover) {
     background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
-    box-shadow: inset 0 0 0 1px #667eea;
+    box-shadow: inset 0 0 0 1px #1a3a5c;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr:nth-child(even)) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr:nth-child(even)) {
     background: #fafbfc;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr:nth-child(even):not(.row-vencida):hover) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr:nth-child(even):not(.row-vencida):hover) {
     background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
 }
 
-.movimiento-table-ultra :deep(.ant-table-cell) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr > td) {
     padding: 10px 12px !important;
     border-bottom: 1px solid #f1f5f9;
     font-size: 13px;
 }
 
-.movimiento-table-ultra :deep(.ant-table-cell-fix-left),
-.movimiento-table-ultra :deep(.ant-table-cell-fix-right) {
+.movimiento-table-ultra :deep(.p-frozen-column),
+.movimiento-table-ultra :deep(.p-frozen-column) {
     background: #ffffff;
     z-index: 5;
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.04);
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida .ant-table-cell-fix-left),
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida .ant-table-cell-fix-right) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida .p-frozen-column),
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida .p-frozen-column) {
     background: linear-gradient(90deg, #fef2f2, #fecaca) !important;
 }
 
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida:hover .ant-table-cell-fix-left),
-.movimiento-table-ultra :deep(.ant-table-tbody > tr.row-vencida:hover .ant-table-cell-fix-right) {
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida:hover .p-frozen-column),
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr.row-vencida:hover .p-frozen-column) {
     background: linear-gradient(90deg, #fecaca, #fca5a5) !important;
 }
 
@@ -2084,7 +2025,7 @@ onMounted(() => {
 }
 
 .referencia-link:hover {
-    color: #667eea;
+    color: #1a3a5c;
     text-decoration: underline;
 }
 
@@ -2219,8 +2160,8 @@ onMounted(() => {
     display: inline-block;
     margin-left: 4px;
     padding: 0 6px;
-    background: #ede9fe;
-    color: #7c3aed;
+    background: #e8eef5;
+    color: #132a44;
     font-size: 8px;
     font-weight: 700;
     border-radius: 3px;
@@ -2441,8 +2382,8 @@ onMounted(() => {
 }
 
 .filtro-inferior-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
 }
 
 .filtro-inferior-input::placeholder {
@@ -2464,8 +2405,8 @@ onMounted(() => {
 }
 
 .filtro-inferior-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
 }
 
 .filtro-inferior-actions {
@@ -2590,7 +2531,7 @@ onMounted(() => {
 }
 
 .total-traspasos .total-icon-grande {
-    background: #ede9fe;
+    background: #e8eef5;
 }
 
 .total-saldo-neto .total-icon-grande {
@@ -2611,7 +2552,7 @@ onMounted(() => {
 }
 
 .total-traspasos .total-icon-svg-grande {
-    color: #7c3aed;
+    color: #132a44;
 }
 
 .total-saldo-neto .total-icon-svg-grande {
@@ -2649,7 +2590,7 @@ onMounted(() => {
 }
 
 .traspaso-value {
-    color: #7c3aed;
+    color: #132a44;
 }
 
 .saldo-net-value {
@@ -2689,27 +2630,27 @@ onMounted(() => {
 }
 
 /* --- MODAL RECURSO --- */
-.modal-recurso-premium :deep(.ant-modal-header) {
+.modal-recurso-premium :deep(.p-dialog-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
     padding: 16px 24px;
 }
 
-.modal-recurso-premium :deep(.ant-modal-title) {
+.modal-recurso-premium :deep(.p-dialog-title) {
     color: white;
     font-weight: 700;
     font-size: 1.1rem;
 }
 
-.modal-recurso-premium :deep(.ant-modal-close) {
+.modal-recurso-premium :deep(.p-dialog-close-button) {
     color: white;
 }
 
-.modal-recurso-premium :deep(.ant-modal-close:hover) {
+.modal-recurso-premium :deep(.p-dialog-close-button:hover) {
     color: #fca5a5;
 }
 
-.modal-recurso-premium :deep(.ant-modal-body) {
+.modal-recurso-premium :deep(.p-dialog-content) {
     padding: 0;
 }
 
@@ -2830,13 +2771,13 @@ onMounted(() => {
 }
 
 .recurso-drop-zone:hover {
-    border-color: #8b5cf6;
+    border-color: #1a3a5c;
     background: #f8f7ff;
 }
 
 .recurso-drop-zone-dragover {
-    border-color: #8b5cf6;
-    background: #ede9fe;
+    border-color: #1a3a5c;
+    background: #e8eef5;
     transform: scale(1.02);
 }
 
@@ -3138,5 +3079,12 @@ onMounted(() => {
     .recurso-image {
         max-height: 50vh;
     }
+}
+
+.empty-state-icon {
+    font-size: 3.25rem;
+    color: #cbd5e1;
+    display: block;
+    margin: 0 auto 1rem;
 }
 </style>

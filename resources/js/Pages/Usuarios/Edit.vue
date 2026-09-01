@@ -9,15 +9,11 @@
                         </svg>
                     </Link>
                     <div class="header-content">
-                        <h2 class="header-title">✏️ Editar Usuario</h2>
-                        <p class="header-subtitle">Modifique los datos del usuario en el sistema</p>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <div class="status-badge" :class="statusClass">
-                        <span v-if="hasErrors">⚠️ {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✅ Completado</span>
-                        <span v-else>📝 {{ Math.round(progressPercentage) }}%</span>
+                        <h2 class="header-title">Editar Usuario</h2>
+                        <p class="header-subtitle">
+                            Modifique los datos del usuario en el sistema
+                            <span class="header-hint">Los campos con <strong>*</strong> son obligatorios</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -27,12 +23,38 @@
             <div class="container-custom">
                 <div class="form-card">
                     <form @submit.prevent="submit" id="usuarioForm" novalidate>
+                        <!-- ===== TABS ===== -->
+                        <div class="tabs-premium">
+                            <button type="button" class="tab-premium" :class="{ active: activeTab === 'datos' }" @click="activeTab = 'datos'">
+                                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                <span>Datos Personales</span>
+                                <span v-if="hasDatosErrors" class="tab-dot error-dot"></span>
+                            </button>
+                            <button type="button" class="tab-premium" :class="{ active: activeTab === 'credenciales' }" @click="activeTab = 'credenciales'">
+                                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                <span>Credenciales</span>
+                                <span v-if="hasCredencialesErrors" class="tab-dot error-dot"></span>
+                            </button>
+                            <button type="button" class="tab-premium" :class="{ active: activeTab === 'empresas' }" @click="activeTab = 'empresas'">
+                                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                                <span>Empresas</span>
+                                <span v-if="form.empresas.length > 0" class="tab-count">{{ form.empresas.length }}</span>
+                            </button>
+                        </div>
+
+                        <div class="tab-content-premium">
                         <!-- ============================================ -->
                         <!-- SECCIÓN 1: DATOS PERSONALES -->
                         <!-- ============================================ -->
-                        <div class="form-section">
+                        <div v-show="activeTab === 'datos'" class="form-section">
                             <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                <div class="section-icon" style="background: linear-gradient(135deg, #1a3a5c, #3d6ea5);">
                                     <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                     </svg>
@@ -207,9 +229,9 @@
                         <!-- ============================================ -->
                         <!-- SECCIÓN 2: CREDENCIALES DE ACCESO -->
                         <!-- ============================================ -->
-                        <div class="form-section">
+                        <div v-show="activeTab === 'credenciales'" class="form-section">
                             <div class="section-header">
-                                <div class="section-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                <div class="section-icon" style="background: linear-gradient(135deg, #1a3a5c, #132a44);">
                                     <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                                     </svg>
@@ -346,7 +368,7 @@
                         <!-- ============================================ -->
                         <!-- SECCIÓN 3: EMPRESAS ASIGNADAS -->
                         <!-- ============================================ -->
-                        <div class="form-section">
+                        <div v-show="activeTab === 'empresas'" class="form-section">
                             <div class="section-header">
                                 <div class="section-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                                     <svg class="icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -367,7 +389,7 @@
                                         <div class="input-wrapper">
                                             <input type="text" v-model="searchEmpresa"
                                                    class="form-input"
-                                                   placeholder="🔍 Buscar empresa...">
+                                                   placeholder=" Buscar empresa...">
                                             <div class="input-icon">
                                                 <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -410,51 +432,40 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- ============================================ -->
-                        <!-- INFO ADICIONAL Y BOTONES -->
-                        <!-- ============================================ -->
-                        <div class="info-box-mini">
-                            <svg class="info-icon" fill="none" stroke="#667eea" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Los campos con <strong class="text-danger">*</strong> son obligatorios</span>
-                        </div>
+                        </div><!-- /tab-content-premium -->
 
                         <div class="form-actions">
-                            <div class="actions-right">
-                                <Link :href="route('usuarios.index')" class="btn btn-cancel">
-                                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                    </svg>
-                                    Cancelar
-                                </Link>
-                                <button type="submit" 
-                                        :disabled="form.processing || !isFormValid"
-                                        class="btn btn-submit">
-                                    <span v-if="form.processing" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                    <svg v-else class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-                                    </svg>
-                                    {{ form.processing ? 'Guardando...' : 'Actualizar Usuario' }}
-                                </button>
-                            </div>
+                            <Link :href="route('usuarios.index')" class="btn btn-cancel">
+                                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Cancelar
+                            </Link>
+                            <button type="submit"
+                                    :disabled="form.processing"
+                                    class="btn btn-submit"
+                                    :class="{ 'btn-submit-pending': !isFormValid }">
+                                <span v-if="form.processing" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                <svg v-else class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                                </svg>
+                                {{ form.processing ? 'Guardando...' : 'Actualizar Usuario' }}
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-
-        <!-- Alert Component -->
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+
+const notify = useNotify();
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 
 // Props
 const props = defineProps({
@@ -477,7 +488,6 @@ const props = defineProps({
 });
 
 // Referencia al componente de alerta
-const alertRef = ref(null);
 
 // Validaciones adicionales
 const emailError = ref('');
@@ -491,6 +501,9 @@ const showConfirmPassword = ref(false);
 
 // Búsqueda de empresas
 const searchEmpresa = ref('');
+
+// Pestaña activa
+const activeTab = ref('datos');
 
 // Inicializar el formulario con los datos del usuario
 const form = useForm({
@@ -651,6 +664,14 @@ const hasNumber = computed(() => {
     return !form.password || /[0-9]/.test(form.password);
 });
 
+// Estado por pestaña (para los indicadores)
+const hasDatosErrors = computed(() =>
+    !!(form.errors.nombre_completo || form.errors.nombre_usuario || form.errors.email || form.errors.telefono || form.errors.tipo_usuario || emailError.value || phoneError.value),
+);
+const hasCredencialesErrors = computed(() =>
+    !!(form.errors.password || form.errors.password_confirmation || passwordError.value || passwordMatchError.value),
+);
+
 const isFormValid = computed(() => {
     // Campos requeridos
     const requiredFields = ['nombre_completo', 'nombre_usuario', 'email', 'tipo_usuario'];
@@ -749,40 +770,32 @@ const submit = () => {
     if (form.password_confirmation) validatePasswordMatch();
     
     if (!isFormValid.value) {
-        alertRef.value?.show({
-            type: 'error',
-            title: '❌ Error de validación',
-            message: 'Por favor, corrija los errores en el formulario antes de continuar.',
-            buttonText: 'Entendido'
-        });
+        if (hasDatosErrors.value || !form.nombre_completo || !form.nombre_usuario || !form.email || !form.tipo_usuario) {
+            activeTab.value = 'datos';
+        } else if (hasCredencialesErrors.value) {
+            activeTab.value = 'credenciales';
+        }
+        notify.error('Corrige los errores marcados en el formulario antes de continuar.', 'Error de validación');
         return;
     }
-    
-    // Si no hay contraseña, la excluimos del envío
-    const data = { ...form.data() };
-    if (!data.password) {
-        delete data.password;
-        delete data.password_confirmation;
-    }
-    
-    form.put(route('usuarios.update', props.usuario.id_usuario), {
-        onSuccess: () => {
-            alertRef.value?.show({
-                type: 'success',
-                title: '✅ ¡Usuario actualizado!',
-                message: 'El usuario se ha actualizado exitosamente en el sistema.',
-                buttonText: 'Ir al listado'
-            });
-        },
-        onError: (errors) => {
-            alertRef.value?.show({
-                type: 'error',
-                title: '❌ Error al actualizar',
-                message: 'Ocurrió un error al actualizar el usuario. Verifique los datos e intente nuevamente.',
-                buttonText: 'Intentar de nuevo'
-            });
-        }
-    });
+
+    // Si no hay contrasena nueva, se excluye del envio. El toast de exito lo
+    // muestra el manejador global de flash tras el redirect.
+    form
+        .transform((d) => {
+            if (!d.password) {
+                const { password, password_confirmation, ...rest } = d;
+                return rest;
+            }
+            return d;
+        })
+        .put(route('usuarios.update', props.usuario.id_usuario), {
+            onError: (errors) => {
+                if (errors.password || errors.password_confirmation) activeTab.value = 'credenciales';
+                else if (errors.nombre_completo || errors.nombre_usuario || errors.email || errors.telefono || errors.tipo_usuario) activeTab.value = 'datos';
+                notify.error('Revisa los datos del formulario e intenta nuevamente.', 'No se pudo actualizar');
+            },
+        });
 };
 </script>
 
@@ -841,10 +854,29 @@ const submit = () => {
     margin: 0;
 }
 
+.header-hint {
+    display: inline-block;
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid #d1d5db;
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.header-hint strong {
+    color: #dc2626;
+}
+
 .header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.header-right .btn {
+    padding: 8px 20px;
+    font-size: 0.82rem;
 }
 
 .status-badge {
@@ -883,9 +915,9 @@ const submit = () => {
 }
 
 .container-custom {
-    max-width: 72rem;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 0 1.75rem;
 }
 
 /* ========== FORM CARD ========== */
@@ -987,7 +1019,7 @@ const submit = () => {
 /* ========== FORM GRID ========== */
 .form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -1014,7 +1046,7 @@ const submit = () => {
 .label-icon {
     width: 18px;
     height: 18px;
-    color: #667eea;
+    color: #1a3a5c;
     flex-shrink: 0;
 }
 
@@ -1042,8 +1074,8 @@ const submit = () => {
 }
 
 .form-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .form-input:hover:not(:focus) {
@@ -1085,7 +1117,7 @@ const submit = () => {
 }
 
 .password-toggle:hover {
-    color: #667eea;
+    color: #1a3a5c;
 }
 
 .btn-generate-password {
@@ -1097,7 +1129,7 @@ const submit = () => {
     align-items: center;
     gap: 4px;
     padding: 4px 12px;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    background: linear-gradient(135deg, #1a3a5c, #132a44);
     color: white;
     border: none;
     border-radius: 6px;
@@ -1129,7 +1161,7 @@ const submit = () => {
 }
 
 .input-wrapper:focus-within .input-icon:not(.password-toggle) {
-    color: #667eea;
+    color: #1a3a5c;
 }
 
 .error-message {
@@ -1215,15 +1247,15 @@ const submit = () => {
 }
 
 .empresa-card:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1);
 }
 
 .empresa-card.selected {
     border-color: #10b981;
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.15);
 }
 
 .empresa-check {
@@ -1326,9 +1358,9 @@ const submit = () => {
     align-items: center;
     gap: 12px;
     padding: 12px 18px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06));
+    background: linear-gradient(135deg, rgba(26, 58, 92, 0.06), rgba(118, 75, 162, 0.06));
     border-radius: 12px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     font-size: 0.85rem;
     color: #4b5563;
     margin-top: 4px;
@@ -1393,13 +1425,13 @@ const submit = () => {
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
 }
 
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 6px 24px rgba(26, 58, 92, 0.35);
 }
 
 .btn-submit:disabled {
@@ -1428,6 +1460,12 @@ const submit = () => {
 }
 
 /* ========== RESPONSIVE ========== */
+@media (max-width: 1100px) {
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 768px) {
     .form-card {
         padding: 1.25rem;
@@ -1450,7 +1488,20 @@ const submit = () => {
 
     .header-right {
         width: 100%;
-        justify-content: flex-start;
+        justify-content: stretch;
+    }
+
+    .header-right .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .header-hint {
+        display: block;
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        margin-top: 2px;
     }
 
     .form-actions {
@@ -1556,5 +1607,189 @@ const submit = () => {
         padding: 2px 6px;
         font-size: 0.65rem;
     }
+}
+
+/* ============================================ */
+/* LAYOUT COMPACTO CON PESTAÑAS (sin scroll de página) */
+/* ============================================ */
+.page-content {
+    padding: 0.75rem 0;
+}
+
+.form-card {
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 175px);
+    overflow: hidden;
+}
+
+#usuarioForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.tabs-premium {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    background: #fafbfc;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.tab-premium {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    position: relative;
+}
+
+.tab-premium:hover {
+    color: #1f2937;
+    background: rgba(26, 58, 92, 0.06);
+}
+
+.tab-premium.active {
+    color: #1a3a5c;
+    background: white;
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.12);
+}
+
+.tab-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.tab-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.error-dot {
+    background: #ef4444;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.tab-count {
+    background: #1a3a5c;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.tab-content-premium {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    min-height: 0;
+}
+
+.tab-content-premium::-webkit-scrollbar { width: 5px; }
+.tab-content-premium::-webkit-scrollbar-track { background: #f1f3f5; border-radius: 4px; }
+.tab-content-premium::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+.tab-content-premium::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+.tab-content-premium .form-section,
+.tab-content-premium .form-section:last-of-type {
+    margin-bottom: 0;
+    background: linear-gradient(135deg, #fafbfc, #ffffff);
+    border: 1px solid #f1f3f5;
+    border-left: 4px solid #1a3a5c;
+    border-radius: 14px;
+    padding: 16px 20px 18px;
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-content-premium .form-section:nth-of-type(2) { border-left-color: #1a3a5c; }
+.tab-content-premium .form-section:nth-of-type(3) { border-left-color: #f59e0b; }
+
+.tab-content-premium .section-header {
+    display: none;
+}
+
+.tab-content-premium .form-grid {
+    gap: 14px;
+}
+
+.info-box-mini {
+    margin-top: 12px;
+    padding: 10px 16px;
+    flex-shrink: 0;
+}
+
+.form-actions {
+    margin-top: 14px;
+    padding-top: 14px;
+    flex-shrink: 0;
+}
+
+.btn-submit.btn-submit-pending {
+    opacity: 0.72;
+    filter: saturate(0.85);
+}
+
+.btn-submit.btn-submit-pending:hover {
+    opacity: 1;
+    filter: none;
+}
+
+@media (max-width: 640px) {
+    .form-card { max-height: none; }
+    .tab-content-premium { overflow: visible; }
+    .tab-premium { padding: 7px 12px; font-size: 0.75rem; }
+    .tab-premium span:not(.tab-dot):not(.tab-count) { font-size: 0.72rem; }
+}
+
+/* === Estilo sobrio RIC: ocultar adornos === */
+.status-badge,
+.status-badge-premium,
+.badge-required,
+.badge-optional,
+.label-icon,
+.input-icon:not(.password-toggle) {
+    display: none !important;
+}
+
+.form-input:not(.form-select) {
+    padding-right: 14px;
+}
+
+.form-select {
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
 }
 </style>

@@ -1,37 +1,6 @@
 <template>
     <AppLayout :title="tituloPagina">
-        <!-- FLASH MESSAGES -->
-        <div v-if="$page.props.flash" class="flash-container">
-            <div v-if="$page.props.flash.success" class="flash-message flash-success">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.success }}</span>
-                <button @click="$page.props.flash.success = null" class="flash-close">✕</button>
-            </div>
-            <div v-if="$page.props.flash.error" class="flash-message flash-error">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.error }}</span>
-                <button @click="$page.props.flash.error = null" class="flash-close">✕</button>
-            </div>
-            <div v-if="$page.props.flash.info" class="flash-message flash-info">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.info }}</span>
-                <button @click="$page.props.flash.info = null" class="flash-close">✕</button>
-            </div>
-        </div>
+        <!-- Los flash messages se muestran de forma global (AppLayout useFlashMessages) -->
 
         <template #header>
             <div class="header-wrapper">
@@ -50,7 +19,7 @@
                 <div class="header-right">
                     <div class="status-badge" :class="statusClass">
                         <span v-if="hasErrors">! {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✓ Completado</span>
+                        <span v-else-if="isComplete">Completado</span>
                         <span v-else>{{ Math.round(progressPercentage) }}%</span>
                     </div>
                 </div>
@@ -239,7 +208,7 @@
                                                 disabled: ivasSeleccionados.length >= 2 && !ivasSeleccionados.includes(iva.id)
                                             }" @click="toggleIva(iva.id)">
                                             {{ iva.porcentaje }}%
-                                            <span class="iva-check" v-if="ivasSeleccionados.includes(iva.id)">✓</span>
+                                            <span class="iva-check" v-if="ivasSeleccionados.includes(iva.id)"><i class="pi pi-check"></i></span>
                                         </button>
                                     </div>
                                     <div class="hint-text">Selecciona hasta 2 tipos de IVA (opcional)</div>
@@ -287,7 +256,7 @@
                                             formatNumberConComas(calcularIvaMonto(ivaId))
                                         }}</span>
                                         <button type="button" @click="quitarIva(ivaId)"
-                                            class="iva-remove-btn">✕</button>
+                                            class="iva-remove-btn"><i class="pi pi-times"></i></button>
                                     </div>
                                     <div class="iva-total">
                                         <span>Total: <strong>${{ formatNumberConComas(totalConIvaCalculado)
@@ -301,7 +270,8 @@
                                 :class="totalConIvaCalculado > form.monto_directo ? 'iva-invalido' : 'iva-valido'">
                                 <span class="validacion-icon">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path v-if="totalConIvaCalculado > form.monto_directo" stroke-linecap="round"
+                                        <path v-if="totalConIvaCalculado >
+                                            form.monto_directo" stroke-linecap="round"
                                             stroke-linejoin="round" stroke-width="2"
                                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -420,12 +390,12 @@
                                                     d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                             </svg>
                                         </div>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador"
-                                            title="Nuevo marcador">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador"
+                                            title="Gestionar marcadores">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 4v16m8-8H4" />
+                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
                                         </button>
                                     </div>
@@ -511,7 +481,7 @@
                                             <input type="file" ref="pdfInput" @change="handleFileUpload('pdf', $event)"
                                                 accept=".pdf" class="file-input-hidden">
                                             <button v-if="archivos.pdf" type="button" @click="eliminarArchivo('pdf')"
-                                                class="file-remove">✕</button>
+                                                class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
 
@@ -537,7 +507,7 @@
                                             <input type="file" ref="xmlInput" @change="handleFileUpload('xml', $event)"
                                                 accept=".xml" class="file-input-hidden">
                                             <button v-if="archivos.xml" type="button" @click="eliminarArchivo('xml')"
-                                                class="file-remove">✕</button>
+                                                class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -563,7 +533,7 @@
                             </div>
 
                             <!-- VALIDACION DE SALDO -->
-                            <!-- 🔧 FIX: se agregó "&& !form.es_por_pagar" — cuando la póliza es
+                            <!-- FIX: se agregó "&& !form.es_por_pagar" — cuando la póliza es
                                  EGRESO y "Es por pagar" está marcado, el saldo de la fondeadora NO
                                  se toca hasta que se registre un abono, así que no tiene sentido
                                  mostrarle al usuario una advertencia de saldo insuficiente (o
@@ -679,12 +649,12 @@
                                                     d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                             </svg>
                                         </div>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador"
-                                            title="Nuevo marcador">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador"
+                                            title="Gestionar marcadores">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 4v16m8-8H4" />
+                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
                                         </button>
                                     </div>
@@ -760,7 +730,7 @@
                                         </svg>
                                         Saldo: <strong>${{ formatNumberConComas(saldoCuentaDestino) }}</strong>
                                         <span v-if="totalMontoTraspaso > 0" class="nuevo-saldo">
-                                            → Nuevo: ${{ formatNumberConComas(nuevoSaldoDestino) }}
+                                             Nuevo: ${{ formatNumberConComas(nuevoSaldoDestino) }}
                                         </span>
                                     </div>
                                 </div>
@@ -805,7 +775,7 @@
                                             }" @click="toggleIvaTraspaso(iva.id)">
                                             {{ iva.porcentaje }}%
                                             <span class="iva-check"
-                                                v-if="ivasSeleccionadosTraspaso.includes(iva.id)">✓</span>
+                                                v-if="ivasSeleccionadosTraspaso.includes(iva.id)"><i class="pi pi-check"></i></span>
                                         </button>
                                     </div>
                                     <div class="hint-text">Selecciona hasta 2 tipos de IVA (opcional)</div>
@@ -870,7 +840,7 @@
                                         <span class="iva-detail-result">IVA: ${{
                                             formatNumberConComas(calcularIvaMontoTraspaso(ivaId)) }}</span>
                                         <button type="button" @click="quitarIvaTraspaso(ivaId)"
-                                            class="iva-remove-btn">✕</button>
+                                            class="iva-remove-btn"><i class="pi pi-times"></i></button>
                                     </div>
                                     <div class="iva-total">
                                         <span>Total: <strong>${{ formatNumberConComas(totalConIvaTraspasoCalculado)
@@ -885,7 +855,7 @@
                                 :class="totalConIvaTraspasoCalculado > formTraspaso.monto_directo ? 'iva-invalido' : 'iva-valido'">
                                 <span class="validacion-icon">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path v-if="totalConIvaTraspasoCalculado > formTraspaso.monto_directo"
+                                        <path v-if="totalConIvaTraspasoCalculado >formTraspaso.monto_directo"
                                             stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -974,13 +944,13 @@
                                                         stroke-width="2"
                                                         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                                 </svg>
-                                                <span>{{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : 'Seleccionar PDF'}}</span>
+                                                <span>{{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : 'Seleccionar PDF' }}</span>
                                             </div>
                                             <input type="file" ref="pdfInputTraspaso"
                                                 @change="handleFileUploadTraspaso('pdf', $event)" accept=".pdf"
                                                 class="file-input-hidden">
                                             <button v-if="archivosTraspaso.pdf" type="button"
-                                                @click="eliminarArchivoTraspaso('pdf')" class="file-remove">✕</button>
+                                                @click="eliminarArchivoTraspaso('pdf')" class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
 
@@ -1001,13 +971,13 @@
                                                         stroke-width="2"
                                                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                 </svg>
-                                                <span>{{ archivosTraspaso.xml ? archivosTraspaso.xml.name : 'Seleccionar XML'}}</span>
+                                                <span>{{ archivosTraspaso.xml ? archivosTraspaso.xml.name : 'Seleccionar XML' }}</span>
                                             </div>
                                             <input type="file" ref="xmlInputTraspaso"
                                                 @change="handleFileUploadTraspaso('xml', $event)" accept=".xml"
                                                 class="file-input-hidden">
                                             <button v-if="archivosTraspaso.xml" type="button"
-                                                @click="eliminarArchivoTraspaso('xml')" class="file-remove">✕</button>
+                                                @click="eliminarArchivoTraspaso('xml')" class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -1018,7 +988,8 @@
                                 :class="totalMontoTraspaso > saldoCuentaOrigen ? 'saldo-insuficiente' : 'saldo-suficiente'">
                                 <span class="validacion-icon">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path v-if="totalMontoTraspaso > saldoCuentaOrigen" stroke-linecap="round"
+                                        <path v-if="totalMontoTraspaso >
+                                            saldoCuentaOrigen" stroke-linecap="round"
                                             stroke-linejoin="round" stroke-width="2"
                                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1100,6 +1071,9 @@
             </div>
         </div>
 
+        <!-- Gestor de marcadores (crear / editar / eliminar) -->
+        <MarcadoresModal v-model="marcadorGestorVisible" :marcadores="marcadores" @changed="(l) => marcadores = l" />
+
         <!-- Modal Marcador -->
         <div v-if="modalMarcadorVisible" class="modal-overlay" @click.self="cerrarModalMarcador">
             <div class="modal-container">
@@ -1156,17 +1130,18 @@
                 </div>
             </div>
         </div>
-
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import MarcadoresModal from '@/Components/MarcadoresModal.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import { ref, computed, onMounted, watch } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+
+const notify = useNotify();
 
 // ============================================
 // PROPS
@@ -1184,7 +1159,6 @@ const props = defineProps({
 // ============================================
 // REFS
 // ============================================
-const alertRef = ref(null);
 const pdfInput = ref(null);
 const xmlInput = ref(null);
 const pdfInputTraspaso = ref(null);
@@ -1195,6 +1169,7 @@ const fechaActual = ref(new Date().toLocaleDateString('en-CA', { timeZone: 'Amer
 const modalMarcadorVisible = ref(false);
 const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
+const marcadorGestorVisible = ref(false);
 const processing = ref(false);
 const archivos = ref({ pdf: null, xml: null });
 const archivosTraspaso = ref({ pdf: null, xml: null });
@@ -1391,7 +1366,7 @@ const isFormValid = computed(() => {
             return false;
         }
 
-        // 🔧 FIX: se agregó "&& !form.es_por_pagar" — antes esto bloqueaba
+        // FIX: se agregó "&& !form.es_por_pagar" — antes esto bloqueaba
         // el formulario (isFormValid = false) para CUALQUIER EGRESO con
         // saldo insuficiente, incluso cuando "Es por pagar" estaba marcado.
         // Una póliza diferida no necesita saldo disponible en la fondeadora
@@ -1581,12 +1556,7 @@ const toggleIva = (ivaId) => {
         delete form.ivas[ivaId];
     } else {
         if (ivasSeleccionados.value.length >= 2) {
-            alertRef.value?.show({
-                type: 'warning',
-                title: 'Límite alcanzado',
-                message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
-                buttonText: 'Entendido'
-            });
+            notify.warn('Solo puedes seleccionar hasta 2 tipos de IVA', 'Límite alcanzado');
             return;
         }
         ivasSeleccionados.value.push(ivaId);
@@ -1611,12 +1581,7 @@ const toggleIvaTraspaso = (ivaId) => {
         delete formTraspaso.ivas[ivaId];
     } else {
         if (ivasSeleccionadosTraspaso.value.length >= 2) {
-            alertRef.value?.show({
-                type: 'warning',
-                title: 'Límite alcanzado',
-                message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
-                buttonText: 'Entendido'
-            });
+            notify.warn('Solo puedes seleccionar hasta 2 tipos de IVA', 'Límite alcanzado');
             return;
         }
         ivasSeleccionadosTraspaso.value.push(ivaId);
@@ -1781,12 +1746,7 @@ const onPersonaChange = async () => {
 const onCuentaOrigenChange = () => {
     saldoCuentaOrigen.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_origen);
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: 'La cuenta de origen y destino no pueden ser la misma.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La cuenta de origen y destino no pueden ser la misma.', 'Error');
         formTraspaso.id_cuenta_origen = null;
     }
 };
@@ -1794,12 +1754,7 @@ const onCuentaOrigenChange = () => {
 const onCuentaDestinoChange = () => {
     saldoCuentaDestino.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_destino);
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: 'La cuenta de origen y destino no pueden ser la misma.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La cuenta de origen y destino no pueden ser la misma.', 'Error');
         formTraspaso.id_cuenta_destino = null;
     }
 };
@@ -1837,12 +1792,7 @@ const handleFileUpload = (tipo, event) => {
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Archivo demasiado grande',
-                message: `El archivo ${file.name} excede el límite de 5MB.`,
-                buttonText: 'Entendido'
-            });
+            notify.error(`El archivo ${file.name} excede el límite de 5MB.`, 'Archivo demasiado grande');
             event.target.value = '';
             return;
         }
@@ -1860,12 +1810,7 @@ const handleFileUploadTraspaso = (tipo, event) => {
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Archivo demasiado grande',
-                message: `El archivo ${file.name} excede el límite de 5MB.`,
-                buttonText: 'Entendido'
-            });
+            notify.error(`El archivo ${file.name} excede el límite de 5MB.`, 'Archivo demasiado grande');
             event.target.value = '';
             return;
         }
@@ -1895,12 +1840,7 @@ const cerrarModalMarcador = () => {
 
 const guardarMarcador = async () => {
     if (!nuevoMarcador.value.nombre.trim()) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: 'El nombre del marcador es obligatorio',
-            buttonText: 'Entendido'
-        });
+        notify.error('El nombre del marcador es obligatorio', 'Error');
         return;
     }
 
@@ -1919,20 +1859,10 @@ const guardarMarcador = async () => {
                 formTraspaso.id_marcador = res.data.data.id;
             }
             cerrarModalMarcador();
-            alertRef.value?.show({
-                type: 'success',
-                title: 'Marcador creado',
-                message: 'El marcador se ha creado y seleccionado correctamente.',
-                buttonText: 'Aceptar'
-            });
+            notify.success('El marcador se ha creado y seleccionado correctamente.', 'Marcador creado');
         }
     } catch (error) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: error.response?.data?.message || 'Error al crear el marcador',
-            buttonText: 'Entendido'
-        });
+        notify.error(error.response?.data?.message || 'Error al crear el marcador', 'Error');
     } finally { guardandoMarcador.value = false; }
 };
 
@@ -1979,56 +1909,31 @@ const formTraspaso = useForm({
 
 const submitIngresoEgreso = () => {
     if (!form.monto_directo || form.monto_directo <= 0) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Monto requerido',
-            message: 'Debes ingresar un monto válido mayor a 0.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes ingresar un monto válido mayor a 0.', 'Monto requerido');
         return;
     }
 
     if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error en desglose de IVA',
-            message: `La suma del desglose ($${formatNumberConComas(totalConIvaCalculado.value)}) excede el monto ($${formatNumberConComas(form.monto_directo)}).`,
-            buttonText: 'Entendido'
-        });
+        notify.error(`La suma del desglose ($${formatNumberConComas(totalConIvaCalculado.value)}) excede el monto ($${formatNumberConComas(form.monto_directo)}).`, 'Error en desglose de IVA');
         return;
     }
 
     if (form.fecha_poliza && form.fecha_poliza > fechaActual.value) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Fecha inválida',
-            message: 'La fecha de la póliza no puede ser futura.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La fecha de la póliza no puede ser futura.', 'Fecha inválida');
         return;
     }
 
     if (!form.id_persona) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Persona requerida',
-            message: 'Debes seleccionar una persona para la póliza.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes seleccionar una persona para la póliza.', 'Persona requerida');
         return;
     }
 
     if (!form.id_cuenta_fondeadora) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Cuenta fondeadora requerida',
-            message: 'Debes seleccionar una cuenta fondeadora.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes seleccionar una cuenta fondeadora.', 'Cuenta fondeadora requerida');
         return;
     }
 
-    // 🔧 FIX: se agregó "&& !form.es_por_pagar" — antes este modal de
+    // FIX: se agregó "&& !form.es_por_pagar" — antes este modal de
     // "Saldo insuficiente" aparecía y bloqueaba el envío incluso cuando la
     // póliza era diferida ("Es por pagar" marcado), caso en el que el
     // saldo de la fondeadora ni siquiera se toca al guardar. El backend
@@ -2037,12 +1942,7 @@ const submitIngresoEgreso = () => {
     if (form.tipo_poliza === 'EGRESO' && !form.es_por_pagar && cuentaFondeadoraSeleccionada.value) {
         const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
         if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Saldo insuficiente',
-                message: `El monto total ($${formatNumberConComas(montoTotal)}) excede el saldo disponible ($${formatNumberConComas(cuentaFondeadoraSeleccionada.value.saldo || 0)}).`,
-                buttonText: 'Entendido'
-            });
+            notify.error(`El monto total ($${formatNumberConComas(montoTotal)}) excede el saldo disponible ($${formatNumberConComas(cuentaFondeadoraSeleccionada.value.saldo || 0)}).`, 'Saldo insuficiente');
             return;
         }
     }
@@ -2088,12 +1988,7 @@ const submitIngresoEgreso = () => {
     })
         .then(() => {
             processing.value = false;
-            alertRef.value?.show({
-                type: 'success',
-                title: 'Éxito',
-                message: 'La póliza se ha registrado correctamente.',
-                buttonText: 'Ir al listado'
-            });
+            notify.success('La póliza se ha registrado correctamente.', 'Éxito');
             setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
             }, 1500);
@@ -2105,29 +2000,14 @@ const submitIngresoEgreso = () => {
             if (error.response?.data?.errors) {
                 const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error de validación',
-                    message: Array.isArray(firstError) ? firstError[0] : firstError,
-                    buttonText: 'Entendido'
-                });
+                notify.error(Array.isArray(firstError) ? firstError[0] : firstError, 'Error de validación');
                 Object.keys(errors).forEach(key => {
                     form.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
                 });
             } else if (error.response?.data?.message) {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error',
-                    message: error.response.data.message,
-                    buttonText: 'Entendido'
-                });
+                notify.error(error.response.data.message, 'Error');
             } else {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error',
-                    message: 'Error al registrar la póliza. Intenta nuevamente.',
-                    buttonText: 'Entendido'
-                });
+                notify.error('Error al registrar la póliza. Intenta nuevamente.', 'Error');
             }
         });
 };
@@ -2138,73 +2018,38 @@ const submitIngresoEgreso = () => {
 
 const submitTraspaso = () => {
     if (!formTraspaso.monto_directo || formTraspaso.monto_directo <= 0) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Monto requerido',
-            message: 'Debes ingresar un monto válido mayor a 0.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes ingresar un monto válido mayor a 0.', 'Monto requerido');
         return;
     }
 
     if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error en desglose de IVA',
-            message: `La suma del desglose ($${formatNumberConComas(totalConIvaTraspasoCalculado.value)}) excede el monto ($${formatNumberConComas(formTraspaso.monto_directo)}).`,
-            buttonText: 'Entendido'
-        });
+        notify.error(`La suma del desglose ($${formatNumberConComas(totalConIvaTraspasoCalculado.value)}) excede el monto ($${formatNumberConComas(formTraspaso.monto_directo)}).`, 'Error en desglose de IVA');
         return;
     }
 
     if (formTraspaso.fecha_poliza && formTraspaso.fecha_poliza > fechaActual.value) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Fecha inválida',
-            message: 'La fecha de la póliza no puede ser futura.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La fecha de la póliza no puede ser futura.', 'Fecha inválida');
         return;
     }
 
     if (!formTraspaso.id_cuenta_origen) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Cuenta Origen requerida',
-            message: 'Debes seleccionar una cuenta de origen.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes seleccionar una cuenta de origen.', 'Cuenta Origen requerida');
         return;
     }
 
     if (!formTraspaso.id_cuenta_destino) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Cuenta Destino requerida',
-            message: 'Debes seleccionar una cuenta de destino.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes seleccionar una cuenta de destino.', 'Cuenta Destino requerida');
         return;
     }
 
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Cuentas inválidas',
-            message: 'La cuenta de origen y destino no pueden ser la misma.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La cuenta de origen y destino no pueden ser la misma.', 'Cuentas inválidas');
         return;
     }
 
     const montoTotal = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
     if (montoTotal > saldoCuentaOrigen.value) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Saldo insuficiente en origen',
-            message: `El monto a transferir ($${formatNumberConComas(montoTotal)}) excede el saldo de la cuenta de origen ($${formatNumberConComas(saldoCuentaOrigen.value)}).`,
-            buttonText: 'Entendido'
-        });
+        notify.error(`El monto a transferir ($${formatNumberConComas(montoTotal)}) excede el saldo de la cuenta de origen ($${formatNumberConComas(saldoCuentaOrigen.value)}).`, 'Saldo insuficiente en origen');
         return;
     }
 
@@ -2249,12 +2094,7 @@ const submitTraspaso = () => {
     })
         .then(() => {
             processing.value = false;
-            alertRef.value?.show({
-                type: 'success',
-                title: 'Éxito',
-                message: 'El traspaso se ha registrado correctamente.',
-                buttonText: 'Ir al listado'
-            });
+            notify.success('El traspaso se ha registrado correctamente.', 'Éxito');
             setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
             }, 1500);
@@ -2266,29 +2106,14 @@ const submitTraspaso = () => {
             if (error.response?.data?.errors) {
                 const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error de validación',
-                    message: Array.isArray(firstError) ? firstError[0] : firstError,
-                    buttonText: 'Entendido'
-                });
+                notify.error(Array.isArray(firstError) ? firstError[0] : firstError, 'Error de validación');
                 Object.keys(errors).forEach(key => {
                     formTraspaso.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
                 });
             } else if (error.response?.data?.message) {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error',
-                    message: error.response.data.message,
-                    buttonText: 'Entendido'
-                });
+                notify.error(error.response.data.message, 'Error');
             } else {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error',
-                    message: 'Error al registrar el traspaso. Intenta nuevamente.',
-                    buttonText: 'Entendido'
-                });
+                notify.error('Error al registrar el traspaso. Intenta nuevamente.', 'Error');
             }
         });
 };
@@ -2324,7 +2149,6 @@ onMounted(() => {
     form.monto_directo = null;
     formTraspaso.monto_directo = null;
 
-    console.log('📊 Cuentas fondeadoras recibidas:', props.cuentas_fondeadoras);
 
     if (props.tipos_iva && props.tipos_iva.length > 0) {
         tiposIva.value = props.tipos_iva;
@@ -2332,7 +2156,6 @@ onMounted(() => {
 
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         cuentasFondeadoras.value = props.cuentas_fondeadoras;
-        console.log('✅ Cuentas fondeadoras cargadas:', cuentasFondeadoras.value);
         if (!form.id_cuenta_fondeadora) {
             form.id_cuenta_fondeadora = props.cuentas_fondeadoras[0].id_cuenta;
             const primeraCuenta = props.cuentas_fondeadoras[0];
@@ -2343,7 +2166,7 @@ onMounted(() => {
             };
         }
     } else {
-        console.warn('⚠️ No se recibieron cuentas fondeadoras');
+        console.warn(' No se recibieron cuentas fondeadoras');
     }
 
     if (props.cuentas_egreso && props.cuentas_egreso.length > 0) {
@@ -2568,7 +2391,7 @@ onMounted(() => {
 .tipo-btn-premium .tipo-btn-glow {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     opacity: 0;
     border-radius: 10px;
     transition: all 0.3s ease;
@@ -2576,7 +2399,7 @@ onMounted(() => {
 
 .tipo-btn-premium.active {
     color: white;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 
 .tipo-btn-premium.active .tipo-btn-glow {
@@ -2680,8 +2503,8 @@ onMounted(() => {
 }
 
 .form-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .form-input.error {
@@ -2722,8 +2545,8 @@ onMounted(() => {
 }
 
 .form-textarea:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .form-textarea.error {
@@ -2790,15 +2613,15 @@ onMounted(() => {
 }
 
 .iva-btn:hover:not(.disabled) {
-    border-color: #667eea;
-    color: #667eea;
+    border-color: #1a3a5c;
+    color: #1a3a5c;
 }
 
 .iva-btn.active {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
+    border-color: #1a3a5c;
     color: white;
-    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 2px 10px rgba(26, 58, 92, 0.2);
 }
 
 .iva-btn.disabled {
@@ -2979,14 +2802,14 @@ onMounted(() => {
     content: '';
     position: absolute;
     inset: 3px;
-    background: #667eea;
+    background: #1a3a5c;
     border-radius: 2px;
     transform: scale(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .checkbox-input:checked+.checkbox-custom {
-    border-color: #667eea;
+    border-color: #1a3a5c;
 }
 
 .checkbox-input:checked+.checkbox-custom::after {
@@ -3036,14 +2859,14 @@ onMounted(() => {
     border: 2px dashed #d1d5db;
     border-radius: 8px;
     background: white;
-    color: #667eea;
+    color: #1a3a5c;
     cursor: pointer;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
 .btn-add-marcador:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f8f7ff;
     transform: scale(1.05);
 }
@@ -3139,7 +2962,7 @@ onMounted(() => {
 }
 
 .file-upload-area:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f8f7ff;
 }
 
@@ -3223,7 +3046,7 @@ onMounted(() => {
     padding: 6px 14px;
     background: #f8fafc;
     border-radius: 8px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     font-size: 0.8rem;
     color: #4b5563;
     margin-top: 8px;
@@ -3366,14 +3189,14 @@ onMounted(() => {
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 8px 24px rgba(26, 58, 92, 0.35);
 }
 
 .spinner-border {
@@ -3537,7 +3360,7 @@ onMounted(() => {
 .label-icon {
     width: 18px;
     height: 18px;
-    stroke: #667eea;
+    stroke: #1a3a5c;
     flex-shrink: 0;
 }
 

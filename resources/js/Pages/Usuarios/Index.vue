@@ -10,23 +10,18 @@
                             </svg>
                         </div>
                         <div>
-                            <h2 class="header-title-premium">
-                                Gestión de Usuarios
-                            </h2>
+                            <h2 class="header-title-premium">Gestión de Usuarios</h2>
                             <p class="header-subtitle-premium">
                                 <span class="subtitle-line"></span>
                                 Administra los usuarios del sistema
                             </p>
                         </div>
                     </div>
-                    <!-- ✅ NUEVO USUARIO - solo admin, auditor, super -->
                     <Link v-if="permisos?.puede_crear_usuarios" :href="route('usuarios.create')">
-                        <a-button type="primary" size="large" class="btn-nuevo-usuario-premium">
-                            <template #icon>
-                                <PlusOutlined />
-                            </template>
+                        <button type="button" class="btn-nuevo-usuario-premium">
+                            <i class="pi pi-plus"></i>
                             Nuevo Usuario
-                        </a-button>
+                        </button>
                     </Link>
                 </div>
             </div>
@@ -35,384 +30,279 @@
         <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <!-- Stats Cards -->
-                <a-row :gutter="[20, 20]" class="mb-6">
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Total Usuarios</span>
-                                    <span class="stats-card-enhanced-value">{{ stats?.total || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
-                                    <UserOutlined style="font-size: 28px; color: #1a3a5c;" />
-                                </div>
+                <div class="stats-grid-usuarios mb-6">
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Total Usuarios</span>
+                                <span class="stats-card-enhanced-value">{{ stats?.total || 0 }}</span>
                             </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" style="width: 100%; background: linear-gradient(90deg, #1a3a5c, #2c5282);"></div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
+                                <i class="pi pi-user" style="font-size: 24px; color: #1a3a5c;"></i>
                             </div>
                         </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Activos</span>
-                                    <span class="stats-card-enhanced-value" style="color: #2e7d32;">{{ stats?.activos || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(46, 125, 50, 0.05));">
-                                    <CheckCircleOutlined style="font-size: 28px; color: #2e7d32;" />
-                                </div>
-                            </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ 
-                                    width: stats?.total ? Math.round((stats.activos / stats.total) * 100) + '%' : '0%', 
-                                    background: 'linear-gradient(90deg, #2e7d32, #43a047)' 
-                                }"></div>
-                            </div>
-                        </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Inactivos</span>
-                                    <span class="stats-card-enhanced-value" style="color: #c62828;">{{ stats?.inactivos || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(198, 40, 40, 0.1), rgba(198, 40, 40, 0.05));">
-                                    <CloseCircleOutlined style="font-size: 28px; color: #c62828;" />
-                                </div>
-                            </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ 
-                                    width: stats?.total ? Math.round((stats.inactivos / stats.total) * 100) + '%' : '0%', 
-                                    background: 'linear-gradient(90deg, #c62828, #e53935)' 
-                                }"></div>
-                            </div>
-                        </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Con Empresas</span>
-                                    <span class="stats-card-enhanced-value" style="color: #4a148c;">{{ usuariosConEmpresas }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(74, 20, 140, 0.1), rgba(74, 20, 140, 0.05));">
-                                    <BankOutlined style="font-size: 28px; color: #4a148c;" />
-                                </div>
-                            </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ 
-                                    width: stats?.total ? Math.round((usuariosConEmpresas / stats.total) * 100) + '%' : '0%', 
-                                    background: 'linear-gradient(90deg, #4a148c, #6a1b9a)' 
-                                }"></div>
-                            </div>
-                        </div>
-                    </a-col>
-                </a-row>
-
-                <!-- Tabla Premium -->
-                <div class="table-wrapper-premium">
-                    <!-- Header de la tabla -->
-                    <div class="table-header-ultra">
-                        <div class="table-header-left-ultra">
-                            <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
-                                <span class="filter-dot-active"></span>
-                                Filtros activos
-                            </a-tag>
-                            <a-tag v-if="mostrarInactivos" color="orange" class="filter-tag-ultra">
-                                <span class="filter-dot-inactive"></span>
-                                Mostrando inactivos
-                            </a-tag>
-                        </div>
-                        <div class="table-header-right-ultra">
-                            <a-button 
-                                v-if="filtrosActivos" 
-                                @click="limpiarFiltros" 
-                                size="small" 
-                                class="btn-limpiar-ultra"
-                            >
-                                <template #icon>
-                                    <CloseOutlined />
-                                </template>
-                                Limpiar filtros
-                            </a-button>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" style="width: 100%; background: linear-gradient(90deg, #1a3a5c, #2c5282);"></div>
                         </div>
                     </div>
 
-                    <!-- Tabla -->
-                    <a-table
-                        :columns="columns"
-                        :data-source="usuarios.data"
-                        :pagination="false"
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Activos</span>
+                                <span class="stats-card-enhanced-value" style="color: #2e7d32;">{{ stats?.activos || 0 }}</span>
+                            </div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(46, 125, 50, 0.05));">
+                                <i class="pi pi-check-circle" style="font-size: 24px; color: #2e7d32;"></i>
+                            </div>
+                        </div>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.activos / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #2e7d32, #43a047)' }"></div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Inactivos</span>
+                                <span class="stats-card-enhanced-value" style="color: #c62828;">{{ stats?.inactivos || 0 }}</span>
+                            </div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(198, 40, 40, 0.1), rgba(198, 40, 40, 0.05));">
+                                <i class="pi pi-times-circle" style="font-size: 24px; color: #c62828;"></i>
+                            </div>
+                        </div>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.inactivos / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #c62828, #e53935)' }"></div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Con Empresas</span>
+                                <span class="stats-card-enhanced-value" style="color: #1a3a5c;">{{ usuariosConEmpresas }}</span>
+                            </div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
+                                <i class="pi pi-building" style="font-size: 24px; color: #1a3a5c;"></i>
+                            </div>
+                        </div>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((usuariosConEmpresas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #1a3a5c, #3d6ea5)' }"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla Premium -->
+                <div class="table-wrapper-premium">
+                    <div class="table-header-ultra">
+                        <div class="table-header-left-ultra">
+                            <span v-if="filtrosActivos" class="filter-tag-ultra">
+                                <span class="filter-dot-active"></span>
+                                Filtros activos
+                            </span>
+                            <span v-if="mostrarInactivos" class="filter-tag-ultra filter-tag-orange">
+                                <span class="filter-dot-inactive"></span>
+                                Mostrando inactivos
+                            </span>
+                        </div>
+                        <div class="table-header-right-ultra">
+                            <button v-if="filtrosActivos" type="button" @click="limpiarFiltros" class="btn-limpiar-ultra">
+                                <i class="pi pi-times"></i>
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    </div>
+
+                    <DataTable
+                        :value="usuarios.data"
                         :loading="loading"
-                        row-key="id_usuario"
+                        data-key="id_usuario"
+                        row-hover
+                        table-style="min-width: 60rem"
                         class="usuario-table-ultra"
-                        size="middle"
                     >
-                        <template #bodyCell="{ column, record }">
-                            <!-- # -->
-                            <template v-if="column.key === '#'">
-                                <span class="text-gray-400 font-mono text-sm">{{ record.id_usuario }}</span>
-                            </template>
-
-                            <!-- NOMBRE -->
-                            <template v-if="column.key === 'nombre_completo'">
-                                <div class="nombre-cell-ultra">
-                                    <span class="nombre-text-ultra" :class="{ 'text-gray-400': !record.activo }">
-                                        {{ record.nombre_completo }}
-                                    </span>
-                                    <span v-if="!record.activo" class="badge-inactivo-ultra">Inactivo</span>
-                                </div>
-                            </template>
-
-                            <!-- USUARIO -->
-                            <template v-if="column.key === 'usuario'">
-                                <div class="usuario-cell-ultra">
-                                    <span class="usuario-nombre-ultra" :class="{ 'text-gray-400': !record.activo }">
-                                        {{ record.nombre_usuario }}
-                                    </span>
-                                </div>
-                            </template>
-
-                            <!-- TIPO -->
-                            <template v-if="column.key === 'tipo'">
-                                <div class="rol-cell-ultra">
-                                    <span class="rol-badge" :class="getRolClass(record.tipo_usuario)">
-                                        <span class="rol-dot" :class="getRolDotClass(record.tipo_usuario)"></span>
-                                        {{ record.tipo_usuario_texto || record.tipo_usuario }}
-                                    </span>
-                                </div>
-                            </template>
-
-                            <!-- TELÉFONO -->
-                            <template v-if="column.key === 'telefono'">
-                                <div class="telefono-cell-ultra">
-                                    <span :class="{ 'text-gray-400': !record.activo }">
-                                        {{ record.telefono || '—' }}
-                                    </span>
-                                </div>
-                            </template>
-
-                            <!-- RESET -->
-                            <template v-if="column.key === 'reset'">
-                                <div class="reset-cell-ultra">
-                                    <a-tooltip 
-                                        v-if="record.activo && permisos?.puede_editar_usuarios"
-                                        title="Cambiar contraseña" 
-                                        placement="top" 
-                                        color="#1a3a5c"
-                                    >
-                                        <button 
-                                            class="btn-reset-ultra"
-                                            @click="abrirModalReset(record)"
-                                        >
-                                            <ReloadOutlined />
-                                        </button>
-                                    </a-tooltip>
-                                    <span v-else class="text-gray-400 text-xs">—</span>
-                                </div>
-                            </template>
-
-                            <!-- EMPRESAS -->
-                            <template v-if="column.key === 'empresas'">
-                                <div class="empresas-cell-ultra">
-                                    <template v-if="record.empresas && record.empresas.length > 0">
-                                        <div class="empresas-container">
-                                            <a-popover 
-                                                placement="bottomLeft"
-                                                trigger="hover"
-                                                overlayClassName="empresas-popover"
-                                            >
-                                                <template #content>
-                                                    <div class="empresas-popover-content">
-                                                        <div class="empresas-popover-header">
-                                                            <BankOutlined />
-                                                            <span>Empresas asignadas</span>
-                                                        </div>
-                                                        <div class="empresas-popover-list">
-                                                            <div 
-                                                                v-for="empresa in record.empresas" 
-                                                                :key="empresa.id_empresa"
-                                                                class="empresa-popover-item"
-                                                            >
-                                                                <BankOutlined class="empresa-popover-icon" />
-                                                                <span>{{ empresa.nombre_empresa }}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </template>
-                                                <div class="empresas-tags">
-                                                    <a-tag 
-                                                        v-for="(empresa, index) in record.empresas.slice(0, 2)" 
-                                                        :key="empresa.id_empresa"
-                                                        color="blue"
-                                                        class="empresa-tag"
-                                                        :class="{ 'opacity-50': !record.activo }"
-                                                    >
-                                                        {{ empresa.nombre_empresa }}
-                                                    </a-tag>
-                                                    <a-tag 
-                                                        v-if="record.empresas.length > 2" 
-                                                        color="default"
-                                                        class="empresa-tag-more"
-                                                        :class="{ 'opacity-50': !record.activo }"
-                                                    >
-                                                        +{{ record.empresas.length - 2 }}
-                                                    </a-tag>
-                                                </div>
-                                            </a-popover>
-                                        </div>
-                                    </template>
-                                    <template v-else>
-                                        <span class="contacto-vacio-ultra">Sin empresas</span>
-                                    </template>
-                                </div>
-                            </template>
-
-                            <!-- ESTADO -->
-                            <template v-if="column.key === 'estado'">
-                                <div class="estado-cell-ultra">
-                                    <div class="estado-badge-ultra" :class="record.activo ? 'activo' : 'inactivo'">
-                                        <span class="estado-dot-ultra"></span>
-                                        <span>{{ record.activo ? 'Activo' : 'Inactivo' }}</span>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- ACCIONES -->
-                            <template v-if="column.key === 'acciones'">
-                                <div class="acciones-ultra">
-                                    <!-- ✅ RESTAURAR - solo super (restore) o admin/auditor (toggle) -->
-                                    <a-tooltip 
-                                        v-if="!record.activo && record.id_usuario !== $page.props.auth.user?.id_usuario && permisos?.puede_editar_usuarios"
-                                        title="Restaurar usuario" 
-                                        placement="top" 
-                                        color="#10b981"
-                                    >
-                                        <button 
-                                            class="btn-action-ultra btn-restore-ultra"
-                                            @click="confirmarRestaurar(record)"
-                                        >
-                                            <ReloadOutlined />
-                                        </button>
-                                    </a-tooltip>
-
-                                    <!-- ✅ EDITAR - solo admin, auditor, super -->
-                                    <a-tooltip v-if="permisos?.puede_editar_usuarios" title="Editar" placement="top" color="#1a3a5c">
-                                        <Link :href="route('usuarios.edit', record.id_usuario)">
-                                            <button class="btn-action-ultra btn-edit-ultra">
-                                                <EditOutlined />
-                                            </button>
-                                        </Link>
-                                    </a-tooltip>
-
-                                    <!-- ✅ ELIMINAR - solo admin, auditor, super (no puede eliminarse a sí mismo) -->
-                                    <a-tooltip 
-                                        v-if="record.id_usuario !== $page.props.auth.user?.id_usuario && record.activo && permisos?.puede_eliminar_usuarios"
-                                        title="Eliminar usuario" 
-                                        placement="top" 
-                                        color="#ef4444"
-                                    >
-                                        <button 
-                                            class="btn-action-ultra btn-delete-ultra"
-                                            @click="confirmarEliminar(record)"
-                                        >
-                                            <DeleteOutlined />
-                                        </button>
-                                    </a-tooltip>
-                                </div>
-                            </template>
+                        <template #empty>
+                            <div class="tabla-vacia">No se encontraron usuarios.</div>
                         </template>
 
-                        <!-- Footer con filtros -->
+                        <Column header="Nombre" style="width: 16%">
+                            <template #body="{ data }">
+                                <div class="nombre-cell-ultra">
+                                    <span class="nombre-text-ultra" :class="{ 'text-gray-400': !data.activo }">
+                                        {{ data.nombre_completo }}
+                                    </span>
+                                    <span v-if="!data.activo" class="badge-inactivo-ultra">Inactivo</span>
+                                </div>
+                            </template>
+                        </Column>
+
+                        <Column header="Usuario" style="width: 10%">
+                            <template #body="{ data }">
+                                <span class="usuario-nombre-ultra" :class="{ 'text-gray-400': !data.activo }">
+                                    {{ data.nombre_usuario }}
+                                </span>
+                            </template>
+                        </Column>
+
+                        <Column header="Tipo" style="width: 10%">
+                            <template #body="{ data }">
+                                <span class="rol-badge" :class="getRolClass(data.tipo_usuario)">
+                                    <span class="rol-dot" :class="getRolDotClass(data.tipo_usuario)"></span>
+                                    {{ data.tipo_usuario_texto || data.tipo_usuario }}
+                                </span>
+                            </template>
+                        </Column>
+
+                        <Column header="Teléfono" style="width: 8%">
+                            <template #body="{ data }">
+                                <span :class="{ 'text-gray-400': !data.activo }">{{ data.telefono || '—' }}</span>
+                            </template>
+                        </Column>
+
+                        <Column header="Reset" style="width: 5%">
+                            <template #body="{ data }">
+                                <button
+                                    v-if="data.activo && permisos?.puede_editar_usuarios"
+                                    v-tooltip.top="'Cambiar contraseña'"
+                                    class="btn-reset-ultra"
+                                    @click="abrirModalReset(data)"
+                                >
+                                    <i class="pi pi-refresh"></i>
+                                </button>
+                                <span v-else class="text-gray-400 text-xs">—</span>
+                            </template>
+                        </Column>
+
+                        <Column header="Empresas" style="width: 18%">
+                            <template #body="{ data }">
+                                <div v-if="data.empresas && data.empresas.length > 0" class="empresas-hover-wrap">
+                                    <div class="empresas-tags">
+                                        <span
+                                            v-for="empresa in data.empresas.slice(0, 2)"
+                                            :key="empresa.id_empresa"
+                                            class="empresa-tag"
+                                            :class="{ 'opacity-50': !data.activo }"
+                                        >
+                                            {{ empresa.nombre_empresa }}
+                                        </span>
+                                        <span
+                                            v-if="data.empresas.length > 2"
+                                            class="empresa-tag-more"
+                                            :class="{ 'opacity-50': !data.activo }"
+                                        >
+                                            +{{ data.empresas.length - 2 }}
+                                        </span>
+                                    </div>
+                                    <div v-if="data.empresas.length > 2" class="empresas-hover-panel">
+                                        <div class="empresas-popover-header">
+                                            <i class="pi pi-building"></i>
+                                            <span>Empresas asignadas</span>
+                                        </div>
+                                        <div class="empresas-popover-list">
+                                            <div v-for="empresa in data.empresas" :key="empresa.id_empresa" class="empresa-popover-item">
+                                                <i class="pi pi-building empresa-popover-icon"></i>
+                                                <span>{{ empresa.nombre_empresa }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span v-else class="contacto-vacio-ultra">Sin empresas</span>
+                            </template>
+                        </Column>
+
+                        <Column header="Estado" style="width: 8%">
+                            <template #body="{ data }">
+                                <div class="estado-badge-ultra" :class="data.activo ? 'activo' : 'inactivo'">
+                                    <span class="estado-dot-ultra"></span>
+                                    <span>{{ data.activo ? 'Activo' : 'Inactivo' }}</span>
+                                </div>
+                            </template>
+                        </Column>
+
+                        <Column header="Acciones" style="width: 12%">
+                            <template #body="{ data }">
+                                <div class="acciones-ultra">
+                                    <button
+                                        v-if="!data.activo && data.id_usuario !== $page.props.auth.user?.id_usuario && permisos?.puede_editar_usuarios"
+                                        v-tooltip.top="'Restaurar usuario'"
+                                        class="btn-action-ultra btn-restore-ultra"
+                                        @click="confirmarRestaurar(data)"
+                                    >
+                                        <i class="pi pi-refresh"></i>
+                                    </button>
+
+                                    <Link v-if="permisos?.puede_editar_usuarios" :href="route('usuarios.edit', data.id_usuario)">
+                                        <button v-tooltip.top="'Editar'" class="btn-action-ultra btn-edit-ultra">
+                                            <i class="pi pi-pencil"></i>
+                                        </button>
+                                    </Link>
+
+                                    <button
+                                        v-if="data.id_usuario !== $page.props.auth.user?.id_usuario && data.activo && permisos?.puede_eliminar_usuarios"
+                                        v-tooltip.top="'Eliminar usuario'"
+                                        class="btn-action-ultra btn-delete-ultra"
+                                        @click="confirmarEliminar(data)"
+                                    >
+                                        <i class="pi pi-trash"></i>
+                                    </button>
+                                </div>
+                            </template>
+                        </Column>
+
                         <template #footer>
                             <div class="filtros-ultra">
                                 <div class="filtros-grid-ultra">
-                                    <!-- Filtro Búsqueda -->
                                     <div class="filtro-item-ultra">
                                         <InputLabel>Buscar</InputLabel>
-                                        <TextInput 
-                                            v-model="filtros.search"
-                                            @input="aplicarFiltros"
-                                            placeholder="Nombre, usuario..."
-                                            square
+                                        <TextInput v-model="filtros.search" @input="aplicarFiltros" placeholder="Nombre, usuario..." square />
+                                    </div>
+
+                                    <div class="filtro-item-ultra">
+                                        <InputLabel>Tipo</InputLabel>
+                                        <Select
+                                            v-model="filtros.tipo"
+                                            :options="tipoOptions"
+                                            option-label="label"
+                                            option-value="value"
+                                            placeholder="Todos"
+                                            show-clear
+                                            class="filtro-select-ultra"
+                                            @change="aplicarFiltros"
                                         />
                                     </div>
 
-                                    <!-- Filtro Tipo -->
-                                    <div class="filtro-item-ultra">
-                                        <InputLabel>Tipo</InputLabel>
-                                        <a-select
-                                            v-model:value="filtros.tipo"
-                                            @change="aplicarFiltros"
-                                            placeholder="Todos"
-                                            allow-clear
-                                            size="small"
-                                            class="filtro-select-ultra"
-                                        >
-                                            <a-select-option value="">Todos</a-select-option>
-                                            <a-select-option v-for="(label, value) in tipos" :key="value" :value="value">
-                                                {{ label }}
-                                            </a-select-option>
-                                        </a-select>
-                                    </div>
-
-                                    <!-- Filtro Estado -->
                                     <div class="filtro-item-ultra">
                                         <InputLabel>Estado</InputLabel>
-                                        <a-select
-                                            v-model:value="filtros.estado"
-                                            @change="aplicarFiltros"
+                                        <Select
+                                            v-model="filtros.estado"
+                                            :options="estadoOptions"
+                                            option-label="label"
+                                            option-value="value"
                                             placeholder="Todos"
-                                            allow-clear
-                                            size="small"
+                                            show-clear
                                             class="filtro-select-ultra"
-                                        >
-                                            <a-select-option value="">Todos</a-select-option>
-                                            <a-select-option value="activo">Activos</a-select-option>
-                                            <a-select-option value="inactivo">Inactivos</a-select-option>
-                                        </a-select>
+                                            @change="aplicarFiltros"
+                                        />
                                     </div>
 
-                                    <!-- Botón Limpiar -->
                                     <div class="filtro-item-ultra filtro-actions">
                                         <InputLabel>Acciones</InputLabel>
-                                        <a-button 
-                                            v-if="filtrosActivos"
-                                            @click="limpiarFiltros" 
-                                            size="small"
-                                            class="btn-clear-ultra"
-                                            block
-                                        >
-                                            <template #icon>
-                                                <CloseOutlined />
-                                            </template>
+                                        <button v-if="filtrosActivos" type="button" @click="limpiarFiltros" class="btn-clear-ultra">
+                                            <i class="pi pi-times"></i>
                                             Limpiar filtros
-                                        </a-button>
-                                        <a-button 
-                                            v-else
-                                            disabled
-                                            size="small"
-                                            block
-                                            class="btn-no-filtros-ultra"
-                                        >
+                                        </button>
+                                        <button v-else type="button" disabled class="btn-no-filtros-ultra">
                                             <span class="no-filtros-text-ultra">Sin filtros</span>
-                                        </a-button>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </template>
-                    </a-table>
+                    </DataTable>
 
-                    <!-- Paginación -->
                     <div class="pagination-ultra">
-                        <span class="pagination-info-ultra">
-                            Mostrando <span class="pagination-highlight-ultra">{{ usuarios.from || 0 }}</span> a 
-                            <span class="pagination-highlight-ultra">{{ usuarios.to || 0 }}</span> de 
+                        <span class="pagination-info-ultra">Mostrando <span class="pagination-highlight-ultra">{{ usuarios.from || 0 }}</span> a
+                            <span class="pagination-highlight-ultra">{{ usuarios.to || 0 }}</span> de
                             <span class="pagination-highlight-ultra">{{ usuarios.total || 0 }}</span> resultados
                         </span>
                         <Pagination :links="usuarios.links" />
@@ -422,16 +312,15 @@
         </div>
 
         <!-- Modal para cambiar contraseña -->
-        <a-modal
-            v-model:open="modalResetVisible"
-            :footer="null"
-            width="560px"
+        <Dialog
+            v-model:visible="modalResetVisible"
+            modal
+            :style="{ width: '560px' }"
             class="reset-modal-premium"
-            :closable="true"
-            @cancel="cerrarModalReset"
+            :show-header="false"
+            @hide="cerrarModalReset"
         >
             <div class="reset-modal-content">
-                <!-- Header del Modal -->
                 <div class="reset-modal-header">
                     <div class="reset-modal-icon">
                         <svg class="modal-icon-svg" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -439,26 +328,19 @@
                         </svg>
                     </div>
                     <h3 class="reset-modal-title">Cambiar Contraseña</h3>
-                    <p class="reset-modal-subtitle">
-                        Establece una nueva contraseña para <strong>{{ usuarioSeleccionado?.nombre_completo }}</strong>
+                    <p class="reset-modal-subtitle">Establece una nueva contraseña para <strong>{{ usuarioSeleccionado?.nombre_completo }}</strong>
                     </p>
-                    <p class="reset-modal-username">
-                        @{{ usuarioSeleccionado?.nombre_usuario }}
-                    </p>
+                    <p class="reset-modal-username">@{{ usuarioSeleccionado?.nombre_usuario }}</p>
                 </div>
 
-                <!-- Campos de contraseña -->
                 <div class="reset-password-container">
-                    <!-- Nueva Contraseña -->
                     <div class="form-group-modal">
                         <label class="form-label-modal">
-                            <span class="label-icon-wrapper">
-                                <LockOutlined />
-                            </span>
+                            <span class="label-icon-wrapper"><i class="pi pi-lock"></i></span>
                             Nueva Contraseña <span class="required-star">*</span>
                         </label>
                         <div class="input-wrapper-modal">
-                            <input 
+                            <input
                                 :type="showPassword ? 'text' : 'password'"
                                 v-model="nuevaPassword"
                                 @input="validarPassword"
@@ -466,37 +348,23 @@
                                 :class="{ 'error': passwordError || (nuevaPassword && !passwordValid) }"
                                 placeholder="Ingresa tu nueva contraseña"
                             />
-                            <button 
-                                type="button"
-                                class="btn-toggle-password"
-                                @click="showPassword = !showPassword"
-                                :title="showPassword ? 'Ocultar contraseña' : 'Ver contraseña'"
-                            >
-                                <svg v-if="showPassword" class="icon-eye" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                <svg v-else class="icon-eye" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                </svg>
+                            <button type="button" class="btn-toggle-password" @click="showPassword = !showPassword">
+                                <i class="pi" :class="showPassword ? 'pi-eye-slash' : 'pi-eye'"></i>
                             </button>
                         </div>
                         <div v-if="passwordError" class="error-message-modal">
-                            <CloseCircleOutlined />
+                            <i class="pi pi-times-circle"></i>
                             {{ passwordError }}
                         </div>
                     </div>
 
-                    <!-- Confirmar Contraseña -->
                     <div class="form-group-modal">
                         <label class="form-label-modal">
-                            <span class="label-icon-wrapper">
-                                <LockOutlined />
-                            </span>
+                            <span class="label-icon-wrapper"><i class="pi pi-lock"></i></span>
                             Confirmar Contraseña <span class="required-star">*</span>
                         </label>
                         <div class="input-wrapper-modal">
-                            <input 
+                            <input
                                 :type="showConfirmPassword ? 'text' : 'password'"
                                 v-model="confirmarPassword"
                                 @input="validarPassword"
@@ -504,61 +372,49 @@
                                 :class="{ 'error': passwordMatchError }"
                                 placeholder="Confirma tu nueva contraseña"
                             />
-                            <button 
-                                type="button"
-                                class="btn-toggle-password"
-                                @click="showConfirmPassword = !showConfirmPassword"
-                                :title="showConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'"
-                            >
-                                <svg v-if="showConfirmPassword" class="icon-eye" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                <svg v-else class="icon-eye" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                </svg>
+                            <button type="button" class="btn-toggle-password" @click="showConfirmPassword = !showConfirmPassword">
+                                <i class="pi" :class="showConfirmPassword ? 'pi-eye-slash' : 'pi-eye'"></i>
                             </button>
                         </div>
                         <div v-if="passwordMatchError" class="error-message-modal">
-                            <CloseCircleOutlined />
+                            <i class="pi pi-times-circle"></i>
                             {{ passwordMatchError }}
                         </div>
                         <div v-else-if="confirmarPassword && nuevaPassword && !passwordMatchError" class="success-message-modal">
-                            <CheckCircleOutlined />
+                            <i class="pi pi-check-circle"></i>
                             <span>Las contraseñas coinciden</span>
-                            <span class="success-check">✓</span>
+                            <span class="success-check"><i class="pi pi-check"></i></span>
                         </div>
                     </div>
 
-                    <!-- Requisitos de contraseña -->
                     <div class="password-strength-section">
                         <p class="strength-title">Requisitos de seguridad</p>
                         <div class="reset-password-requirements">
                             <div class="requirement-item" :class="{ met: passwordLength }">
                                 <span class="req-icon">
-                                    <CheckOutlined v-if="passwordLength" style="color: #10b981;" />
-                                    <span v-else class="req-circle">○</span>
+                                    <i v-if="passwordLength" class="pi pi-check" style="color: #10b981;"></i>
+                                    <i v-else class="pi pi-circle req-circle"></i>
                                 </span>
                                 <span>Mínimo 8 caracteres</span>
                             </div>
                             <div class="requirement-item" :class="{ met: passwordHasUpperCase }">
                                 <span class="req-icon">
-                                    <CheckOutlined v-if="passwordHasUpperCase" style="color: #10b981;" />
-                                    <span v-else class="req-circle">○</span>
+                                    <i v-if="passwordHasUpperCase" class="pi pi-check" style="color: #10b981;"></i>
+                                    <i v-else class="pi pi-circle req-circle"></i>
                                 </span>
                                 <span>Mayúsculas y minúsculas</span>
                             </div>
                             <div class="requirement-item" :class="{ met: passwordHasNumber }">
                                 <span class="req-icon">
-                                    <CheckOutlined v-if="passwordHasNumber" style="color: #10b981;" />
-                                    <span v-else class="req-circle">○</span>
+                                    <i v-if="passwordHasNumber" class="pi pi-check" style="color: #10b981;"></i>
+                                    <i v-else class="pi pi-circle req-circle"></i>
                                 </span>
                                 <span>Al menos un número</span>
                             </div>
                             <div class="requirement-item" :class="{ met: passwordHasSpecial }">
                                 <span class="req-icon">
-                                    <CheckOutlined v-if="passwordHasSpecial" style="color: #10b981;" />
-                                    <span v-else class="req-circle">○</span>
+                                    <i v-if="passwordHasSpecial" class="pi pi-check" style="color: #10b981;"></i>
+                                    <i v-else class="pi pi-circle req-circle"></i>
                                 </span>
                                 <span>Carácter especial</span>
                             </div>
@@ -566,86 +422,49 @@
                     </div>
                 </div>
 
-                <!-- Botones de acción -->
                 <div class="reset-modal-actions">
-                    <a-button @click="cerrarModalReset" class="btn-cancel-reset">
-                        Cancelar
-                    </a-button>
-                    <a-button 
-                        type="primary"
-                        :loading="resetLoading"
+                    <button type="button" @click="cerrarModalReset" class="btn-cancel-reset">Cancelar</button>
+                    <button
+                        type="button"
+                        :disabled="!isFormValid || resetLoading"
                         @click="confirmarReset"
                         class="btn-confirm-reset"
-                        :disabled="!isFormValid"
                     >
-                        <template #icon>
-                            <CheckOutlined />
-                        </template>
+                        <i class="pi" :class="resetLoading ? 'pi-spin pi-spinner' : 'pi-check'"></i>
                         {{ resetLoading ? 'Guardando...' : 'Actualizar Contraseña' }}
-                    </a-button>
+                    </button>
                 </div>
             </div>
-        </a-modal>
-
-        <!-- Modal de validaciones personalizado -->
-        <AlertModal ref="alertModal" />
+        </Dialog>
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed } from 'vue';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Select from 'primevue/select';
+import Dialog from 'primevue/dialog';
 import Pagination from '@/Components/Pagination.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import AlertModal from '@/Components/AlertModal.vue';
-import Swal from 'sweetalert2';
+import { useNotify } from '@/composables/useNotify';
 
-// Importar iconos
-import {
-    PlusOutlined,
-    CloseOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    ReloadOutlined,
-    UserOutlined,
-    BankOutlined,
-    CheckCircleOutlined,
-    CloseCircleOutlined,
-    LockOutlined,
-    CheckOutlined
-} from '@ant-design/icons-vue';
-
-// Importar componentes de Ant Design
-import {
-    Button as AButton,
-    Row as ARow,
-    Col as ACol,
-    Table as ATable,
-    Tag as ATag,
-    Select as ASelect,
-    Tooltip as ATooltip,
-    Popover as APopover,
-    Modal as AModal,
-} from 'ant-design-vue';
-
-// ============================================
-// ✅ PERMISOS DESDE EL BACKEND
-// ============================================
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
+const notify = useNotify();
 
 const props = defineProps({
     usuarios: Object,
     stats: Object,
     filtros: Object,
     tipos: Object,
-    flash: Object
+    flash: Object,
 });
 
 const loading = ref(false);
-const alertModal = ref(null);
 
 // Estado para el modal de reset
 const modalResetVisible = ref(false);
@@ -658,13 +477,11 @@ const passwordMatchError = ref('');
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 
-// Computed para usuarios con empresas
 const usuariosConEmpresas = computed(() => {
     if (!props.usuarios?.data) return 0;
     return props.usuarios.data.filter(u => u.empresas && u.empresas.length > 0).length;
 });
 
-// Validaciones de contraseña
 const passwordLength = computed(() => nuevaPassword.value.length >= 8);
 const passwordHasUpperCase = computed(() => /[A-Z]/.test(nuevaPassword.value) && /[a-z]/.test(nuevaPassword.value));
 const passwordHasNumber = computed(() => /\d/.test(nuevaPassword.value));
@@ -679,98 +496,45 @@ const isFormValid = computed(() => {
     return true;
 });
 
-// Columnas de la tabla
-const columns = [
-    {
-        title: '#',
-        dataIndex: 'id_usuario',
-        key: '#',
-        width: '5%',
-        align: 'center'
-    },
-    {
-        title: 'Nombre',
-        dataIndex: 'nombre_completo',
-        key: 'nombre_completo',
-        width: '16%'
-    },
-    {
-        title: 'Usuario',
-        dataIndex: 'nombre_usuario',
-        key: 'usuario',
-        width: '10%'
-    },
-    {
-        title: 'Tipo',
-        dataIndex: 'tipo_usuario',
-        key: 'tipo',
-        width: '10%'
-    },
-    {
-        title: 'Teléfono',
-        dataIndex: 'telefono',
-        key: 'telefono',
-        width: '8%'
-    },
-    {
-        title: 'Reset',
-        key: 'reset',
-        width: '5%',
-        align: 'center'
-    },
-    {
-        title: 'Empresas',
-        key: 'empresas',
-        width: '18%'
-    },
-    {
-        title: 'Estado',
-        key: 'estado',
-        width: '8%',
-        align: 'center'
-    },
-    {
-        title: 'Acciones',
-        key: 'acciones',
-        width: '12%',
-        align: 'center'
-    }
+const tipoOptions = computed(() =>
+    Object.entries(props.tipos || {}).map(([value, label]) => ({ value, label })),
+);
+
+const estadoOptions = [
+    { label: 'Activos', value: 'activo' },
+    { label: 'Inactivos', value: 'inactivo' },
 ];
 
-// Estado local para los filtros
 const filtros = ref({
     search: props.filtros?.search || '',
-    tipo: props.filtros?.tipo || '',
-    estado: props.filtros?.estado || ''
+    tipo: props.filtros?.tipo || null,
+    estado: props.filtros?.estado || null,
 });
 
-const filtrosActivos = computed(() => {
-    return Object.values(filtros.value).some(value => value !== '' && value !== null && value !== undefined);
-});
+const filtrosActivos = computed(() =>
+    Object.values(filtros.value).some(value => value !== '' && value !== null && value !== undefined),
+);
 
-const mostrarInactivos = computed(() => {
-    return filtros.value.estado === 'inactivo';
-});
+const mostrarInactivos = computed(() => filtros.value.estado === 'inactivo');
 
-// Funciones auxiliares para colores de roles
 const getRolClass = (rol) => {
     const classes = {
-        'SUPERUSUARIO': 'superusuario',
-        'ADMINISTRADOR': 'administrador',
-        'AUDITOR': 'auditor',
-        'CAPTURISTA': 'capturista',
-        'LECTOR': 'lector'
+        SUPERUSUARIO: 'superusuario',
+        ADMINISTRADOR: 'administrador',
+        AUDITOR: 'auditor',
+        CAPTURISTA: 'capturista',
+        LECTOR: 'lector',
     };
     return classes[rol] || 'lector';
 };
 
 const getRolDotClass = (rol) => {
     const classes = {
-        'SUPERUSUARIO': 'dot-superusuario',
-        'ADMINISTRADOR': 'dot-administrador',
-        'AUDITOR': 'dot-auditor',
-        'CAPTURISTA': 'dot-capturista',
-        'LECTOR': 'dot-lector'
+        SUPERUSUARIO: 'dot-superusuario',
+        ADMINISTRADOR: 'dot-administrador',
+        AUDITOR: 'dot-auditor',
+        CAPTURISTA: 'dot-capturista',
+        LECTOR: 'dot-lector',
     };
     return classes[rol] || 'dot-lector';
 };
@@ -786,91 +550,23 @@ const aplicarFiltros = () => {
                 params[key] = value;
             }
         }
-        
+
         router.get(route('usuarios.index'), params, {
             preserveState: true,
             replace: true,
-            onFinish: () => {
-                loading.value = false;
-            }
+            onFinish: () => { loading.value = false; },
         });
     }, 300);
 };
 
 const limpiarFiltros = () => {
-    filtros.value = {
-        search: '',
-        tipo: '',
-        estado: ''
-    };
+    filtros.value = { search: '', tipo: null, estado: null };
     aplicarFiltros();
 };
 
-// Función para mostrar el modal
-const mostrarModal = (type, title, message, duration = 4000, onConfirm = null) => {
-    if (alertModal.value && alertModal.value.show) {
-        alertModal.value.show({
-            type,
-            title,
-            message,
-            duration,
-            buttonText: type === 'error' ? 'Entendido' : 'Aceptar'
-        }, onConfirm);
-    } else {
-        console.warn('AlertModal no disponible');
-        alert(`${title}: ${message}`);
-        if (onConfirm) onConfirm();
-    }
-};
-
-// Procesar mensajes flash automáticamente
-const procesarFlash = () => {
-    if (!props.flash) return;
-    
-    const tipoMap = {
-        success: { type: 'success', title: '¡Éxito!' },
-        error: { type: 'error', title: 'Error' },
-        updated: { type: 'success', title: '¡Usuario actualizado!' },
-        created: { type: 'success', title: '¡Usuario creado!' },
-        deleted: { type: 'success', title: '¡Usuario eliminado!' },
-        info: { type: 'info', title: 'Información' },
-        warning: { type: 'warning', title: 'Advertencia' }
-    };
-
-    for (const [key, message] of Object.entries(props.flash)) {
-        if (message && tipoMap[key]) {
-            mostrarModal(
-                tipoMap[key].type,
-                tipoMap[key].title,
-                message
-            );
-            break;
-        }
-    }
-};
-
-// Watch para detectar cambios en flash
-watch(() => props.flash, (newFlash) => {
-    if (newFlash && Object.keys(newFlash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-}, { deep: true, immediate: true });
-
-// Ejecutar al montar
-onMounted(() => {
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-});
-
 // ============================================
-// FUNCIONES PARA CAMBIAR CONTRASEÑA
+// CAMBIAR CONTRASEÑA
 // ============================================
-
 const abrirModalReset = (usuario) => {
     usuarioSeleccionado.value = usuario;
     nuevaPassword.value = '';
@@ -895,7 +591,6 @@ const cerrarModalReset = () => {
 };
 
 const validarPassword = () => {
-    // Validar requisitos de contraseña
     if (nuevaPassword.value) {
         if (nuevaPassword.value.length < 8) {
             passwordError.value = 'La contraseña debe tener al menos 8 caracteres';
@@ -912,13 +607,8 @@ const validarPassword = () => {
         passwordError.value = '';
     }
 
-    // Validar que las contraseñas coincidan
     if (confirmarPassword.value && nuevaPassword.value) {
-        if (nuevaPassword.value !== confirmarPassword.value) {
-            passwordMatchError.value = 'Las contraseñas no coinciden';
-        } else {
-            passwordMatchError.value = '';
-        }
+        passwordMatchError.value = nuevaPassword.value !== confirmarPassword.value ? 'Las contraseñas no coinciden' : '';
     } else {
         passwordMatchError.value = '';
     }
@@ -926,342 +616,89 @@ const validarPassword = () => {
 
 const confirmarReset = () => {
     if (!passwordValid.value) {
-        Swal.fire({
-            title: 'Contraseña no válida',
-            text: 'La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas, números y caracteres especiales.',
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#f59e0b'
-        });
+        notify.warn('La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas, números y caracteres especiales.', 'Contraseña no válida');
         return;
     }
-    
+
     if (passwordMatchError.value) {
-        Swal.fire({
-            title: 'Las contraseñas no coinciden',
-            text: 'Por favor, verifica que ambas contraseñas sean iguales.',
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#f59e0b'
-        });
+        notify.warn('Verifica que ambas contraseñas sean iguales.', 'Las contraseñas no coinciden');
         return;
     }
-    
+
     resetLoading.value = true;
-    
+
+    // El backend redirige con flash 'success' o 'error'; el toast lo dispara el
+    // manejador global. onError sólo se activa en errores de validación (422).
     router.post(route('usuarios.reset-password', usuarioSeleccionado.value.id_usuario), {
-        password: nuevaPassword.value
+        password: nuevaPassword.value,
     }, {
         preserveScroll: true,
-        onSuccess: () => {
-            resetLoading.value = false;
-            cerrarModalReset();
-            
-            Swal.fire({
-                title: '¡Contraseña actualizada!',
-                html: `
-                    <div class="text-center">
-                        <p class="text-sm text-gray-600">Nueva contraseña para <strong>${usuarioSeleccionado.value.nombre_completo}</strong></p>
-                        <div class="mt-3 p-4 bg-gray-100 rounded-lg font-mono text-lg font-bold text-gray-800 select-all" style="word-break: break-all;">
-                            ${nuevaPassword.value}
-                        </div>
-                        <div class="mt-3 flex items-center justify-center gap-2 text-sm text-amber-600">
-                            <span>🔒</span>
-                            <span>Copia esta contraseña y compártela con el usuario de forma segura</span>
-                        </div>
-                        <div class="mt-2 text-xs text-gray-400">
-                            La contraseña expirará después del primer inicio de sesión
-                        </div>
-                    </div>
-                `,
-                icon: 'success',
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '#1a3a5c',
-                width: 500
-            });
-        },
+        onSuccess: () => cerrarModalReset(),
         onError: (errors) => {
-            resetLoading.value = false;
-            const errorMsg = errors?.error || 'Ocurrió un error al cambiar la contraseña';
-            Swal.fire({
-                title: 'Error',
-                text: errorMsg,
-                icon: 'error',
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '#ef4444'
-            });
-        }
+            notify.error(errors?.password || errors?.error || 'No se pudo actualizar la contraseña');
+        },
+        onFinish: () => { resetLoading.value = false; },
     });
 };
 
 // ============================================
-// FUNCIONES PARA ELIMINACIÓN LÓGICA
+// ELIMINAR / RESTAURAR
+// El controlador redirige a usuarios.index: con flash 'error'/'warning' si falla,
+// sin flash si tiene éxito. Por eso confirmamos el éxito sólo cuando NO vino un
+// flash de error/aviso (el error lo muestra el manejador global).
 // ============================================
-
-// ✅ ELIMINAR USUARIO - solo admin, auditor, super
 const confirmarEliminar = (usuario) => {
-    // Verificar permiso
     if (!permisos.value?.puede_eliminar_usuarios) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Sin permisos',
-            text: 'No tienes permisos para eliminar usuarios. Contacta al administrador.',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error('No tienes permisos para eliminar usuarios. Contacta al administrador.', 'Sin permisos');
         return;
     }
 
-    Swal.fire({
-        title: '¿Eliminar usuario?',
-        html: `
-            <div class="text-center">
-                <div class="flex justify-center mb-3">
-                    <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="font-medium text-gray-800 text-lg">${usuario.nombre_completo}</p>
-                <p class="text-sm text-gray-500">@${usuario.nombre_usuario}</p>
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true,
-        customClass: {
-            popup: 'swal-premium-popup',
-            confirmButton: 'swal-premium-confirm',
-            cancelButton: 'swal-premium-cancel'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+    notify.confirmDelete({
+        header: '¿Eliminar usuario?',
+        message: `El usuario "${usuario.nombre_completo}" (@${usuario.nombre_usuario}) será eliminado.`,
+        accept: () => {
             router.delete(route('usuarios.destroy', usuario.id_usuario), {
                 preserveScroll: true,
-                onSuccess: () => {
-                    Swal.fire({
-                        title: '¡Eliminado!',
-                        html: `
-                            <div class="text-center">
-                                <div class="flex justify-center mb-3">
-                                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-gray-700">Usuario <strong>${usuario.nombre_completo}</strong></p>
-                                <p class="text-sm text-green-600 mt-1">Eliminado correctamente</p>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonText: 'Aceptar',
-                        confirmButtonColor: '#1a3a5c',
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
+                onSuccess: (page) => {
+                    const flash = page?.props?.flash || {};
+                    if (!flash.error && !flash.warning) {
+                        notify.success(`Usuario "${usuario.nombre_completo}" eliminado correctamente`);
+                    }
                 },
-                onError: (errors) => {
-                    const errorMsg = errors?.error || 'Ocurrió un error al eliminar el usuario';
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'Entendido',
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
             });
-        }
+        },
     });
 };
 
-// ✅ RESTAURAR USUARIO - solo admin, auditor, super (o super para restore)
 const confirmarRestaurar = (usuario) => {
-    // Verificar permiso
     if (!permisos.value?.puede_editar_usuarios) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Sin permisos',
-            text: 'No tienes permisos para restaurar usuarios. Contacta al administrador.',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error('No tienes permisos para restaurar usuarios. Contacta al administrador.', 'Sin permisos');
         return;
     }
 
-    Swal.fire({
-        title: '¿Restaurar usuario?',
-        html: `
-            <div class="text-center">
-                <div class="flex justify-center mb-3">
-                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="font-medium text-gray-800 text-lg">${usuario.nombre_completo}</p>
-                <p class="text-sm text-gray-500">@${usuario.nombre_usuario}</p>
-            </div>
-        `,
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, restaurar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true,
-        customClass: {
-            popup: 'swal-premium-popup',
-            confirmButton: 'swal-premium-confirm',
-            cancelButton: 'swal-premium-cancel'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+    notify.confirmAction({
+        header: '¿Restaurar usuario?',
+        message: `El usuario "${usuario.nombre_completo}" (@${usuario.nombre_usuario}) volverá a estar activo.`,
+        acceptLabel: 'Sí, restaurar',
+        acceptSeverity: 'success',
+        icon: 'pi pi-refresh',
+        accept: () => {
             router.post(route('usuarios.restore', usuario.id_usuario), {}, {
                 preserveScroll: true,
-                onSuccess: () => {
-                    Swal.fire({
-                        title: '¡Restaurado!',
-                        html: `
-                            <div class="text-center">
-                                <div class="flex justify-center mb-3">
-                                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-gray-700">Usuario <strong>${usuario.nombre_completo}</strong></p>
-                                <p class="text-sm text-green-600 mt-1">Restaurado correctamente</p>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonText: 'Aceptar',
-                        confirmButtonColor: '#1a3a5c',
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
+                onSuccess: (page) => {
+                    const flash = page?.props?.flash || {};
+                    if (!flash.error && !flash.warning) {
+                        notify.success(`Usuario "${usuario.nombre_completo}" restaurado correctamente`);
+                    }
                 },
-                onError: (errors) => {
-                    const errorMsg = errors?.error || 'Ocurrió un error al restaurar el usuario';
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'Entendido',
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
             });
-        }
+        },
     });
 };
-
-// Agregar estilos para SweetAlert2
-const agregarEstilosSwal = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-premium-popup {
-            border-radius: 20px !important;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-        .swal-premium-confirm {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-confirm:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-        }
-        .swal-premium-cancel {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-cancel:hover {
-            transform: translateY(-2px);
-            background: #f1f5f9 !important;
-        }
-        .swal2-actions {
-            padding: 0 32px 24px !important;
-            gap: 12px !important;
-        }
-        .swal2-timer-progress-bar {
-            height: 4px !important;
-            background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
-        }
-    `;
-    document.head.appendChild(style);
-};
-
-// Agregar estilos al montar
-onMounted(() => {
-    agregarEstilosSwal();
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-});
 </script>
 
 <style scoped>
-/* ===== TODOS LOS ESTILOS EXISTENTES (SIN CAMBIOS) ===== */
-/* ... (todos los estilos que ya tenías) ... */
-
-/* ===== ESTILOS PARA SWEETALERT2 ===== */
-:deep(.swal-premium-popup) {
-    border-radius: 20px !important;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-
-:deep(.swal-premium-confirm) {
-    padding: 10px 28px !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease !important;
-}
-
-:deep(.swal-premium-confirm:hover) {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-}
-
-:deep(.swal-premium-cancel) {
-    padding: 10px 28px !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.3s ease !important;
-}
-
-:deep(.swal-premium-cancel:hover) {
-    transform: translateY(-2px);
-    background: #f1f5f9 !important;
-}
-
-:deep(.swal2-actions) {
-    padding: 0 32px 24px !important;
-    gap: 12px !important;
-}
-
-:deep(.swal2-timer-progress-bar) {
-    height: 4px !important;
-    background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
-}
-
-/* ===== Header, Stats, Tabla, etc. (todos tus estilos existentes) ===== */
+/* ===== HEADER ===== */
 .header-premium {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 20px;
@@ -1332,7 +769,44 @@ onMounted(() => {
     border-radius: 2px;
 }
 
-/* Stats Cards */
+.btn-nuevo-usuario-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    padding: 0 32px;
+    height: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 15px;
+    letter-spacing: 0.3px;
+}
+
+.btn-nuevo-usuario-premium:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 30px rgba(26, 58, 92, 0.4);
+    background: linear-gradient(135deg, #2c5282 0%, #1a3a5c 100%);
+}
+
+/* ===== STATS ===== */
+.stats-grid-usuarios {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 992px) {
+    .stats-grid-usuarios { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+    .stats-grid-usuarios { grid-template-columns: 1fr; }
+}
+
 .stats-card-enhanced {
     background: #ffffff;
     border-radius: 16px;
@@ -1401,7 +875,7 @@ onMounted(() => {
     transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tabla */
+/* ===== TABLA ===== */
 .table-wrapper-premium {
     background: #ffffff;
     border-radius: 16px;
@@ -1441,15 +915,20 @@ onMounted(() => {
 }
 
 .filter-tag-ultra {
-    border-radius: 30px !important;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
-    border: none !important;
-    color: #1a3a5c !important;
-    font-weight: 600 !important;
-    padding: 4px 16px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1a3a5c;
+    font-weight: 600;
+    padding: 4px 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.filter-tag-orange {
+    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+    color: #c2410c;
 }
 
 .filter-dot-active {
@@ -1470,18 +949,15 @@ onMounted(() => {
     animation: pulse 2s infinite;
 }
 
-/* Tabla Ant Design */
-.usuario-table-ultra {
-    border-radius: 8px;
-    overflow: hidden;
+.tabla-vacia {
+    padding: 32px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
 }
 
-.usuario-table-ultra :deep(.ant-table) {
-    border-radius: 8px;
-}
-
-.usuario-table-ultra :deep(.ant-table-thead > tr > th) {
-    background: linear-gradient(135deg, #f1f5f9, #e8edf2) !important;
+.usuario-table-ultra :deep(.p-datatable-thead > tr > th) {
+    background: linear-gradient(135deg, #f1f5f9, #e8edf2);
     font-weight: 700;
     color: #1e293b;
     border-bottom: 2px solid #d1d5db;
@@ -1489,24 +965,23 @@ onMounted(() => {
     font-size: 12px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    transition: background 0.3s ease;
 }
 
-.usuario-table-ultra :deep(.ant-table-tbody > tr) {
+.usuario-table-ultra :deep(.p-datatable-tbody > tr) {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.usuario-table-ultra :deep(.ant-table-tbody > tr:hover) {
-    background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
+.usuario-table-ultra :deep(.p-datatable-tbody > tr:hover) {
+    background: linear-gradient(90deg, #f8faff, #f0f7ff);
     box-shadow: inset 0 0 0 1px #dbeafe;
 }
 
-.usuario-table-ultra :deep(.ant-table-tbody > tr td) {
+.usuario-table-ultra :deep(.p-datatable-tbody > tr > td) {
     padding: 14px 18px;
     border-bottom: 1px solid #f1f5f9;
 }
 
-/* Celdas */
+/* ===== CELDAS ===== */
 .nombre-cell-ultra {
     display: flex;
     align-items: center;
@@ -1535,11 +1010,6 @@ onMounted(() => {
     letter-spacing: 0.3px;
 }
 
-.usuario-cell-ultra {
-    display: flex;
-    align-items: center;
-}
-
 .usuario-nombre-ultra {
     font-size: 14px;
     color: #334155;
@@ -1547,18 +1017,7 @@ onMounted(() => {
     font-family: 'Courier New', monospace;
 }
 
-.telefono-cell-ultra {
-    font-size: 14px;
-    color: #475569;
-    font-weight: 400;
-}
-
 /* ===== ROL ===== */
-.rol-cell-ultra {
-    display: flex;
-    align-items: center;
-}
-
 .rol-badge {
     display: inline-flex;
     align-items: center;
@@ -1571,30 +1030,11 @@ onMounted(() => {
     letter-spacing: 0.3px;
 }
 
-.rol-badge.superusuario {
-    background: #ede9fe;
-    color: #5b21b6;
-}
-
-.rol-badge.administrador {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.rol-badge.auditor {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.rol-badge.capturista {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.rol-badge.lector {
-    background: #f3f4f6;
-    color: #4b5563;
-}
+.rol-badge.superusuario { background: #e8eef5; color: #5b21b6; }
+.rol-badge.administrador { background: #dbeafe; color: #1d4ed8; }
+.rol-badge.auditor { background: #d1fae5; color: #065f46; }
+.rol-badge.capturista { background: #fef3c7; color: #92400e; }
+.rol-badge.lector { background: #f3f4f6; color: #4b5563; }
 
 .rol-dot {
     width: 8px;
@@ -1603,33 +1043,13 @@ onMounted(() => {
     display: inline-block;
 }
 
-.rol-dot.dot-superusuario {
-    background: #7c3aed;
-}
-
-.rol-dot.dot-administrador {
-    background: #2563eb;
-}
-
-.rol-dot.dot-auditor {
-    background: #059669;
-}
-
-.rol-dot.dot-capturista {
-    background: #d97706;
-}
-
-.rol-dot.dot-lector {
-    background: #6b7280;
-}
+.rol-dot.dot-superusuario { background: #132a44; }
+.rol-dot.dot-administrador { background: #2563eb; }
+.rol-dot.dot-auditor { background: #059669; }
+.rol-dot.dot-capturista { background: #d97706; }
+.rol-dot.dot-lector { background: #6b7280; }
 
 /* ===== RESET ===== */
-.reset-cell-ultra {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .btn-reset-ultra {
     width: 34px;
     height: 34px;
@@ -1652,12 +1072,6 @@ onMounted(() => {
 }
 
 /* ===== ESTADO ===== */
-.estado-cell-ultra {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .estado-badge-ultra {
     display: inline-flex;
     align-items: center;
@@ -1669,15 +1083,8 @@ onMounted(() => {
     transition: all 0.3s ease;
 }
 
-.estado-badge-ultra.activo {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.estado-badge-ultra.inactivo {
-    background: #fee2e2;
-    color: #991b1b;
-}
+.estado-badge-ultra.activo { background: #dcfce7; color: #166534; }
+.estado-badge-ultra.inactivo { background: #fee2e2; color: #991b1b; }
 
 .estado-dot-ultra {
     width: 8px;
@@ -1696,15 +1103,9 @@ onMounted(() => {
 }
 
 /* ===== EMPRESAS ===== */
-.empresas-cell-ultra {
-    display: flex;
-    align-items: center;
-}
-
-.empresas-container {
-    display: flex;
-    align-items: center;
-    width: 100%;
+.empresas-hover-wrap {
+    position: relative;
+    display: inline-block;
 }
 
 .empresas-tags {
@@ -1715,27 +1116,24 @@ onMounted(() => {
 }
 
 .empresa-tag {
-    border-radius: 4px !important;
-    font-size: 11px !important;
-    padding: 2px 10px !important;
-    margin: 0 !important;
-    max-width: 80px;
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 2px 10px;
+    max-width: 90px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    border: none !important;
-    background: #eff6ff !important;
-    color: #1e40af !important;
+    background: #eff6ff;
+    color: #1e40af;
 }
 
 .empresa-tag-more {
-    border-radius: 4px !important;
-    font-size: 11px !important;
-    padding: 2px 8px !important;
-    margin: 0 !important;
-    border: 1px solid #d1d5db !important;
-    background: #f9fafb !important;
-    color: #6b7280 !important;
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    color: #6b7280;
 }
 
 .opacity-50 {
@@ -1748,18 +1146,28 @@ onMounted(() => {
     font-style: italic;
 }
 
-/* ===== POPOVER EMPRESAS ===== */
-:deep(.empresas-popover) {
-    max-width: 300px;
-}
-
-:deep(.empresas-popover .ant-popover-inner-content) {
-    padding: 0;
-}
-
-.empresas-popover-content {
+.empresas-hover-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 6px;
+    z-index: 30;
+    min-width: 220px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
     padding: 12px 16px;
-    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: all 0.2s ease;
+}
+
+.empresas-hover-wrap:hover .empresas-hover-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 .empresas-popover-header {
@@ -1826,32 +1234,12 @@ onMounted(() => {
     transform: translateY(-2px) scale(1.05);
 }
 
-.btn-edit-ultra {
-    color: #eab308;
-}
-
-.btn-edit-ultra:hover {
-    background: #fefce8;
-    box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2);
-}
-
-.btn-delete-ultra {
-    color: #ef4444;
-}
-
-.btn-delete-ultra:hover {
-    background: #fef2f2;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
-}
-
-.btn-restore-ultra {
-    color: #10b981;
-}
-
-.btn-restore-ultra:hover {
-    background: #ecfdf5;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-}
+.btn-edit-ultra { color: #eab308; }
+.btn-edit-ultra:hover { background: #fefce8; box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2); }
+.btn-delete-ultra { color: #ef4444; }
+.btn-delete-ultra:hover { background: #fef2f2; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+.btn-restore-ultra { color: #10b981; }
+.btn-restore-ultra:hover { background: #ecfdf5; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
 
 /* ===== FILTROS ===== */
 .filtros-ultra {
@@ -1874,94 +1262,113 @@ onMounted(() => {
     min-width: 0;
 }
 
+.filtro-item-ultra :deep(.input-label) {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 0 !important;
+}
+
+.filtro-item-ultra :deep(.text-input) {
+    height: 40px !important;
+    font-size: 13px !important;
+    padding: 0 10px !important;
+    border-radius: 0px !important;
+    border: 2px solid #d1d5db !important;
+    width: 100% !important;
+}
+
+.filtro-item-ultra :deep(.text-input:focus) {
+    border-color: #1a3a5c !important;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
+}
+
 .filtro-actions {
     min-width: 120px;
 }
 
-.filtro-select-ultra :deep(.ant-select-selector) {
-    border-radius: 0px !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    background: #ffffff !important;
-    height: 40px !important;
-    font-size: 13px !important;
+.filtro-select-ultra {
     width: 100% !important;
-    box-shadow: none !important;
 }
 
-.filtro-select-ultra :deep(.ant-select-selector:hover) {
-    border-color: #1a3a5c !important;
-    background: #fafbfc !important;
+.filtro-select-ultra.p-select {
+    border-radius: 0px;
+    border: 2px solid #d1d5db;
+    background: #ffffff;
+    height: 40px;
+    box-shadow: none;
+    transition: all 0.3s ease;
 }
 
-.filtro-select-ultra :deep(.ant-select-focused .ant-select-selector) {
-    border-color: #1a3a5c !important;
-    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
-    background: #fafbfc !important;
+.filtro-select-ultra.p-select:hover {
+    border-color: #1a3a5c;
+    background: #fafbfc;
 }
 
-/* ===== BOTONES ===== */
-.btn-nuevo-usuario-premium {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%) !important;
-    border: none !important;
-    border-radius: 0px !important;
-    font-weight: 700 !important;
-    padding: 0 32px !important;
-    height: 50px !important;
-    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    font-size: 15px !important;
-    letter-spacing: 0.3px;
+.filtro-select-ultra.p-select.p-focus {
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
+    background: #fafbfc;
 }
 
-.btn-nuevo-usuario-premium:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 30px rgba(26, 58, 92, 0.4) !important;
-    background: linear-gradient(135deg, #2c5282 0%, #1a3a5c 100%) !important;
+.filtro-select-ultra :deep(.p-select-label) {
+    font-size: 13px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
 }
 
 .btn-limpiar-ultra {
-    border-radius: 0px !important;
-    color: #64748b !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    height: 40px !important;
-    font-weight: 600 !important;
-    background: #ffffff !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    border: 2px solid #d1d5db;
+    transition: all 0.3s ease;
+    height: 40px;
+    padding: 0 16px;
+    font-weight: 600;
+    background: #ffffff;
+    cursor: pointer;
 }
 
 .btn-limpiar-ultra:hover {
-    color: #1a3a5c !important;
-    border-color: #1a3a5c !important;
-    background: #f8faff !important;
+    color: #1a3a5c;
+    border-color: #1a3a5c;
+    background: #f8faff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1) !important;
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1);
 }
 
 .btn-clear-ultra {
-    border-radius: 0px !important;
-    background: linear-gradient(135deg, #1a3a5c, #2c5282) !important;
-    border: none !important;
-    color: white !important;
-    height: 40px !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    transition: all 0.3s ease !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border: none;
+    color: white;
+    height: 40px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
 }
 
 .btn-clear-ultra:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
 }
 
 .btn-no-filtros-ultra {
-    border-radius: 0px !important;
-    background: #f8fafc !important;
-    border: 2px dashed #d1d5db !important;
-    cursor: not-allowed !important;
-    height: 40px !important;
-    font-size: 13px !important;
+    width: 100%;
+    background: #f8fafc;
+    border: 2px dashed #d1d5db;
+    cursor: not-allowed;
+    height: 40px;
+    font-size: 13px;
 }
 
 .no-filtros-text-ultra {
@@ -2001,46 +1408,12 @@ onMounted(() => {
     border-radius: 4px;
 }
 
-/* ============================================ */
-/* MODAL CAMBIAR CONTRASEÑA */
-/* ============================================ */
-.reset-modal-premium :deep(.ant-modal-content) {
-    border-radius: 20px !important;
+/* ===== MODAL CAMBIAR CONTRASEÑA ===== */
+.reset-modal-premium :deep(.p-dialog-content) {
+    padding: 0;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.18) !important;
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%) !important;
-}
-
-.reset-modal-premium :deep(.ant-modal-header) {
-    border-bottom: none !important;
-    padding: 0 !important;
-    background: transparent !important;
-}
-
-.reset-modal-premium :deep(.ant-modal-body) {
-    padding: 0 !important;
-}
-
-.reset-modal-premium :deep(.ant-modal-close) {
-    top: 18px !important;
-    right: 20px !important;
-    z-index: 10 !important;
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 50% !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-    transition: all 0.3s ease !important;
-}
-
-.reset-modal-premium :deep(.ant-modal-close:hover) {
-    background: #f1f5f9 !important;
-    transform: rotate(90deg) !important;
-}
-
-.reset-modal-premium :deep(.ant-modal-close .ant-modal-close-icon) {
-    font-size: 16px !important;
-    color: #64748b !important;
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
 }
 
 .reset-modal-content {
@@ -2063,7 +1436,7 @@ onMounted(() => {
     transform: translateX(-50%);
     width: 60px;
     height: 3px;
-    background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+    background: linear-gradient(90deg, #6366f1, #1a3a5c, #ec4899);
     border-radius: 3px;
 }
 
@@ -2078,12 +1451,6 @@ onMounted(() => {
     margin: 0 auto 14px;
     border: 2px solid #fde68a;
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
-    transition: all 0.3s ease;
-}
-
-.reset-modal-icon:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.25);
 }
 
 .modal-icon-svg {
@@ -2200,10 +1567,6 @@ onMounted(() => {
     border-color: #ef4444;
 }
 
-.form-input-modal.error:focus {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
-}
-
 .btn-toggle-password {
     position: absolute;
     right: 12px;
@@ -2216,7 +1579,6 @@ onMounted(() => {
     padding: 4px 6px;
     transition: all 0.3s ease;
     z-index: 2;
-    pointer-events: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2228,11 +1590,6 @@ onMounted(() => {
 .btn-toggle-password:hover {
     color: #6366f1;
     background: #f1f5f9;
-}
-
-.icon-eye {
-    width: 18px;
-    height: 18px;
 }
 
 .error-message-modal {
@@ -2247,11 +1604,6 @@ onMounted(() => {
     border-radius: 6px;
 }
 
-.error-message-modal svg {
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
 .success-message-modal {
     font-size: 0.8rem;
     color: #10b981;
@@ -2262,11 +1614,6 @@ onMounted(() => {
     padding: 4px 10px;
     background: #f0fdf4;
     border-radius: 6px;
-}
-
-.success-message-modal svg {
-    font-size: 14px;
-    flex-shrink: 0;
 }
 
 .success-check {
@@ -2331,54 +1678,61 @@ onMounted(() => {
     border-top: 1px solid #f1f5f9;
 }
 
-.reset-modal-actions :deep(.ant-btn) {
-    border-radius: 10px !important;
-    height: 44px !important;
-    padding: 0 28px !important;
-    font-weight: 600 !important;
-    font-size: 14px !important;
-    transition: all 0.3s ease !important;
-}
-
 .btn-cancel-reset {
-    border: 2px solid #e5e7eb !important;
-    color: #64748b !important;
-    background: transparent !important;
+    border-radius: 10px;
+    height: 44px;
+    padding: 0 28px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 2px solid #e5e7eb;
+    color: #64748b;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .btn-cancel-reset:hover {
-    border-color: #1a3a5c !important;
-    color: #1a3a5c !important;
-    background: #f8fafc !important;
+    border-color: #1a3a5c;
+    color: #1a3a5c;
+    background: #f8fafc;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .btn-confirm-reset {
-    background: linear-gradient(135deg, #1a3a5c, #2c5282) !important;
-    border: none !important;
-    box-shadow: 0 2px 12px rgba(26, 58, 92, 0.25) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 10px;
+    height: 44px;
+    padding: 0 28px;
+    font-weight: 600;
+    font-size: 14px;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(26, 58, 92, 0.25);
+    transition: all 0.3s ease;
 }
 
 .btn-confirm-reset:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(26, 58, 92, 0.35) !important;
+    box-shadow: 0 6px 24px rgba(26, 58, 92, 0.35);
 }
 
 .btn-confirm-reset:disabled {
-    background: #d1d5db !important;
-    box-shadow: none !important;
-    cursor: not-allowed !important;
+    background: #d1d5db;
+    box-shadow: none;
+    cursor: not-allowed;
     opacity: 0.6;
 }
 
-/* ===== ANIMACIONES ===== */
 @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(1.2); }
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .filtros-grid-ultra {
         grid-template-columns: 1fr 1fr 1fr;
@@ -2391,100 +1745,20 @@ onMounted(() => {
         grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
-    
     .filtro-actions {
         grid-column: 1 / -1;
     }
-    
-    .header-premium {
-        padding: 16px 20px;
-    }
-    
-    .header-title-premium {
-        font-size: 20px;
-    }
-    
-    .header-icon-wrapper {
-        width: 44px;
-        height: 44px;
-    }
-    
-    .header-icon-svg {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .table-wrapper-premium {
-        padding: 16px;
-    }
-    
-    .stats-card-enhanced-value {
-        font-size: 22px;
-    }
-    
-    .stats-card-enhanced-icon {
-        width: 44px;
-        height: 44px;
-    }
-    
-    .reset-modal-content {
-        padding: 24px 20px 20px;
-    }
-    
-    .reset-modal-icon {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .modal-icon-svg {
-        width: 26px;
-        height: 26px;
-    }
-    
-    .reset-modal-title {
-        font-size: 19px;
-    }
-    
-    .reset-password-container {
-        padding: 16px 16px 12px;
-    }
-    
-    .form-input-modal {
-        padding-right: 44px;
-        font-size: 0.85rem;
-        height: 40px;
-    }
-    
-    .btn-toggle-password {
-        right: 8px;
-        width: 28px;
-        height: 28px;
-    }
-    
-    .icon-eye {
-        width: 16px;
-        height: 16px;
-    }
-    
-    .reset-modal-actions {
-        flex-direction: column;
-    }
-    
-    .reset-modal-actions :deep(.ant-btn) {
-        width: 100% !important;
-        justify-content: center !important;
-        height: 40px !important;
-    }
-    
-    .reset-password-requirements {
-        flex-direction: column;
-        gap: 4px;
-    }
-    
-    .reset-modal-premium :deep(.ant-modal) {
-        max-width: 95% !important;
-        margin: 10px auto !important;
-    }
+    .header-premium { padding: 16px 20px; }
+    .header-title-premium { font-size: 20px; }
+    .header-icon-wrapper { width: 44px; height: 44px; }
+    .header-icon-svg { width: 22px; height: 22px; }
+    .table-wrapper-premium { padding: 16px; }
+    .stats-card-enhanced-value { font-size: 22px; }
+    .stats-card-enhanced-icon { width: 44px; height: 44px; }
+    .reset-modal-content { padding: 24px 20px 20px; }
+    .reset-modal-actions { flex-direction: column; }
+    .reset-modal-actions button { width: 100%; justify-content: center; }
+    .reset-password-requirements { flex-direction: column; gap: 4px; }
 }
 
 @media (max-width: 480px) {
@@ -2492,73 +1766,6 @@ onMounted(() => {
         grid-template-columns: 1fr;
         gap: 10px;
     }
-    
-    .filtro-actions {
-        grid-column: 1;
-    }
-    
-    .btn-limpiar-ultra {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .reset-modal-content {
-        padding: 20px 16px 16px;
-    }
-    
-    .reset-modal-icon {
-        width: 52px;
-        height: 52px;
-    }
-    
-    .modal-icon-svg {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .reset-modal-title {
-        font-size: 17px;
-    }
-    
-    .reset-modal-subtitle {
-        font-size: 13px;
-    }
-    
-    .reset-password-container {
-        padding: 12px 12px 10px;
-        border-radius: 12px;
-    }
-    
-    .form-label-modal {
-        font-size: 0.78rem;
-    }
-    
-    .form-input-modal {
-        padding: 8px 40px 8px 12px;
-        font-size: 0.8rem;
-        height: 36px;
-        border-radius: 8px;
-    }
-    
-    .btn-toggle-password {
-        right: 6px;
-        width: 24px;
-        height: 24px;
-    }
-    
-    .icon-eye {
-        width: 14px;
-        height: 14px;
-    }
-    
-    .reset-modal-actions :deep(.ant-btn) {
-        font-size: 13px !important;
-        padding: 0 16px !important;
-        height: 36px !important;
-    }
-    
-    .requirement-item {
-        font-size: 11px;
-    }
+    .filtro-actions { grid-column: 1; }
 }
 </style>

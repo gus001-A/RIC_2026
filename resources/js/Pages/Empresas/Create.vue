@@ -12,7 +12,10 @@
                         <h2 class="header-title-premium">
                             <span class="title-highlight">Nueva</span> Empresa
                         </h2>
-                        <p class="header-subtitle-premium">Complete el formulario para registrar una nueva empresa en el sistema</p>
+                        <p class="header-subtitle-premium">
+                            Complete el formulario para registrar una nueva empresa
+                            <span class="header-hint">Los campos con <strong>*</strong> son obligatorios</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -77,7 +80,7 @@
                                 <!-- Tipo de Persona -->
                                 <div class="section-premium section-tipo">
                                     <div class="section-header-premium">
-                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                        <div class="section-icon-premium">
                                             <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                                             </svg>
@@ -122,7 +125,7 @@
                                 <!-- Datos de la Empresa -->
                                 <div class="section-premium section-datos">
                                     <div class="section-header-premium">
-                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                        <div class="section-icon-premium">
                                             <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                             </svg>
@@ -136,7 +139,7 @@
                                         <!-- Nombre - ocupa toda la fila -->
                                         <div class="field-premium full">
                                             <label class="label-premium">
-                                                Nombre de la Empresa 
+                                                Nombre de la Empresa
                                                 <span class="star">*</span>
                                             </label>
                                             <div class="input-wrapper-premium">
@@ -154,8 +157,7 @@
 
                                         <!-- RFC, Clave y Régimen en una sola línea -->
                                         <div class="field-premium">
-                                            <label class="label-premium">
-                                                RFC 
+                                            <label class="label-premium">RFC 
                                                 <span class="star">*</span>
                                             </label>
                                             <div class="input-wrapper-premium">
@@ -206,7 +208,7 @@
                             <div v-show="activeTab === 'contacto'" class="tab-pane-premium">
                                 <div class="section-premium section-contacto">
                                     <div class="section-header-premium">
-                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                        <div class="section-icon-premium">
                                             <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                                             </svg>
@@ -285,7 +287,7 @@
                             <div v-show="activeTab === 'direccion'" class="tab-pane-premium">
                                 <div class="section-premium section-direccion">
                                     <div class="section-header-premium">
-                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+                                        <div class="section-icon-premium">
                                             <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -297,106 +299,91 @@
                                         </div>
                                     </div>
                                     <div class="grid-direccion">
-                                        <div class="field-premium full">
+                                        <div class="field-premium dir-cp">
+                                            <label class="label-premium">Código Postal</label>
+                                            <div class="input-wrapper-premium">
+                                                <input type="text" v-model="form.codigo_postal"
+                                                       @input="validateCodigoPostal()"
+                                                       @blur="onBuscarCP()"
+                                                       @keyup.enter="onBuscarCP()"
+                                                       class="input-premium"
+                                                       :class="{ 'error': codigoPostalError }"
+                                                       placeholder="06000"
+                                                       inputmode="numeric"
+                                                       maxlength="5">
+                                                <span v-if="dir.cargandoCP.value" class="cp-spinner"></span>
+                                            </div>
+                                            <div v-if="codigoPostalError" class="error-premium">{{ codigoPostalError }}</div>
+                                            <div v-else-if="dir.cpMensaje.value" class="hint-premium">{{ dir.cpMensaje.value }}</div>
+                                            <div v-else class="hint-premium">Se autocompletan estado, municipio y colonias.</div>
+                                        </div>
+                                        <div class="field-premium dir-estado">
+                                            <label class="label-premium">Estado</label>
+                                            <div class="input-wrapper-premium">
+                                                <select v-model="form.estado" class="select-premium" @change="onEstado($event.target.value)">
+                                                    <option value="">Selecciona un estado</option>
+                                                    <option v-for="estado in dir.estados.value" :key="estado" :value="estado">
+                                                        {{ estado }}
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="field-premium dir-municipio">
+                                            <label class="label-premium">Municipio</label>
+                                            <ComboBox
+                                                v-model="form.municipio"
+                                                :options="dir.municipios.value"
+                                                placeholder="Cuauhtémoc"
+                                                :empty-text="form.estado ? 'Sin coincidencias' : 'Elige primero un estado'"
+                                            />
+                                        </div>
+                                        <div class="field-premium dir-colonia">
+                                            <label class="label-premium">Colonia</label>
+                                            <ComboBox
+                                                v-model="form.colonia"
+                                                :options="coloniaOptions"
+                                                placeholder="Colonia Centro"
+                                                :empty-text="form.codigo_postal ? 'Escribe el CP para ver colonias' : 'Escribe el código postal'"
+                                            />
+                                        </div>
+                                        <div class="field-premium dir-ciudad">
+                                            <label class="label-premium">Ciudad</label>
+                                            <div class="input-wrapper-premium">
+                                                <input type="text" v-model="form.ciudad"
+                                                       class="input-premium input-readonly"
+                                                       placeholder="Se toma del código postal"
+                                                       readonly>
+                                            </div>
+                                        </div>
+                                        <div class="field-premium dir-calle">
                                             <label class="label-premium">Calle</label>
                                             <div class="input-wrapper-premium">
                                                 <input type="text" v-model="form.calle"
                                                        class="input-premium"
                                                        placeholder="Av. Insurgentes Sur">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                                                </svg>
                                             </div>
                                         </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Número Exterior</label>
+                                        <div class="field-premium dir-ext">
+                                            <label class="label-premium">Núm. Ext.</label>
                                             <div class="input-wrapper-premium">
                                                 <input type="text" v-model="form.numero_exterior"
                                                        @input="validateAlphanumeric('numero_exterior')"
                                                        class="input-premium"
                                                        :class="{ 'error': alphanumericErrors.numero_exterior }"
                                                        placeholder="123">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                                                </svg>
                                             </div>
                                             <div v-if="alphanumericErrors.numero_exterior" class="error-premium">{{ alphanumericErrors.numero_exterior }}</div>
                                         </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Número Interior</label>
+                                        <div class="field-premium dir-int">
+                                            <label class="label-premium">Núm. Int.</label>
                                             <div class="input-wrapper-premium">
                                                 <input type="text" v-model="form.numero_interior"
                                                        @input="validateAlphanumeric('numero_interior')"
                                                        class="input-premium"
                                                        :class="{ 'error': alphanumericErrors.numero_interior }"
                                                        placeholder="2B">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                                                </svg>
                                             </div>
                                             <div v-if="alphanumericErrors.numero_interior" class="error-premium">{{ alphanumericErrors.numero_interior }}</div>
-                                        </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Colonia</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.colonia"
-                                                       class="input-premium"
-                                                       placeholder="Colonia Centro">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Ciudad</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.ciudad"
-                                                       class="input-premium"
-                                                       placeholder="Ciudad de México">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Municipio</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.municipio"
-                                                       class="input-premium"
-                                                       placeholder="Cuauhtémoc">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Estado</label>
-                                            <div class="input-wrapper-premium">
-                                                <select v-model="form.estado" class="select-premium">
-                                                    <option value="">Selecciona un estado</option>
-                                                    <option v-for="estado in estadosMexico" :key="estado" :value="estado">
-                                                        {{ estado }}
-                                                    </option>
-                                                </select>
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="field-premium">
-                                            <label class="label-premium">Código Postal</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.codigo_postal"
-                                                       @input="validateCodigoPostal()"
-                                                       class="input-premium"
-                                                       :class="{ 'error': codigoPostalError }"
-                                                       placeholder="06000"
-                                                       maxlength="5">
-                                                <svg class="input-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                                </svg>
-                                            </div>
-                                            <div v-if="codigoPostalError" class="error-premium">{{ codigoPostalError }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -406,7 +393,7 @@
                             <div v-show="activeTab === 'representante'" class="tab-pane-premium">
                                 <div class="section-premium section-representante">
                                     <div class="section-header-premium">
-                                        <div class="section-icon-premium" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+                                        <div class="section-icon-premium">
                                             <svg class="icon-sm" fill="none" stroke="white" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                             </svg>
@@ -418,8 +405,7 @@
                                     </div>
                                     <div class="grid-representante">
                                         <div class="field-premium">
-                                            <label class="label-premium">
-                                                Nombre 
+                                            <label class="label-premium">Nombre 
                                                 <span class="star">*</span>
                                             </label>
                                             <div class="input-wrapper-premium">
@@ -435,8 +421,7 @@
                                             <div v-if="form.errors.representante_nombre" class="error-premium">{{ form.errors.representante_nombre }}</div>
                                         </div>
                                         <div class="field-premium">
-                                            <label class="label-premium">
-                                                Apellido Paterno 
+                                            <label class="label-premium">Apellido Paterno 
                                                 <span class="star">*</span>
                                             </label>
                                             <div class="input-wrapper-premium">
@@ -463,8 +448,7 @@
                                             </div>
                                         </div>
                                         <div class="field-premium">
-                                            <label class="label-premium">
-                                                RFC 
+                                            <label class="label-premium">RFC 
                                                 <span class="star">*</span>
                                             </label>
                                             <div class="input-wrapper-premium">
@@ -503,12 +487,6 @@
 
                         <!-- ===== FOOTER ===== -->
                         <div class="footer-premium">
-                            <div class="info-premium">
-                                <svg class="info-icon-sm" fill="none" stroke="#667eea" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span>Los campos con <strong class="text-danger">*</strong> son obligatorios</span>
-                            </div>
                             <div class="actions-premium">
                                 <Link :href="route('empresas.index')" class="btn-cancel-premium">
                                     <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -516,8 +494,8 @@
                                     </svg>
                                     Cancelar
                                 </Link>
-                                <button type="submit" 
-                                        :disabled="form.processing || !isFormValid"
+                                <button type="submit"
+                                        :disabled="form.processing"
                                         class="btn-submit-premium">
                                     <span v-if="form.processing" class="spinner-border-sm" role="status"></span>
                                     <svg v-else class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -531,16 +509,18 @@
                 </div>
             </div>
         </div>
-
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+import { useDireccionMx } from '@/composables/useDireccionMx';
+import ComboBox from '@/Components/ComboBox.vue';
+
+const notify = useNotify();
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 
 const props = defineProps({
     estadosMexico: {
@@ -549,12 +529,41 @@ const props = defineProps({
     }
 });
 
-const alertRef = ref(null);
-
 // ============================================
 // TAB ACTIVO
 // ============================================
 const activeTab = ref('empresa');
+
+// ============================================
+// DIRECCIÓN (catálogo + autocompletado por CP)
+// ============================================
+const dir = useDireccionMx();
+onMounted(() => dir.cargarEstados());
+
+const onEstado = (estado) => {
+    form.estado = estado;
+    form.municipio = '';
+    dir.cargarMunicipios(estado);
+};
+
+const onBuscarCP = async () => {
+    const datos = await dir.buscarCP(form.codigo_postal);
+    if (!datos) return;
+    form.estado = datos.estado;
+    form.ciudad = datos.ciudad || form.ciudad;
+    await dir.cargarMunicipios(datos.estado);
+    form.municipio = datos.municipio;
+    if (dir.colonias.value.length === 1) {
+        form.colonia = dir.colonias.value[0].nombre;
+    }
+};
+
+const coloniaOptions = computed(() =>
+    dir.colonias.value.map((c) => ({
+        label: c.tipo ? `${c.nombre} · ${c.tipo}` : c.nombre,
+        value: c.nombre,
+    })),
+);
 
 // ============================================
 // ESTADOS DE VALIDACIÓN
@@ -862,41 +871,23 @@ const submit = () => {
     if (form.codigo_postal) validateCodigoPostal();
     
     if (!isFormValid.value) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error de validación',
-            message: 'Por favor, corrija los errores en el formulario antes de continuar.',
-            buttonText: 'Entendido'
-        });
+        if (hasEmpresaErrors.value) activeTab.value = 'empresa';
+        else if (hasContactoErrors.value) activeTab.value = 'contacto';
+        else if (hasDireccionErrors.value) activeTab.value = 'direccion';
+        notify.error('Por favor, corrija los errores en el formulario antes de continuar.', 'Error de validación');
         return;
     }
-    
+
+    // El toast de exito lo muestra el manejador global de flash tras el redirect.
     form.post(route('empresas.store'), {
-        onSuccess: () => {
-            alertRef.value?.show({
-                type: 'success',
-                title: 'Empresa creada exitosamente',
-                message: 'La empresa se ha registrado exitosamente en el sistema.',
-                buttonText: 'Ir al listado'
-            });
-        },
         onError: (errors) => {
-            if (errors.rfc) {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'RFC duplicado',
-                    message: 'El RFC que ingresaste ya está registrado en otra empresa. Por favor, verifica el RFC.',
-                    buttonText: 'Entendido'
-                });
-            } else {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error al crear',
-                    message: 'Ocurrió un error al registrar la empresa. Verifique los datos e intente nuevamente.',
-                    buttonText: 'Intentar de nuevo'
-                });
-            }
-        }
+            notify.error(
+                errors.rfc
+                    ? 'El RFC que ingresaste ya esta registrado en otra empresa.'
+                    : 'Revisa los errores marcados en el formulario.',
+                'No se pudo crear',
+            );
+        },
     });
 };
 </script>
@@ -945,7 +936,7 @@ const submit = () => {
 }
 
 .title-highlight {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -958,6 +949,19 @@ const submit = () => {
     font-size: 0.85rem;
     color: #6b7280;
     margin: 0;
+}
+
+.header-hint {
+    display: inline-block;
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid #d1d5db;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.header-hint strong {
+    color: #dc2626;
 }
 
 .header-right-premium {
@@ -1027,8 +1031,16 @@ const submit = () => {
     padding: 1rem 1.25rem;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 225px);
+    overflow: hidden;
     transition: all 0.3s ease;
+}
+
+#empresaForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .form-card-premium:hover {
@@ -1068,13 +1080,13 @@ const submit = () => {
 
 .tab-premium:hover {
     color: #1f2937;
-    background: rgba(102, 126, 234, 0.06);
+    background: rgba(26, 58, 92, 0.06);
 }
 
 .tab-premium.active {
-    color: #667eea;
+    color: #1a3a5c;
     background: white;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.12);
 }
 
 .tab-icon {
@@ -1158,11 +1170,11 @@ const submit = () => {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-.section-tipo { border-left: 4px solid #667eea; }
-.section-datos { border-left: 4px solid #8b5cf6; }
-.section-contacto { border-left: 4px solid #f59e0b; }
-.section-direccion { border-left: 4px solid #06b6d4; }
-.section-representante { border-left: 4px solid #ec4899; }
+.section-tipo { border-left: 4px solid #1a3a5c; }
+.section-datos { border-left: 4px solid #1a3a5c; }
+.section-contacto { border-left: 4px solid #1a3a5c; }
+.section-direccion { border-left: 4px solid #1a3a5c; }
+.section-representante { border-left: 4px solid #1a3a5c; }
 
 .section-header-premium {
     display: flex;
@@ -1180,7 +1192,7 @@ const submit = () => {
     border-radius: 10px;
     color: white;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: #1a3a5c;
 }
 
 .icon-sm {
@@ -1243,8 +1255,74 @@ const submit = () => {
 
 .grid-direccion {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(6, 1fr);
     gap: 10px 14px;
+}
+
+.grid-direccion .field-premium {
+    grid-column: span 3;
+}
+
+.grid-direccion .field-premium.full {
+    grid-column: 1 / -1;
+}
+
+/* Fila 1: CP + Estado + Municipio (3 iguales) */
+.grid-direccion .dir-cp,
+.grid-direccion .dir-estado,
+.grid-direccion .dir-municipio {
+    grid-column: span 2;
+}
+
+/* Fila 2: Colonia + Ciudad */
+.grid-direccion .dir-colonia,
+.grid-direccion .dir-ciudad {
+    grid-column: span 3;
+}
+
+/* Fila 3: Calle (ancha) + Núm Ext + Núm Int */
+.grid-direccion .dir-calle {
+    grid-column: span 4;
+}
+
+.grid-direccion .dir-ext,
+.grid-direccion .dir-int {
+    grid-column: span 1;
+}
+
+.hint-premium {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    line-height: 1.3;
+}
+
+.input-readonly {
+    background: #f1f5f9;
+    color: #475569;
+    cursor: default;
+    border-color: #e2e8f0 !important;
+}
+
+.input-readonly:focus {
+    box-shadow: none !important;
+    border-color: #e2e8f0 !important;
+}
+
+.cp-spinner {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 2px solid #d1d5db;
+    border-top-color: #1a3a5c;
+    border-radius: 50%;
+    animation: cp-spin 0.7s linear infinite;
+}
+
+@keyframes cp-spin {
+    to { transform: rotate(360deg); }
 }
 
 .grid-representante {
@@ -1297,7 +1375,7 @@ const submit = () => {
 }
 
 .input-wrapper-premium:focus-within .input-icon-premium {
-    color: #667eea;
+    color: #1a3a5c;
 }
 
 /* ===== INPUTS ===== */
@@ -1315,8 +1393,8 @@ const submit = () => {
 }
 
 .input-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
     transform: translateY(-1px);
 }
 
@@ -1358,8 +1436,8 @@ const submit = () => {
 }
 
 .select-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
     transform: translateY(-1px);
 }
 
@@ -1392,16 +1470,16 @@ const submit = () => {
 }
 
 .radio-premium:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.08);
 }
 
 .radio-premium.selected {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: linear-gradient(135deg, #f0f4ff, #e8edff);
     color: #1f2937;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.12);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.12);
 }
 
 .radio-icon {
@@ -1412,7 +1490,7 @@ const submit = () => {
 }
 
 .radio-premium.selected .radio-icon {
-    color: #667eea;
+    color: #1a3a5c;
 }
 
 .radio-check {
@@ -1456,7 +1534,7 @@ const submit = () => {
 .footer-premium {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding-top: 14px;
     margin-top: 12px;
     border-top: 2px solid #f1f3f5;
@@ -1524,15 +1602,15 @@ const submit = () => {
     font-size: 0.85rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
     height: 42px;
-    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 2px 12px rgba(26, 58, 92, 0.2);
 }
 
 .btn-submit-premium:hover:not(:disabled) {
     transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 8px 24px rgba(26, 58, 92, 0.35);
 }
 
 .btn-submit-premium:active:not(:disabled) {
@@ -1587,10 +1665,27 @@ const submit = () => {
         gap: 8px;
     }
     .grid-contacto,
-    .grid-direccion,
     .grid-representante {
         grid-template-columns: 1fr;
         gap: 8px;
+    }
+
+    .grid-direccion {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .grid-direccion .field-premium,
+    .grid-direccion .field-premium.full,
+    .grid-direccion .dir-cp,
+    .grid-direccion .dir-estado,
+    .grid-direccion .dir-municipio,
+    .grid-direccion .dir-colonia,
+    .grid-direccion .dir-ciudad,
+    .grid-direccion .dir-calle,
+    .grid-direccion .dir-ext,
+    .grid-direccion .dir-int {
+        grid-column: span 1;
     }
     
     .form-card-premium {
@@ -1690,5 +1785,24 @@ const submit = () => {
         width: 16px;
         height: 16px;
     }
+}
+
+/* === Estilo sobrio RIC: ocultar adornos === */
+.status-badge,
+.status-badge-premium,
+.badge-required,
+.badge-optional,
+.label-icon,
+.input-icon-premium {
+    display: none !important;
+}
+
+.input-wrapper-premium .input-premium,
+.input-wrapper-premium .select-premium {
+    padding-right: 14px;
+}
+
+.input-with-btn .input-premium {
+    padding-right: 110px;
 }
 </style>

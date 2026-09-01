@@ -216,7 +216,7 @@ class UsuarioController extends Controller
             $validated = $request->validate([
                 'nombre_completo' => 'required|string|max:255',
                 'nombre_usuario' => 'required|string|max:50|unique:usuarios,nombre_usuario',
-                'email' => 'required|email|max:255|unique:usuarios,email',
+                'email' => 'required|email|max:255',
                 'password' => 'required|string|min:8|confirmed',
                 'telefono' => 'nullable|string|max:20',
                 'tipo_usuario' => 'required|string|in:LECTOR,CAPTURISTA,ADMINISTRADOR,AUDITOR,SUPERUSUARIO',
@@ -248,7 +248,8 @@ class UsuarioController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->withErrors($e->errors())
+                ->with('error', 'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())))
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -322,7 +323,9 @@ class UsuarioController extends Controller
             $validated = $request->validate([
                 'nombre_completo' => 'required|string|max:255',
                 'nombre_usuario' => 'required|string|max:50|unique:usuarios,nombre_usuario,' . $id . ',id_usuario',
-                'email' => 'required|email|max:255|unique:usuarios,email,' . $id . ',id_usuario',
+                'email' => 'required|email|max:255',
+                // La contraseña es opcional al editar: sólo se cambia si se captura.
+                'password' => 'nullable|string|min:8|confirmed',
                 'telefono' => 'nullable|string|max:20',
                 'tipo_usuario' => 'required|string|in:LECTOR,CAPTURISTA,ADMINISTRADOR,AUDITOR,SUPERUSUARIO',
                 'activo' => 'sometimes|boolean',
@@ -344,7 +347,7 @@ class UsuarioController extends Controller
             ];
 
             // Si viene password, actualizarla
-            if (!empty($validated['password'])) {
+            if (!empty($validated['password'] ?? null)) {
                 $data['password_hash'] = Hash::make($validated['password']);
             }
 
@@ -364,7 +367,8 @@ class UsuarioController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
-                ->with('error', 'Error de validación: ' . implode(', ', $e->errors()))
+                ->withErrors($e->errors())
+                ->with('error', 'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())))
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();

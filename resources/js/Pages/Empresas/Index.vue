@@ -10,9 +10,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h2 class="header-title-premium">
-                                Gestión de Empresas
-                            </h2>
+                            <h2 class="header-title-premium">Gestión de Empresas</h2>
                             <p class="header-subtitle-premium">
                                 <span class="subtitle-line"></span>
                                 Administra las empresas del sistema
@@ -20,12 +18,10 @@
                         </div>
                     </div>
                     <Link v-if="permisos?.puede_crear_empresas" :href="route('empresas.create')">
-                        <a-button type="primary" size="middle" class="btn-nueva-empresa-premium">
-                            <template #icon>
-                                <PlusOutlined />
-                            </template>
+                        <button type="button" class="btn-nueva-empresa-premium">
+                            <i class="pi pi-plus"></i>
                             Nueva Empresa
-                        </a-button>
+                        </button>
                     </Link>
                 </div>
             </div>
@@ -34,218 +30,198 @@
         <div class="py-6">
             <div class="max-w-full px-4 sm:px-6 lg:px-8">
                 <!-- Stats Cards -->
-                <a-row :gutter="[16, 16]" class="mb-6">
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Total Empresas</span>
-                                    <span class="stats-card-enhanced-value">{{ stats?.total || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
-                                    <svg class="stats-card-enhanced-svg" style="color: #1a3a5c;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                    </svg>
-                                </div>
+                <div class="stats-grid-empresas mb-6">
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Total Empresas</span>
+                                <span class="stats-card-enhanced-value">{{ stats?.total || 0 }}</span>
                             </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" style="width: 100%; background: linear-gradient(90deg, #1a3a5c, #2c5282);"></div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
+                                <svg class="stats-card-enhanced-svg" style="color: #1a3a5c;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
                             </div>
                         </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Activas</span>
-                                    <span class="stats-card-enhanced-value" style="color: #2e7d32;">{{ stats?.activas || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(46, 125, 50, 0.05));">
-                                    <CheckCircleOutlined style="color: #2e7d32; font-size: 24px;" />
-                                </div>
-                            </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.activas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #2e7d32, #43a047)' }"></div>
-                            </div>
-                        </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Inactivas</span>
-                                    <span class="stats-card-enhanced-value" style="color: #c62828;">{{ stats?.inactivas || 0 }}</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(198, 40, 40, 0.1), rgba(198, 40, 40, 0.05));">
-                                    <CloseCircleOutlined style="color: #c62828; font-size: 24px;" />
-                                </div>
-                            </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.inactivas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #c62828, #e53935)' }"></div>
-                            </div>
-                        </div>
-                    </a-col>
-
-                    <a-col :xs="24" :sm="12" :md="6">
-                        <div class="stats-card-enhanced">
-                            <div class="stats-card-enhanced-content">
-                                <div class="stats-card-enhanced-left">
-                                    <span class="stats-card-enhanced-label">Tipo Persona</span>
-                                    <span class="stats-card-enhanced-value" style="color: #4a148c; font-size: 22px;">{{ stats?.fisicas || 0 }}F / {{ stats?.morales || 0 }}M</span>
-                                </div>
-                                <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(74, 20, 140, 0.1), rgba(74, 20, 140, 0.05));">
-                                    <TeamOutlined style="color: #4a148c; font-size: 24px;" />
-                                </div>
-                            </div>
-                            <div class="stats-card-enhanced-progress">
-                                <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round(((stats.fisicas || 0) / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #4a148c, #6a1b9a)' }"></div>
-                            </div>
-                        </div>
-                    </a-col>
-                </a-row>
-
-                <!-- Tabla Premium -->
-                <div class="table-wrapper-premium">
-                    <!-- Header de la tabla -->
-                    <div class="table-header-ultra">
-                        <div class="table-header-left-ultra">
-                            <span class="table-title-ultra">Listado de Empresas</span>
-                            <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
-                                <span class="filter-dot-active"></span>
-                                Filtros activos
-                            </a-tag>
-                        </div>
-                        <div class="table-header-right-ultra">
-                            <a-button v-if="filtrosActivos" @click="limpiarFiltros" size="small" class="btn-limpiar-ultra">
-                                <template #icon>
-                                    <CloseOutlined />
-                                </template>
-                                Limpiar filtros
-                            </a-button>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" style="width: 100%; background: linear-gradient(90deg, #1a3a5c, #2c5282);"></div>
                         </div>
                     </div>
 
-                    <!-- Contenedor de tabla con scroll -->
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Activas</span>
+                                <span class="stats-card-enhanced-value" style="color: #2e7d32;">{{ stats?.activas || 0 }}</span>
+                            </div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(46, 125, 50, 0.05));">
+                                <i class="pi pi-check-circle" style="color: #2e7d32; font-size: 24px;"></i>
+                            </div>
+                        </div>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.activas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #2e7d32, #43a047)' }"></div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Inactivas</span>
+                                <span class="stats-card-enhanced-value" style="color: #c62828;">{{ stats?.inactivas || 0 }}</span>
+                            </div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(198, 40, 40, 0.1), rgba(198, 40, 40, 0.05));">
+                                <i class="pi pi-times-circle" style="color: #c62828; font-size: 24px;"></i>
+                            </div>
+                        </div>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round((stats.inactivas / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #c62828, #e53935)' }"></div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card-enhanced">
+                        <div class="stats-card-enhanced-content">
+                            <div class="stats-card-enhanced-left">
+                                <span class="stats-card-enhanced-label">Tipo Persona</span>
+                                <span class="stats-card-enhanced-value" style="color: #1a3a5c; font-size: 22px;">{{ stats?.fisicas || 0 }}F / {{ stats?.morales || 0 }}M</span>
+                            </div>
+                            <div class="stats-card-enhanced-icon" style="background: linear-gradient(135deg, rgba(26, 58, 92, 0.1), rgba(26, 58, 92, 0.05));">
+                                <i class="pi pi-users" style="color: #1a3a5c; font-size: 24px;"></i>
+                            </div>
+                        </div>
+                        <div class="stats-card-enhanced-progress">
+                            <div class="stats-card-enhanced-progress-bar" :style="{ width: stats?.total ? Math.round(((stats.fisicas || 0) / stats.total) * 100) + '%' : '0%', background: 'linear-gradient(90deg, #1a3a5c, #3d6ea5)' }"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla Premium -->
+                <div class="table-wrapper-premium">
+                    <div class="table-header-ultra">
+                        <div class="table-header-left-ultra">
+                            <span class="table-title-ultra">Listado de Empresas</span>
+                            <span v-if="filtrosActivos" class="filter-tag-ultra">
+                                <span class="filter-dot-active"></span>
+                                Filtros activos
+                            </span>
+                        </div>
+                        <div class="table-header-right-ultra">
+                            <button v-if="filtrosActivos" type="button" @click="limpiarFiltros" class="btn-limpiar-ultra">
+                                <i class="pi pi-times"></i>
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-scroll-container-full">
-                        <a-table
-                            :columns="columns"
-                            :data-source="empresas.data"
-                            :pagination="false"
+                        <DataTable
+                            :value="empresas.data"
                             :loading="loading"
-                            row-key="id"
+                            data-key="id"
+                            scrollable
+                            scroll-height="400px"
+                            row-hover
+                            table-style="min-width: 60rem"
                             class="empresa-table-ultra"
-                            size="middle"
-                            :scroll="{ x: 'max-content' }"
                         >
-                            <template #bodyCell="{ column, record }">
-                                <template v-if="column.key === 'empresa'">
+                            <template #empty>
+                                <div class="tabla-vacia">No se encontraron empresas.</div>
+                            </template>
+
+                            <Column header="Empresa" style="width: 20%" frozen>
+                                <template #body="{ data }">
                                     <div class="empresa-cell-ultra">
                                         <div class="avatar-container-ultra">
-                                            <a-avatar
-                                                :style="{ 
-                                                    background: record.activo 
-                                                        ? `linear-gradient(135deg, #1a3a5c, #2c5282)` 
-                                                        : `linear-gradient(135deg, #94a3b8, #64748b)`
-                                                }"
-                                                size="default"
-                                                shape="square"
+                                            <div
                                                 class="avatar-ultra"
+                                                :style="{ background: data.activo ? 'linear-gradient(135deg, #1a3a5c, #2c5282)' : 'linear-gradient(135deg, #94a3b8, #64748b)' }"
                                             >
-                                                {{ record.nombre_empresa?.charAt(0) || 'E' }}
-                                            </a-avatar>
-                                            <div class="avatar-ring" :class="record.activo ? 'active' : 'inactive'"></div>
+                                                {{ data.nombre_empresa?.charAt(0) || 'E' }}
+                                            </div>
+                                            <div class="avatar-ring" :class="data.activo ? 'active' : 'inactive'"></div>
                                         </div>
                                         <div class="empresa-info-ultra">
-                                            <p class="empresa-nombre-ultra">{{ record.nombre_empresa }}</p>
-                                            <p class="empresa-clave-ultra">Clave: {{ record.clave || 'N/A' }}</p>
+                                            <p class="empresa-nombre-ultra">{{ data.nombre_empresa }}</p>
+                                            <p class="empresa-clave-ultra">Clave: {{ data.clave || 'N/A' }}</p>
                                         </div>
                                     </div>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'tipo'">
-                                    <div class="tipo-cell-ultra">
-                                        <span class="tipo-badge" :class="record.tipo_persona === 'MORAL' ? 'moral' : 'fisica'">
-                                            {{ record.tipo_persona === 'MORAL' ? 'Moral' : 'Física' }}
-                                        </span>
-                                    </div>
+                            <Column header="RFC" field="rfc" style="width: 14%" />
+
+                            <Column header="Tipo" style="width: 10%">
+                                <template #body="{ data }">
+                                    <span class="tipo-badge" :class="data.tipo_persona === 'MORAL' ? 'moral' : 'fisica'">
+                                        {{ data.tipo_persona === 'MORAL' ? 'Moral' : 'Física' }}
+                                    </span>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'ubicacion'">
-                                    <div class="ubicacion-cell-ultra">
-                                        <span class="ubicacion-text-ultra">
-                                            {{ record.ciudad }}{{ record.ciudad && record.estado ? ', ' : '' }}{{ record.estado || 'Sin ubicación' }}
-                                        </span>
-                                    </div>
+                            <Column header="Ubicación" style="width: 16%">
+                                <template #body="{ data }">
+                                    <span class="ubicacion-text-ultra">
+                                        {{ data.ciudad }}{{ data.ciudad && data.estado ? ', ' : '' }}{{ data.estado || 'Sin ubicación' }}
+                                    </span>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'contacto'">
+                            <Column header="Contacto" style="width: 18%">
+                                <template #body="{ data }">
                                     <div class="contacto-cell-ultra">
-                                        <a v-if="record.correo" :href="`mailto:${record.correo}`" class="contacto-email-ultra">
-                                            <MailOutlined class="contacto-icon-ultra" /> 
-                                            <span>{{ record.correo }}</span>
+                                        <a v-if="data.correo" :href="`mailto:${data.correo}`" class="contacto-email-ultra">
+                                            <i class="pi pi-envelope contacto-icon-ultra"></i>
+                                            <span>{{ data.correo }}</span>
                                         </a>
-                                        <span v-if="record.telefono_personal" class="contacto-telefono-ultra">
-                                            <PhoneOutlined class="contacto-icon-ultra" /> 
-                                            <span>{{ record.telefono_personal }}</span>
+                                        <span v-if="data.telefono_personal" class="contacto-telefono-ultra">
+                                            <i class="pi pi-phone contacto-icon-ultra"></i>
+                                            <span>{{ data.telefono_personal }}</span>
                                         </span>
-                                        <span v-if="!record.correo && !record.telefono_personal" class="contacto-vacio-ultra">
+                                        <span v-if="!data.correo && !data.telefono_personal" class="contacto-vacio-ultra">
                                             Sin contacto
                                         </span>
                                     </div>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'estado'">
-                                    <div class="estado-cell-ultra">
-                                        <div class="estado-badge-ultra" :class="record.activo ? 'activo' : 'inactivo'">
-                                            <span class="estado-dot-ultra"></span>
-                                            <span>{{ record.activo ? 'Activa' : 'Inactiva' }}</span>
-                                        </div>
+                            <Column header="Estado" style="width: 10%">
+                                <template #body="{ data }">
+                                    <div class="estado-badge-ultra" :class="data.activo ? 'activo' : 'inactivo'">
+                                        <span class="estado-dot-ultra"></span>
+                                        <span>{{ data.activo ? 'Activa' : 'Inactiva' }}</span>
                                     </div>
                                 </template>
+                            </Column>
 
-                                <template v-if="column.key === 'acciones'">
+                            <Column header="Acciones" style="width: 12%" align-frozen="right" frozen>
+                                <template #body="{ data }">
                                     <div class="acciones-ultra">
-                                        <a-tooltip v-if="permisos?.puede_editar_empresas" title="Editar" placement="top" color="#1a3a5c">
-                                            <Link :href="route('empresas.edit', record.id)">
-                                                <button class="btn-action-ultra btn-edit-ultra">
-                                                    <EditOutlined />
-                                                </button>
-                                            </Link>
-                                        </a-tooltip>
-
-                                        <a-tooltip 
-                                            v-if="record.activo && permisos?.puede_editar_empresas"
-                                            title="Desactivar empresa" 
-                                            placement="top" 
-                                            color="#ef4444"
-                                        >
-                                            <button 
-                                                class="btn-action-ultra btn-delete-ultra"
-                                                @click="confirmarDesactivar(record)"
-                                            >
-                                                <DeleteOutlined />
+                                        <Link v-if="permisos?.puede_editar_empresas" :href="route('empresas.edit', data.id)">
+                                            <button v-tooltip.top="'Editar'" class="btn-action-ultra btn-edit-ultra">
+                                                <i class="pi pi-pencil"></i>
                                             </button>
-                                        </a-tooltip>
+                                        </Link>
 
-                                        <a-tooltip 
-                                            v-if="!record.activo && permisos?.puede_editar_empresas"
-                                            title="Activar empresa" 
-                                            placement="top" 
-                                            color="#10b981"
+                                        <button
+                                            v-if="data.activo && permisos?.puede_editar_empresas"
+                                            v-tooltip.top="'Desactivar empresa'"
+                                            class="btn-action-ultra btn-delete-ultra"
+                                            @click="confirmarDesactivar(data)"
                                         >
-                                            <button 
-                                                class="btn-action-ultra btn-activate-ultra"
-                                                @click="confirmarActivar(record)"
-                                            >
-                                                <CheckCircleOutlined />
-                                            </button>
-                                        </a-tooltip>
+                                            <i class="pi pi-trash"></i>
+                                        </button>
+
+                                        <button
+                                            v-if="!data.activo && permisos?.puede_editar_empresas"
+                                            v-tooltip.top="'Activar empresa'"
+                                            class="btn-action-ultra btn-activate-ultra"
+                                            @click="confirmarActivar(data)"
+                                        >
+                                            <i class="pi pi-check-circle"></i>
+                                        </button>
                                     </div>
                                 </template>
-                            </template>
-                        </a-table>
+                            </Column>
+                        </DataTable>
                     </div>
 
                     <!-- FILTROS INFERIOR -->
@@ -253,116 +229,76 @@
                         <div class="filtros-grid-ultra-full">
                             <div class="filtro-item-ultra">
                                 <InputLabel>Nombre</InputLabel>
-                                <TextInput 
-                                    v-model="filtros.search"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    square
-                                />
+                                <TextInput v-model="filtros.search" @input="aplicarFiltros" placeholder="Buscar..." square />
                             </div>
 
                             <div class="filtro-item-ultra">
                                 <InputLabel>RFC</InputLabel>
-                                <TextInput 
-                                    v-model="filtros.rfc"
-                                    @input="aplicarFiltros"
-                                    placeholder="Buscar..."
-                                    square
-                                />
+                                <TextInput v-model="filtros.rfc" @input="aplicarFiltros" placeholder="Buscar..." square />
                             </div>
 
                             <div class="filtro-item-ultra">
                                 <InputLabel>Tipo</InputLabel>
-                                <a-select
-                                    v-model:value="filtros.tipo_persona"
-                                    @change="aplicarFiltros"
+                                <Select
+                                    v-model="filtros.tipo_persona"
+                                    :options="tipoOptions"
+                                    option-label="label"
+                                    option-value="value"
                                     placeholder="Todos"
-                                    allow-clear
-                                    size="small"
+                                    show-clear
                                     class="filtro-select-ultra"
-                                >
-                                    <a-select-option value="">Todos</a-select-option>
-                                    <a-select-option value="FISICA">Física</a-select-option>
-                                    <a-select-option value="MORAL">Moral</a-select-option>
-                                </a-select>
-                            </div>
-
-                            <div class="filtro-item-ultra">
-                                <InputLabel>Ubicación</InputLabel>
-                                <a-select
-                                    v-model:value="filtros.estado"
                                     @change="aplicarFiltros"
-                                    placeholder="Todos"
-                                    allow-clear
-                                    size="small"
-                                    class="filtro-select-ultra"
-                                    show-search
-                                >
-                                    <a-select-option value="">Todos</a-select-option>
-                                    <a-select-option v-for="estado in estados" :key="estado" :value="estado">
-                                        {{ estado }}
-                                    </a-select-option>
-                                </a-select>
-                            </div>
-
-                            <div class="filtro-item-ultra">
-                                <InputLabel>Contacto</InputLabel>
-                                <TextInput 
-                                    v-model="filtros.contacto"
-                                    @input="aplicarFiltros"
-                                    placeholder="Email/Teléfono..."
-                                    square
                                 />
                             </div>
 
                             <div class="filtro-item-ultra">
-                                <InputLabel>Estado</InputLabel>
-                                <a-select
-                                    v-model:value="filtros.activo"
-                                    @change="aplicarFiltros"
+                                <InputLabel>Ubicación</InputLabel>
+                                <Select
+                                    v-model="filtros.estado"
+                                    :options="estados"
                                     placeholder="Todos"
-                                    allow-clear
-                                    size="small"
+                                    show-clear
+                                    filter
                                     class="filtro-select-ultra"
-                                >
-                                    <a-select-option value="">Todos</a-select-option>
-                                    <a-select-option value="true">Activas</a-select-option>
-                                    <a-select-option value="false">Inactivas</a-select-option>
-                                </a-select>
+                                    @change="aplicarFiltros"
+                                />
+                            </div>
+
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Contacto</InputLabel>
+                                <TextInput v-model="filtros.contacto" @input="aplicarFiltros" placeholder="Email/Teléfono..." square />
+                            </div>
+
+                            <div class="filtro-item-ultra">
+                                <InputLabel>Estado</InputLabel>
+                                <Select
+                                    v-model="filtros.activo"
+                                    :options="activoOptions"
+                                    option-label="label"
+                                    option-value="value"
+                                    placeholder="Todos"
+                                    show-clear
+                                    class="filtro-select-ultra"
+                                    @change="aplicarFiltros"
+                                />
                             </div>
 
                             <div class="filtro-item-ultra filtro-actions">
                                 <InputLabel>Acciones</InputLabel>
-                                <a-button 
-                                    v-if="filtrosActivos"
-                                    @click="limpiarFiltros" 
-                                    size="small"
-                                    class="btn-clear-ultra"
-                                    block
-                                >
-                                    <template #icon>
-                                        <CloseOutlined />
-                                    </template>
+                                <button v-if="filtrosActivos" type="button" @click="limpiarFiltros" class="btn-clear-ultra">
+                                    <i class="pi pi-times"></i>
                                     Limpiar filtros
-                                </a-button>
-                                <a-button 
-                                    v-else
-                                    disabled
-                                    size="small"
-                                    block
-                                    class="btn-no-filtros-ultra"
-                                >
+                                </button>
+                                <button v-else type="button" disabled class="btn-no-filtros-ultra">
                                     <span class="no-filtros-text-ultra">Sin filtros</span>
-                                </a-button>
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Paginación -->
                     <div class="pagination-ultra">
-                        <span class="pagination-info-ultra">
-                            Mostrando <span class="pagination-highlight-ultra">{{ empresas.from || 0 }}</span> a 
-                            <span class="pagination-highlight-ultra">{{ empresas.to || 0 }}</span> de 
+                        <span class="pagination-info-ultra">Mostrando <span class="pagination-highlight-ultra">{{ empresas.from || 0 }}</span> a
+                            <span class="pagination-highlight-ultra">{{ empresas.to || 0 }}</span> de
                             <span class="pagination-highlight-ultra">{{ empresas.total || 0 }}</span> resultados
                         </span>
                         <Pagination :links="empresas.links" />
@@ -376,108 +312,52 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed } from 'vue';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Select from 'primevue/select';
 import Pagination from '@/Components/Pagination.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import { useNotify } from '@/composables/useNotify';
 import axios from 'axios';
-import Swal from 'sweetalert2';
-
-import {
-    PlusOutlined,
-    CloseOutlined,
-    MailOutlined,
-    PhoneOutlined,
-    EyeOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    CheckCircleOutlined,
-    CloseCircleOutlined,
-    TeamOutlined,
-} from '@ant-design/icons-vue';
-
-import {
-    Button as AButton,
-    Row as ARow,
-    Col as ACol,
-    Table as ATable,
-    Tag as ATag,
-    Select as ASelect,
-    Tooltip as ATooltip,
-    Avatar as AAvatar,
-} from 'ant-design-vue';
-
-const ASelectOption = ASelect.Option;
 
 const page = usePage();
 const permisos = computed(() => page.props.permisos || {});
+const notify = useNotify();
 
 const props = defineProps({
     empresas: Object,
     stats: Object,
     estados: Array,
     filtros: Object,
-    flash: Object
+    flash: Object,
 });
 
 const loading = ref(false);
 
-// Columnas de la tabla
-const columns = [
-    {
-        title: 'Empresa',
-        key: 'empresa',
-        width: '20%',
-        fixed: 'left'
-    },
-    {
-        title: 'RFC',
-        dataIndex: 'rfc',
-        key: 'rfc',
-        width: '14%'
-    },
-    {
-        title: 'Tipo',
-        key: 'tipo',
-        width: '10%'
-    },
-    {
-        title: 'Ubicación',
-        key: 'ubicacion',
-        width: '16%'
-    },
-    {
-        title: 'Contacto',
-        key: 'contacto',
-        width: '18%'
-    },
-    {
-        title: 'Estado',
-        key: 'estado',
-        width: '10%'
-    },
-    {
-        title: 'Acciones',
-        key: 'acciones',
-        width: '12%',
-        align: 'center',
-        fixed: 'right'
-    }
+const tipoOptions = [
+    { label: 'Física', value: 'FISICA' },
+    { label: 'Moral', value: 'MORAL' },
 ];
 
-// Filtros
+const activoOptions = [
+    { label: 'Activas', value: 'true' },
+    { label: 'Inactivas', value: 'false' },
+];
+
 const filtros = ref({
     search: props.filtros?.search || '',
     rfc: props.filtros?.rfc || '',
-    tipo_persona: props.filtros?.tipo_persona || '',
-    estado: props.filtros?.estado || '',
+    tipo_persona: props.filtros?.tipo_persona || null,
+    estado: props.filtros?.estado || null,
     contacto: props.filtros?.contacto || '',
-    activo: props.filtros?.activo || ''
+    activo: props.filtros?.activo || null,
 });
 
-const filtrosActivos = computed(() => {
-    return Object.values(filtros.value).some(value => value !== '' && value !== null && value !== undefined);
-});
+const filtrosActivos = computed(() =>
+    Object.values(filtros.value).some(value => value !== '' && value !== null && value !== undefined),
+);
 
 let timeoutId = null;
 const aplicarFiltros = () => {
@@ -490,13 +370,11 @@ const aplicarFiltros = () => {
                 params[key] = value;
             }
         }
-        
+
         router.get(route('empresas.index'), params, {
             preserveState: true,
             replace: true,
-            onFinish: () => {
-                loading.value = false;
-            }
+            onFinish: () => { loading.value = false; },
         });
     }, 300);
 };
@@ -505,568 +383,71 @@ const limpiarFiltros = () => {
     filtros.value = {
         search: '',
         rfc: '',
-        tipo_persona: '',
-        estado: '',
+        tipo_persona: null,
+        estado: null,
         contacto: '',
-        activo: ''
+        activo: null,
     };
     aplicarFiltros();
 };
 
-// ============================================
-// PROCESAR FLASH CON SWEETALERT2
-// ============================================
-const procesarFlash = () => {
-    if (!props.flash) return;
-    
-    const tipoMap = {
-        success: { icon: 'success', title: 'Éxito' },
-        error: { icon: 'error', title: 'Error' },
-        updated: { icon: 'success', title: 'Actualizado' },
-        created: { icon: 'success', title: 'Creado' },
-        deleted: { icon: 'success', title: 'Eliminado' },
-        info: { icon: 'info', title: 'Información' },
-        warning: { icon: 'warning', title: 'Advertencia' }
-    };
-
-    for (const [key, message] of Object.entries(props.flash)) {
-        if (message && tipoMap[key]) {
-            Swal.fire({
-                title: tipoMap[key].title,
-                text: message,
-                icon: tipoMap[key].icon,
-                confirmButtonColor: tipoMap[key].icon === 'success' ? '#1a3a5c' : '#ef4444',
-                timer: 3000,
-                timerProgressBar: true
-            });
-            break;
-        }
-    }
-};
-
-watch(() => props.flash, (newFlash) => {
-    if (newFlash && Object.keys(newFlash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-}, { deep: true, immediate: true });
-
-onMounted(() => {
-    if (props.flash && Object.keys(props.flash).length > 0) {
-        nextTick(() => {
-            procesarFlash();
-        });
-    }
-});
-
-// ============================================
-// FUNCIONES PARA ACTIVAR/DESACTIVAR
-// ============================================
 const confirmarDesactivar = (empresa) => {
     if (!permisos.value?.puede_editar_empresas) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Sin permisos',
-            text: 'No tienes permisos para desactivar empresas. Contacta al administrador.',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error('No tienes permisos para desactivar empresas. Contacta al administrador.', 'Sin permisos');
         return;
     }
 
     const nombre = empresa.nombre_empresa;
-    
-    Swal.fire({
-        title: 'Desactivar empresa',
-        html: `
-            <div class="swal-custom-content">
-                <div class="swal-persona-info">
-                    <div class="swal-avatar" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                        <span>${nombre.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <p class="swal-persona-nombre">${nombre}</p>
-                </div>
-                <div class="swal-mensaje">
-                    <p class="swal-texto-principal">
-                        <span class="swal-icon-warning">!</span>
-                        Esta empresa será <strong>desactivada</strong>
-                    </p>
-                    <p class="swal-texto-secundario">Podrás reactivarla en cualquier momento</p>
-                </div>
-                ${empresa.usuarios_count > 0 || empresa.polizas_count > 0 ? `
-                    <div class="swal-advertencia">
-                        <span class="swal-icono-advertencia">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
-                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <span>Tiene ${empresa.usuarios_count > 0 ? empresa.usuarios_count + ' usuario(s)' : ''} 
-                        ${empresa.usuarios_count > 0 && empresa.polizas_count > 0 ? ' y ' : ''} 
-                        ${empresa.polizas_count > 0 ? empresa.polizas_count + ' póliza(s)' : ''} asociados</span>
-                    </div>
-                ` : ''}
-            </div>
-        `,
-        icon: 'warning',
-        iconColor: '#ef4444',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, desactivar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true,
-        customClass: {
-            popup: 'swal-premium-popup',
-            confirmButton: 'swal-premium-confirm',
-            cancelButton: 'swal-premium-cancel'
-        },
-        didOpen: () => {
-            agregarEstilosSwal();
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            procesarCambioEstado(empresa, false);
-        }
+    let extra = '';
+    if (empresa.usuarios_count > 0 || empresa.polizas_count > 0) {
+        const partes = [];
+        if (empresa.usuarios_count > 0) partes.push(`${empresa.usuarios_count} usuario(s)`);
+        if (empresa.polizas_count > 0) partes.push(`${empresa.polizas_count} póliza(s)`);
+        extra = ` Tiene ${partes.join(' y ')} asociados.`;
+    }
+
+    notify.confirmDelete({
+        header: 'Desactivar empresa',
+        message: `La empresa "${nombre}" será desactivada. Podrás reactivarla en cualquier momento.${extra}`,
+        acceptLabel: 'Sí, desactivar',
+        accept: () => procesarCambioEstado(empresa, false),
     });
 };
 
 const confirmarActivar = (empresa) => {
     if (!permisos.value?.puede_editar_empresas) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Sin permisos',
-            text: 'No tienes permisos para activar empresas. Contacta al administrador.',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error('No tienes permisos para activar empresas. Contacta al administrador.', 'Sin permisos');
         return;
     }
 
-    const nombre = empresa.nombre_empresa;
-    
-    Swal.fire({
-        title: 'Activar empresa',
-        html: `
-            <div class="swal-custom-content">
-                <div class="swal-persona-info">
-                    <div class="swal-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">
-                        <span>${nombre.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <p class="swal-persona-nombre">${nombre}</p>
-                </div>
-                <div class="swal-mensaje">
-                    <p class="swal-texto-principal">
-                        <span class="swal-icon-check">✓</span>
-                        Esta empresa será <strong>activada</strong>
-                    </p>
-                    <p class="swal-texto-secundario">Podrás desactivarla en cualquier momento</p>
-                </div>
-            </div>
-        `,
-        icon: 'success',
-        iconColor: '#10b981',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, activar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true,
-        customClass: {
-            popup: 'swal-premium-popup',
-            confirmButton: 'swal-premium-confirm',
-            cancelButton: 'swal-premium-cancel'
-        },
-        didOpen: () => {
-            agregarEstilosSwal();
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            procesarCambioEstado(empresa, true);
-        }
+    notify.confirmAction({
+        header: 'Activar empresa',
+        message: `La empresa "${empresa.nombre_empresa}" será activada. Podrás desactivarla en cualquier momento.`,
+        acceptLabel: 'Sí, activar',
+        acceptSeverity: 'success',
+        icon: 'pi pi-check-circle',
+        accept: () => procesarCambioEstado(empresa, true),
     });
 };
 
 const procesarCambioEstado = (empresa, nuevoEstado) => {
     const nombre = empresa.nombre_empresa;
     const accionTexto = nuevoEstado ? 'activada' : 'desactivada';
-    
-    Swal.fire({
-        title: 'Procesando...',
-        html: `
-            <div class="swal-loading-content">
-                <div class="swal-spinner"></div>
-                <p class="swal-loading-text">${nuevoEstado ? 'Activando' : 'Desactivando'} empresa</p>
-                <p class="swal-loading-subtext">Por favor espera un momento</p>
-            </div>
-        `,
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        customClass: {
-            popup: 'swal-loading-popup'
-        },
-        didOpen: () => {
-            agregarEstilosLoading();
-        }
-    });
-    
-    const url = route('empresas.toggle-active', empresa.id);
-    
-    axios.post(url)
-        .then(response => {
-            Swal.fire({
-                title: '¡Completado!',
-                html: `
-                    <div class="swal-success-content">
-                        <div class="swal-success-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                        <p class="swal-success-text">Empresa <strong>${nombre}</strong></p>
-                        <p class="swal-success-subtext">${accionTexto} exitosamente</p>
-                    </div>
-                `,
-                icon: 'success',
-                iconColor: '#10b981',
-                confirmButtonText: 'Aceptar',
-                confirmButtonColor: '#1a3a5c',
-                timer: 3000,
-                timerProgressBar: true,
-                customClass: {
-                    popup: 'swal-success-popup',
-                    confirmButton: 'swal-success-confirm'
-                },
-                didOpen: () => {
-                    agregarEstilosSuccess();
-                }
-            }).then(() => {
-                router.reload();
-            });
+
+    loading.value = true;
+    axios.post(route('empresas.toggle-active', empresa.id))
+        .then(() => {
+            notify.success(`Empresa "${nombre}" ${accionTexto} exitosamente`);
+            router.reload({ onFinish: () => { loading.value = false; } });
         })
         .catch(error => {
-            console.error('Error detallado:', error);
-            const errorMsg = error.response?.data?.flash?.error || 
-                           error.response?.data?.message || 
-                           error.message || 
-                           'Error al cambiar el estado';
-            
-            Swal.fire({
-                title: 'Error',
-                html: `
-                    <div class="swal-error-content">
-                        <div class="swal-error-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                        <p class="swal-error-text">${errorMsg}</p>
-                        <p class="swal-error-subtext">Intenta nuevamente o contacta al administrador</p>
-                    </div>
-                `,
-                icon: 'error',
-                iconColor: '#ef4444',
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '#1a3a5c',
-                customClass: {
-                    popup: 'swal-error-popup',
-                    confirmButton: 'swal-error-confirm'
-                },
-                didOpen: () => {
-                    agregarEstilosError();
-                }
-            });
+            loading.value = false;
+            const errorMsg = error.response?.data?.flash?.error
+                || error.response?.data?.message
+                || error.message
+                || 'Error al cambiar el estado';
+            notify.error(errorMsg);
         });
-};
-
-// ============================================
-// ESTILOS PARA SWEETALERT2
-// ============================================
-const agregarEstilosSwal = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-premium-popup {
-            border-radius: 20px !important;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3) !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-        .swal-custom-content {
-            padding: 0;
-        }
-        .swal-persona-info {
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            padding: 24px 32px 20px;
-            text-align: center;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .swal-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        }
-        .swal-persona-nombre {
-            font-size: 18px;
-            font-weight: 600;
-            color: #0f172a;
-            margin: 0 0 4px 0;
-        }
-        .swal-persona-estado {
-            font-size: 13px;
-            font-weight: 500;
-            padding: 4px 16px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .swal-persona-estado.activo {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-        .swal-persona-estado.inactivo {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-        .swal-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .swal-status-dot.active {
-            background: #22c55e;
-        }
-        .swal-status-dot.inactive {
-            background: #ef4444;
-        }
-        .swal-mensaje {
-            padding: 20px 32px 12px;
-            text-align: center;
-        }
-        .swal-texto-principal {
-            font-size: 16px;
-            color: #0f172a;
-            margin: 0 0 6px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .swal-texto-principal strong {
-            color: #1a3a5c;
-        }
-        .swal-icon-warning {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            background: #fef2f2;
-            color: #ef4444;
-            border-radius: 50%;
-            font-weight: 700;
-            line-height: 24px;
-            text-align: center;
-            font-size: 14px;
-            border: 2px solid #ef4444;
-        }
-        .swal-icon-check {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            background: #dcfce7;
-            color: #10b981;
-            border-radius: 50%;
-            font-weight: 700;
-            line-height: 24px;
-            text-align: center;
-            font-size: 14px;
-            border: 2px solid #10b981;
-        }
-        .swal-texto-secundario {
-            font-size: 14px;
-            color: #94a3b8;
-            margin: 0;
-        }
-        .swal-advertencia {
-            margin: 12px 32px 20px;
-            padding: 12px 16px;
-            background: #fef2f2;
-            border-radius: 10px;
-            border-left: 4px solid #ef4444;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            color: #991b1b;
-        }
-        .swal-icono-advertencia {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .swal-premium-confirm {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-confirm:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-        }
-        .swal-premium-cancel {
-            padding: 10px 28px !important;
-            font-weight: 600 !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease !important;
-        }
-        .swal-premium-cancel:hover {
-            transform: translateY(-2px);
-            background: #f1f5f9 !important;
-        }
-        .swal2-actions {
-            padding: 0 32px 24px !important;
-            gap: 12px !important;
-        }
-        .swal2-timer-progress-bar {
-            height: 4px !important;
-            background: linear-gradient(90deg, #1a3a5c, #2c5282) !important;
-        }
-    `;
-    document.head.appendChild(style);
-};
-
-const agregarEstilosLoading = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-loading-popup {
-            border-radius: 20px !important;
-            padding: 2rem !important;
-        }
-        .swal-loading-content {
-            text-align: center;
-        }
-        .swal-spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #1a3a5c;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 16px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .swal-loading-text {
-            font-size: 16px;
-            font-weight: 600;
-            color: #0f172a;
-            margin: 0 0 4px 0;
-        }
-        .swal-loading-subtext {
-            font-size: 14px;
-            color: #94a3b8;
-            margin: 0;
-        }
-    `;
-    document.head.appendChild(style);
-};
-
-const agregarEstilosSuccess = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-success-popup {
-            border-radius: 20px !important;
-        }
-        .swal-success-content {
-            text-align: center;
-            padding: 8px 0;
-        }
-        .swal-success-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #10b981, #059669);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 12px;
-        }
-        .swal-success-icon svg {
-            width: 28px;
-            height: 28px;
-        }
-        .swal-success-text {
-            font-size: 16px;
-            color: #0f172a;
-            margin: 0 0 4px 0;
-        }
-        .swal-success-text strong {
-            color: #1a3a5c;
-        }
-        .swal-success-subtext {
-            font-size: 14px;
-            color: #94a3b8;
-            margin: 0;
-        }
-        .swal-success-confirm {
-            padding: 10px 32px !important;
-            border-radius: 10px !important;
-            font-weight: 600 !important;
-        }
-    `;
-    document.head.appendChild(style);
-};
-
-const agregarEstilosError = () => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .swal-error-popup {
-            border-radius: 20px !important;
-        }
-        .swal-error-content {
-            text-align: center;
-            padding: 8px 0;
-        }
-        .swal-error-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 12px;
-        }
-        .swal-error-icon svg {
-            width: 28px;
-            height: 28px;
-        }
-        .swal-error-text {
-            font-size: 16px;
-            color: #0f172a;
-            margin: 0 0 4px 0;
-        }
-        .swal-error-subtext {
-            font-size: 14px;
-            color: #94a3b8;
-            margin: 0;
-        }
-        .swal-error-confirm {
-            padding: 10px 32px !important;
-            border-radius: 10px !important;
-            font-weight: 600 !important;
-        }
-    `;
-    document.head.appendChild(style);
 };
 </script>
 
@@ -1143,25 +524,44 @@ const agregarEstilosError = () => {
 }
 
 .btn-nueva-empresa-premium {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%) !important;
-    border: none !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    padding: 0 24px !important;
-    height: 40px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%);
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    font-weight: 600;
+    padding: 0 24px;
+    height: 40px;
+    cursor: pointer;
     box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    font-size: 14px !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
     letter-spacing: 0.3px;
 }
 
 .btn-nueva-empresa-premium:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 30px rgba(26, 58, 92, 0.4) !important;
-    background: linear-gradient(135deg, #2c5282 0%, #1a3a5c 100%) !important;
+    box-shadow: 0 8px 30px rgba(26, 58, 92, 0.4);
+    background: linear-gradient(135deg, #2c5282 0%, #1a3a5c 100%);
 }
 
 /* ===== STATS CARDS ===== */
+.stats-grid-empresas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 992px) {
+    .stats-grid-empresas { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+    .stats-grid-empresas { grid-template-columns: 1fr; }
+}
+
 .stats-card-enhanced {
     background: #ffffff;
     border-radius: 14px;
@@ -1281,16 +681,15 @@ const agregarEstilosError = () => {
 }
 
 .filter-tag-ultra {
-    border-radius: 30px !important;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
-    border: none !important;
-    color: #1a3a5c !important;
-    font-weight: 600 !important;
-    padding: 2px 14px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    font-size: 12px !important;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1a3a5c;
+    font-weight: 600;
+    padding: 2px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
 }
 
 .filter-dot-active {
@@ -1303,65 +702,46 @@ const agregarEstilosError = () => {
 }
 
 .btn-limpiar-ultra {
-    border-radius: 4px !important;
-    color: #64748b !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    height: 34px !important;
-    font-weight: 600 !important;
-    background: #ffffff !important;
-    font-size: 12px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 4px;
+    color: #64748b;
+    border: 2px solid #d1d5db;
+    transition: all 0.3s ease;
+    height: 34px;
+    padding: 0 14px;
+    font-weight: 600;
+    background: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
 }
 
 .btn-limpiar-ultra:hover {
-    color: #1a3a5c !important;
-    border-color: #1a3a5c !important;
-    background: #f8faff !important;
+    color: #1a3a5c;
+    border-color: #1a3a5c;
+    background: #f8faff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1) !important;
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1);
 }
 
-/* ===== CONTENEDOR DE TABLA CON SCROLL ===== */
+/* ===== CONTENEDOR DE TABLA ===== */
 .table-scroll-container-full {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: auto;
     border-radius: 8px;
     border: 1px solid #f1f5f9;
-    min-height: 180px;
-    max-height: 420px;
+    overflow: hidden;
 }
 
-.table-scroll-container-full::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+.tabla-vacia {
+    padding: 32px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
 }
 
-.table-scroll-container-full::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.table-scroll-container-full::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.table-scroll-container-full::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* ===== TABLA ANT DESIGN ===== */
-.empresa-table-ultra {
-    width: 100%;
-}
-
-.empresa-table-ultra :deep(.ant-table) {
-    border-radius: 0;
-}
-
-.empresa-table-ultra :deep(.ant-table-thead > tr > th) {
-    background: linear-gradient(135deg, #f1f5f9, #e8edf2) !important;
+/* ===== DATATABLE ===== */
+.empresa-table-ultra :deep(.p-datatable-thead > tr > th) {
+    background: linear-gradient(135deg, #f1f5f9, #e8edf2);
     font-weight: 700;
     color: #1e293b;
     border-bottom: 2px solid #d1d5db;
@@ -1370,35 +750,29 @@ const agregarEstilosError = () => {
     letter-spacing: 0.5px;
     text-transform: uppercase;
     white-space: nowrap;
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 
-.empresa-table-ultra :deep(.ant-table-thead > tr > th:first-child) {
-    border-radius: 0 !important;
-}
-
-.empresa-table-ultra :deep(.ant-table-thead > tr > th:last-child) {
-    border-radius: 0 !important;
-}
-
-.empresa-table-ultra :deep(.ant-table-tbody > tr) {
+.empresa-table-ultra :deep(.p-datatable-tbody > tr) {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.empresa-table-ultra :deep(.ant-table-tbody > tr:hover) {
-    background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
+.empresa-table-ultra :deep(.p-datatable-tbody > tr:hover) {
+    background: linear-gradient(90deg, #f8faff, #f0f7ff);
 }
 
-.empresa-table-ultra :deep(.ant-table-tbody > tr:last-child td) {
+.empresa-table-ultra :deep(.p-datatable-tbody > tr:last-child > td) {
     border-bottom: none;
 }
 
-.empresa-table-ultra :deep(.ant-table-cell) {
+.empresa-table-ultra :deep(.p-datatable-tbody > tr > td) {
     padding: 8px 12px;
     border-bottom: 1px solid #f1f5f9;
     font-size: 13px;
+}
+
+.empresa-table-ultra :deep(.p-datatable-tbody > tr > td.p-frozen-column),
+.empresa-table-ultra :deep(.p-datatable-thead > tr > th.p-frozen-column) {
+    background: #ffffff;
 }
 
 /* ===== CELDAS ===== */
@@ -1413,9 +787,15 @@ const agregarEstilosError = () => {
 }
 
 .avatar-ultra {
-    border-radius: 8px !important;
-    font-weight: 700 !important;
-    font-size: 14px !important;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
@@ -1460,11 +840,6 @@ const agregarEstilosError = () => {
     margin: 0;
 }
 
-.tipo-cell-ultra {
-    display: flex;
-    align-items: center;
-}
-
 .tipo-badge {
     display: inline-block;
     padding: 2px 12px;
@@ -1483,11 +858,6 @@ const agregarEstilosError = () => {
 .tipo-badge.moral {
     background: #fce7f3;
     color: #9d174d;
-}
-
-.ubicacion-cell-ultra {
-    display: flex;
-    align-items: center;
 }
 
 .ubicacion-text-ultra {
@@ -1525,18 +895,13 @@ const agregarEstilosError = () => {
 }
 
 .contacto-icon-ultra {
-    font-size: 12px !important;
+    font-size: 12px;
 }
 
 .contacto-vacio-ultra {
     color: #cbd5e1;
     font-size: 12px;
     font-style: italic;
-}
-
-.estado-cell-ultra {
-    display: flex;
-    align-items: center;
 }
 
 .estado-badge-ultra {
@@ -1602,15 +967,6 @@ const agregarEstilosError = () => {
     transform: translateY(-2px) scale(1.05);
 }
 
-.btn-view-ultra {
-    color: #3b82f6;
-}
-
-.btn-view-ultra:hover {
-    background: #eff6ff;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-}
-
 .btn-edit-ultra {
     color: #eab308;
 }
@@ -1658,9 +1014,7 @@ const agregarEstilosError = () => {
         grid-template-columns: 1fr 1fr 1fr 1fr;
         gap: 6px;
     }
-    .filtro-actions {
-        grid-column: 1 / -1;
-    }
+    .filtro-actions { grid-column: 1 / -1; }
 }
 
 @media (max-width: 992px) {
@@ -1668,9 +1022,7 @@ const agregarEstilosError = () => {
         grid-template-columns: 1fr 1fr 1fr;
         gap: 6px;
     }
-    .filtro-actions {
-        grid-column: 1 / -1;
-    }
+    .filtro-actions { grid-column: 1 / -1; }
 }
 
 @media (max-width: 768px) {
@@ -1678,9 +1030,7 @@ const agregarEstilosError = () => {
         grid-template-columns: 1fr 1fr;
         gap: 6px;
     }
-    .filtro-actions {
-        grid-column: 1 / -1;
-    }
+    .filtro-actions { grid-column: 1 / -1; }
 }
 
 @media (max-width: 480px) {
@@ -1688,9 +1038,7 @@ const agregarEstilosError = () => {
         grid-template-columns: 1fr;
         gap: 4px;
     }
-    .filtro-actions {
-        grid-column: 1;
-    }
+    .filtro-actions { grid-column: 1; }
 }
 
 .filtro-item-ultra {
@@ -1725,60 +1073,69 @@ const agregarEstilosError = () => {
     min-width: 80px;
 }
 
+/* ===== SELECT PRIMEVUE ===== */
 .filtro-select-ultra {
     width: 100% !important;
 }
 
-.filtro-select-ultra :deep(.ant-select-selector) {
-    border-radius: 4px !important;
-    border: 2px solid #d1d5db !important;
-    transition: all 0.3s ease !important;
-    background: #ffffff !important;
-    height: 34px !important;
-    font-size: 12px !important;
-    width: 100% !important;
-    box-shadow: none !important;
+.filtro-select-ultra.p-select {
+    border-radius: 4px;
+    border: 2px solid #d1d5db;
+    background: #ffffff;
+    height: 34px;
+    box-shadow: none;
+    transition: all 0.3s ease;
 }
 
-.filtro-select-ultra :deep(.ant-select-selector:hover) {
-    border-color: #1a3a5c !important;
-    background: #fafbfc !important;
+.filtro-select-ultra.p-select:hover {
+    border-color: #1a3a5c;
+    background: #fafbfc;
 }
 
-.filtro-select-ultra :deep(.ant-select-focused .ant-select-selector) {
-    border-color: #1a3a5c !important;
-    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1) !important;
-    background: #fafbfc !important;
+.filtro-select-ultra.p-select.p-focus {
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
+    background: #fafbfc;
 }
 
-.filtro-select-ultra :deep(.ant-select-selection-item) {
-    line-height: 32px !important;
+.filtro-select-ultra :deep(.p-select-label) {
+    font-size: 12px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
 }
 
 .btn-clear-ultra {
-    border-radius: 4px !important;
-    background: linear-gradient(135deg, #1a3a5c, #2c5282) !important;
-    border: none !important;
-    color: white !important;
-    height: 34px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    transition: all 0.3s ease !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border: none;
+    color: white;
+    height: 34px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(26, 58, 92, 0.2);
 }
 
 .btn-clear-ultra:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
 }
 
 .btn-no-filtros-ultra {
-    border-radius: 4px !important;
-    background: #f8fafc !important;
-    border: 2px dashed #d1d5db !important;
-    cursor: not-allowed !important;
-    height: 34px !important;
-    font-size: 12px !important;
+    width: 100%;
+    border-radius: 4px;
+    background: #f8fafc;
+    border: 2px dashed #d1d5db;
+    cursor: not-allowed;
+    height: 34px;
+    font-size: 12px;
 }
 
 .no-filtros-text-ultra {
@@ -1830,47 +1187,14 @@ const agregarEstilosError = () => {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-    .table-wrapper-premium {
-        padding: 12px;
-    }
-    
-    .table-scroll-container-full {
-        border-radius: 6px;
-        max-height: 300px;
-    }
-    
-    .header-premium {
-        padding: 16px;
-    }
-    
-    .header-title-premium {
-        font-size: 18px;
-    }
-    
-    .header-icon-wrapper {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .header-icon-svg {
-        width: 20px;
-        height: 20px;
-    }
-    
-    .stats-card-enhanced-value {
-        font-size: 20px;
-    }
-    
-    .stats-card-enhanced-icon {
-        width: 38px;
-        height: 38px;
-    }
-    
-    .stats-card-enhanced-svg {
-        width: 18px;
-        height: 18px;
-    }
+    .table-wrapper-premium { padding: 12px; }
+    .header-premium { padding: 16px; }
+    .header-title-premium { font-size: 18px; }
+    .header-icon-wrapper { width: 40px; height: 40px; }
+    .header-icon-svg { width: 20px; height: 20px; }
+    .stats-card-enhanced-value { font-size: 20px; }
+    .stats-card-enhanced-icon { width: 38px; height: 38px; }
+    .stats-card-enhanced-svg { width: 18px; height: 18px; }
 }
 </style>

@@ -6,7 +6,7 @@
                 <div v-if="empresas.length > 0" class="empresa-selector-premium">
                     <div class="empresa-selector-content">
                         <div class="empresa-selector-label">
-                            <ShopOutlined style="font-size: 16px; color: #667eea;" />
+                            <i class="pi pi-building" style="font-size: 16px; color: #1a3a5c;"></i>
                             <span>Empresa</span>
                         </div>
                         <div class="empresa-selector-field">
@@ -74,34 +74,30 @@
                             />
                         </div>
                         <div class="fecha-item fecha-actions">
-                            <a-button size="small" class="btn-hoy-premium" @click="setFechaHoy">
-                                <template #icon><CalendarOutlined /></template>
+                            <button type="button" class="btn-hoy-premium" @click="setFechaHoy">
+                                <i class="pi pi-calendar"></i>
                                 Hoy
-                            </a-button>
-                            <a-button 
-                                v-if="filtros.fecha_desde || filtros.fecha_hasta" 
-                                size="small" 
+                            </button>
+                            <button
+                                v-if="filtros.fecha_desde || filtros.fecha_hasta"
+                                type="button"
                                 class="btn-limpiar-fechas"
                                 @click="limpiarFechas"
                             >
-                                <template #icon><CloseOutlined /></template>
+                                <i class="pi pi-times"></i>
                                 Limpiar
-                            </a-button>
+                            </button>
                         </div>
                         <div class="filtros-separator"></div>
                         <div class="fecha-item fecha-actions-export">
-                            <a-button size="small" class="btn-export-excel-mini" @click="exportarExcel">
-                                <template #icon><FileExcelOutlined /></template>
+                            <button type="button" class="btn-export-excel-mini" @click="exportarExcel">
+                                <i class="pi pi-file-excel"></i>
                                 Excel
-                            </a-button>
-                            <a-button size="small" class="btn-resultados-mini" @click="abrirModalCuentasResultados">
-                                <template #icon>
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                    </svg>
-                                </template>
+                            </button>
+                            <button type="button" class="btn-resultados-mini" @click="abrirModalCuentasResultados">
+                                <i class="pi pi-chart-bar"></i>
                                 Resultados
-                            </a-button>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -111,58 +107,50 @@
                     <div class="tabla-principal-premium">
                         <div class="table-header-ultra">
                             <div class="table-header-left-ultra">
-                                <span class="table-title-premium">
-                                    Movimientos por {{ vistaActual === 'por_cuenta' ? 'Cuenta' : 'Persona' }}
+                                <span class="table-title-premium">Movimientos por {{ vistaActual === 'por_cuenta' ? 'Cuenta' : 'Persona' }}
                                 </span>
-                                <a-tag v-if="filtrosActivos" color="blue" class="filter-tag-ultra">
+                                <span v-if="filtrosActivos" class="filter-tag-ultra">
                                     <span class="filter-dot-active"></span>
                                     Filtros activos
-                                </a-tag>
+                                </span>
                             </div>
                             <div class="table-header-right-ultra">
-                                <span class="total-registros-premium">
-                                    Total: <strong>{{ reporteData.length }}</strong> registros
+                                <span class="total-registros-premium">Total: <strong>{{ reporteData.length }}</strong> registros
                                 </span>
                             </div>
                         </div>
                         
                         <!-- TABLA PRINCIPAL -->
                         <div class="table-scroll-container">
-                            <a-table
-                                :columns="columnasPrincipales"
-                                :data-source="datosFiltrados"
-                                :pagination="false"
+                            <DataTable
+                                :value="datosFiltrados"
                                 :loading="loading"
-                                row-key="id"
+                                data-key="id"
+                                scrollable
+                                scroll-height="400px"
+                                row-hover
+                                table-style="min-width: 55rem"
                                 class="reporte-table-ultra"
-                                size="middle"
-                                :scroll="{ x: 'max-content', y: 400 }"
-                                sticky
-                                @row-click="onRowClick"
+                                @row-click="(e) => onRowClick(e.data)"
                             >
-                                <template #bodyCell="{ column, record }">
-                                    <template v-if="column.key === 'codigo'">
-                                        <span class="codigo-text-ultra">{{ record.codigo || '---' }}</span>
+                                <template #empty><div class="tabla-vacia">Sin registros.</div></template>
+                                <Column
+                                    v-for="col in columnasPrincipales"
+                                    :key="col.key"
+                                    :header="col.title"
+                                    :style="{ width: col.width, textAlign: col.align || 'left' }"
+                                    :frozen="col.fixed === 'left'"
+                                >
+                                    <template #body="{ data: record }">
+                                        <span v-if="col.key === 'codigo'" class="codigo-text-ultra">{{ record.codigo || '---' }}</span>
+                                        <span v-else-if="col.key === 'nombre'" class="nombre-text-ultra clickable" @click="onRowClick(record)">{{ record.nombre || '---' }}</span>
+                                        <span v-else-if="col.key === 'persona'" class="persona-text-ultra">{{ record.persona || '---' }}</span>
+                                        <span v-else-if="col.key === 'fondeo'" class="fondeo-text-ultra">{{ record.fondeo || '---' }}</span>
+                                        <span v-else-if="col.key === 'ingreso'" class="monto-text-ultra ingreso">${{ formatNumber(record.ingreso || 0) }}</span>
+                                        <span v-else-if="col.key === 'egreso'" class="monto-text-ultra egreso">${{ formatNumber(record.egreso || 0) }}</span>
                                     </template>
-                                    <template v-if="column.key === 'nombre'">
-                                        <span class="nombre-text-ultra clickable" @click="onRowClick(record)">
-                                            {{ record.nombre || '---' }}
-                                        </span>
-                                    </template>
-                                    <template v-if="column.key === 'persona'">
-                                        <span class="persona-text-ultra">{{ record.persona || '---' }}</span>
-                                    </template>
-                                    <template v-if="column.key === 'fondeo'">
-                                        <span class="fondeo-text-ultra">{{ record.fondeo || '---' }}</span>
-                                    </template>
-                                    <template v-if="column.key === 'ingreso'">
-                                        <span class="monto-text-ultra ingreso">${{ formatNumber(record.ingreso || 0) }}</span>
-                                    </template>
-                                    <template v-if="column.key === 'egreso'">
-                                        <span class="monto-text-ultra egreso">${{ formatNumber(record.egreso || 0) }}</span>
-                                    </template>
-                                </template>
-                            </a-table>
+                                </Column>
+                            </DataTable>
                         </div>
                         
                         <!-- FILTROS INFERIOR - TABLA SEPARADA CON MISMOS ANCHOS -->
@@ -229,19 +217,18 @@
                                         <td style="width: 120px; padding: 0 4px; text-align: right;">
                                             <div class="filtro-item-ultra">
                                                 <InputLabel>Acciones</InputLabel>
-                                                <button 
-                                                    v-if="filtrosTablaActivos" 
-                                                    class="btn-clear-ultra" 
+                                                <button
+                                                    v-if="filtrosTablaActivos"
+                                                    class="btn-clear-ultra"
                                                     @click="limpiarFiltrosTabla"
                                                 >
-                                                    <CloseOutlined /> Limpiar
+                                                    <i class="pi pi-times"></i> Limpiar
                                                 </button>
                                                 <button 
                                                     v-else
                                                     class="btn-no-filtros-ultra"
                                                     disabled
-                                                >
-                                                    Sin filtros
+                                                >Sin filtros
                                                 </button>
                                             </div>
                                         </td>
@@ -274,37 +261,40 @@
                                 <span class="table-title-premium">Cuentas Fondeadoras - Saldos</span>
                             </div>
                             <div class="table-header-right-ultra">
-                                <span class="total-registros-premium">
-                                    Total disponible: <strong class="total-disponible">${{ formatNumber(totalDisponible) }}</strong>
+                                <span class="total-registros-premium">Total disponible: <strong class="total-disponible">${{ formatNumber(totalDisponible) }}</strong>
                                 </span>
                             </div>
                         </div>
                         <div class="table-scroll-container">
-                            <a-table
-                                :columns="columnasFondeadoras"
-                                :data-source="reporteFondeadoras"
-                                :pagination="false"
+                            <DataTable
+                                :value="reporteFondeadoras"
                                 :loading="loading"
-                                row-key="id_cuenta"
+                                data-key="id_cuenta"
+                                scrollable
+                                scroll-height="200px"
+                                row-hover
+                                table-style="min-width: 40rem"
                                 class="reporte-table-ultra"
-                                size="middle"
-                                :scroll="{ x: 'max-content', y: 200 }"
-                                sticky
                             >
-                                <template #bodyCell="{ column, record }">
-                                    <template v-if="column.key === 'codigo'">
+                                <template #empty><div class="tabla-vacia">Sin cuentas fondeadoras.</div></template>
+                                <Column header="Código" style="width: 120px">
+                                    <template #body="{ data: record }">
                                         <span class="codigo-text-ultra">{{ record.codigo_cuenta || '---' }}</span>
                                     </template>
-                                    <template v-if="column.key === 'nombre'">
+                                </Column>
+                                <Column header="Nombre de la Cuenta" style="width: 300px">
+                                    <template #body="{ data: record }">
                                         <span class="nombre-text-ultra">{{ record.nombre_cuenta || '---' }}</span>
                                     </template>
-                                    <template v-if="column.key === 'saldo'">
+                                </Column>
+                                <Column header="Saldo Disponible" style="width: 180px; text-align: right">
+                                    <template #body="{ data: record }">
                                         <span class="monto-text-ultra" :class="record.saldo >= 0 ? 'ingreso' : 'egreso'">
                                             ${{ formatNumber(record.saldo || 0) }}
                                         </span>
                                     </template>
-                                </template>
-                            </a-table>
+                                </Column>
+                            </DataTable>
                         </div>
                         <div class="totales-fondeadoras-wrapper">
                             <div class="totales-fondeadoras-container">
@@ -319,7 +309,7 @@
 
                 <div v-else class="reporte-wrapper-premium">
                     <div class="text-center py-12">
-                        <div class="text-6xl mb-4">🏢</div>
+                        <i class="pi pi-building empty-state-icon"></i>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No tienes empresas asignadas</h3>
                         <p class="text-gray-500">Contacta al administrador para que te asigne una empresa.</p>
                     </div>
@@ -339,11 +329,11 @@
         <!-- ============================================ -->
         <!-- MODAL: CUENTAS DE RESULTADOS -->
         <!-- ============================================ -->
-        <a-modal
-            v-model:open="modalResultadosVisible"
-            title="Cuentas de Resultados"
-            width="1100px"
-            :footer="null"
+        <Dialog
+            v-model:visible="modalResultadosVisible"
+            modal
+            header="Cuentas de Resultados"
+            :style="{ width: '1100px', maxWidth: '96vw' }"
             class="modal-resultados-premium"
         >
             <div class="modal-filtros-container-top">
@@ -369,14 +359,14 @@
                     </div>
                     <div class="modal-filtro-item-top modal-filtro-actions-top">
                         <button class="btn-modal-hoy-top" @click="setResultadosFechaHoy">
-                            <CalendarOutlined /> Hoy
+                            <i class="pi pi-calendar"></i> Hoy
                         </button>
-                        <button 
+                        <button
                             v-if="filtrosResultados.fecha_desde || filtrosResultados.fecha_hasta"
                             class="btn-modal-limpiar-top"
                             @click="limpiarResultadosFechas"
                         >
-                            <CloseOutlined /> Limpiar
+                            <i class="pi pi-times"></i> Limpiar
                         </button>
                     </div>
                     <div class="modal-filtros-separator-top"></div>
@@ -476,22 +466,18 @@
             </div>
             <div v-else>
                 <div class="table-scroll-container" style="max-height: 420px;">
-                    <a-table
-                        :columns="columnasResultados"
-                        :data-source="cuentasAplanadas"
-                        :pagination="false"
+                    <DataTable
+                        :value="cuentasAplanadas"
                         :loading="loadingResultados"
-                        row-key="id_cuenta"
+                        data-key="id_cuenta"
+                        scrollable
+                        scroll-height="400px"
+                        row-hover
                         class="reporte-table-ultra"
-                        size="middle"
-                        :scroll="{ x: 'max-content', y: 400 }"
                     >
-                        <template #bodyCell="{ column, record }">
-                            <template v-if="column.key === 'nombre'">
-                                <div 
-                                    class="nombre-container"
-                                    :style="{ paddingLeft: ((record.nivel || 1) - 1) * 25 + 'px' }"
-                                >
+                        <Column header="Nombre de la Cuenta" style="width: 70%">
+                            <template #body="{ data: record }">
+                                <div class="nombre-container" :style="{ paddingLeft: ((record.nivel || 1) - 1) * 25 + 'px' }">
                                     <span v-if="record.es_madre" class="icon-folder">
                                         <svg width="16" height="16" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -502,26 +488,23 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                         </svg>
                                     </span>
-                                    <span 
-                                        class="nombre-text-ultra clickable" 
-                                        :class="{ 'nombre-madre': record.es_madre }"
-                                        @click="onRowClickResultados(record)"
-                                    >
+                                    <span class="nombre-text-ultra clickable" :class="{ 'nombre-madre': record.es_madre }" @click="onRowClickResultados(record)">
                                         {{ record.nombre_cuenta || '---' }}
                                     </span>
-                                    <span v-if="record.es_madre" class="subtotal-badge">
-                                        Subtotal: ${{ formatNumber(record.subtotal || 0) }}
+                                    <span v-if="record.es_madre" class="subtotal-badge">Subtotal: ${{ formatNumber(record.subtotal || 0) }}
                                     </span>
                                     <span v-if="record.es_fiscal" class="fiscal-badge-mini">FISCAL</span>
                                 </div>
                             </template>
-                            <template v-if="column.key === 'saldo'">
+                        </Column>
+                        <Column header="Saldo" style="width: 30%; text-align: right">
+                            <template #body="{ data: record }">
                                 <span class="monto-text-ultra" :class="(record.saldo || 0) >= 0 ? 'ingreso' : 'egreso'">
                                     ${{ formatNumber(record.saldo || 0) }}
                                 </span>
                             </template>
-                        </template>
-                    </a-table>
+                        </Column>
+                    </DataTable>
                 </div>
 
                 <div class="totales-resultados-wrapper">
@@ -547,16 +530,16 @@
                     </div>
                 </div>
             </div>
-        </a-modal>
+        </Dialog>
 
         <!-- ============================================ -->
         <!-- MODAL: DETALLE DE CUENTA -->
         <!-- ============================================ -->
-        <a-modal
-            v-model:open="modalDetalleVisible"
-            :title="'Detalle de: ' + (cuentaSeleccionada?.nombre || cuentaSeleccionada?.nombre_cuenta || '')"
-            width="1000px"
-            :footer="null"
+        <Dialog
+            v-model:visible="modalDetalleVisible"
+            modal
+            :header="'Detalle de: ' + (cuentaSeleccionada?.nombre || cuentaSeleccionada?.nombre_cuenta || '')"
+            :style="{ width: '1000px', maxWidth: '96vw' }"
             class="modal-detalle-premium"
         >
             <div v-if="loadingDetalle" class="text-center py-8">
@@ -576,7 +559,7 @@
             <div v-else>
                 <div class="filtro-activo-detalle" v-if="tipoFiltroDetalle !== 'todas'">
                     <span class="filtro-detalle-badge" :class="tipoFiltroDetalle === 'fiscales' ? 'fiscal' : 'no-fiscal'">
-                        {{ tipoFiltroDetalle === 'fiscales' ? '🔒 Solo Fiscales' : '📋 No Fiscales' }}
+                        {{ tipoFiltroDetalle === 'fiscales' ? ' Solo Fiscales' : 'No Fiscales' }}
                     </span>
                     <span class="filtro-detalle-text">Filtro aplicado en este detalle</span>
                 </div>
@@ -600,55 +583,37 @@
                     </div>
                 </div>
                 <div class="table-scroll-container" style="max-height: 400px;">
-                    <a-table
-                        :columns="columnasDetalle"
-                        :data-source="movimientosCuenta"
-                        :pagination="false"
-                        row-key="id_movimiento"
+                    <DataTable
+                        :value="movimientosCuenta"
+                        data-key="id_movimiento"
+                        scrollable
+                        scroll-height="350px"
+                        row-hover
+                        table-style="min-width: 60rem"
                         class="reporte-table-ultra"
-                        size="middle"
-                        :scroll="{ x: 'max-content', y: 350 }"
                     >
-                        <template #bodyCell="{ column, record }">
-                            <template v-if="column.key === 'fecha'">
-                                <span class="fecha-text-ultra">{{ record.fecha_poliza || '---' }}</span>
+                        <Column
+                            v-for="col in columnasDetalle"
+                            :key="col.key"
+                            :header="col.title"
+                            :style="{ width: col.width, textAlign: col.align || 'left' }"
+                        >
+                            <template #body="{ data: record }">
+                                <span v-if="col.key === 'fecha'" class="fecha-text-ultra">{{ record.fecha_poliza || '---' }}</span>
+                                <span v-else-if="col.key === 'folio'" class="folio-text-ultra clickable" @click="verPoliza(record.id_poliza)">{{ record.folio || '---' }}</span>
+                                <span v-else-if="col.key === 'persona'" class="persona-text-ultra">{{ record.persona || '---' }}</span>
+                                <span v-else-if="col.key === 'cuenta'" class="cuenta-text-ultra">{{ record.cuenta || '---' }}</span>
+                                <span v-else-if="col.key === 'cuenta_fondeadora'" class="fondeo-text-ultra">{{ record.cuenta_fondeadora || '---' }}</span>
+                                <span v-else-if="col.key === 'monto'" class="monto-text-ultra" :class="record.tipo === 'INGRESO' ? 'ingreso' : 'egreso'">${{ formatNumber(record.monto) }}</span>
+                                <span v-else-if="col.key === 'categoria'" class="categoria-badge" :class="record.categoria === 'FISCAL' ? 'fiscal' : 'no-fiscal'">{{ record.categoria || 'NO FISCAL' }}</span>
+                                <button v-else-if="col.key === 'acciones'" type="button" class="btn-ver-poliza-mini" @click="verPoliza(record.id_poliza)">Ver Póliza</button>
                             </template>
-                            <template v-if="column.key === 'folio'">
-                                <span class="folio-text-ultra clickable" @click="verPoliza(record.id_poliza)">
-                                    {{ record.folio || '---' }}
-                                </span>
-                            </template>
-                            <template v-if="column.key === 'persona'">
-                                <span class="persona-text-ultra">{{ record.persona || '---' }}</span>
-                            </template>
-                            <template v-if="column.key === 'cuenta'">
-                                <span class="cuenta-text-ultra">{{ record.cuenta || '---' }}</span>
-                            </template>
-                            <template v-if="column.key === 'cuenta_fondeadora'">
-                                <span class="fondeo-text-ultra">{{ record.cuenta_fondeadora || '---' }}</span>
-                            </template>
-                            <template v-if="column.key === 'monto'">
-                                <span class="monto-text-ultra" :class="record.tipo === 'INGRESO' ? 'ingreso' : 'egreso'">
-                                    ${{ formatNumber(record.monto) }}
-                                </span>
-                            </template>
-                            <template v-if="column.key === 'categoria'">
-                                <span class="categoria-badge" :class="record.categoria === 'FISCAL' ? 'fiscal' : 'no-fiscal'">
-                                    {{ record.categoria || 'NO FISCAL' }}
-                                </span>
-                            </template>
-                            <template v-if="column.key === 'acciones'">
-                                <a-button size="small" type="primary" @click="verPoliza(record.id_poliza)">
-                                    Ver Póliza
-                                </a-button>
-                            </template>
-                        </template>
-                    </a-table>
+                        </Column>
+                    </DataTable>
                 </div>
             </div>
-        </a-modal>
+        </Dialog>
 
-        <ModalAlert ref="modalAlert" />
     </AppLayout>
 </template>
 
@@ -656,22 +621,12 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
-import ModalAlert from '@/Components/AlertModal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import Swal from 'sweetalert2';
 import axios from 'axios';
-import {
-    CloseOutlined,
-    ShopOutlined,
-    FileExcelOutlined,
-    CalendarOutlined,
-} from '@ant-design/icons-vue';
-import {
-    Button as AButton,
-    Table as ATable,
-    Tag as ATag,
-    Modal as AModal,
-} from 'ant-design-vue';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Dialog from 'primevue/dialog';
+import { useNotify } from '@/composables/useNotify';
 import { useEmpresa } from '@/composables/useEmpresa';
 
 const props = defineProps({
@@ -689,7 +644,7 @@ const { empresaSeleccionada, cargarEmpresaGuardada, guardarEmpresa } = useEmpres
 // ============================================
 const loading = ref(false);
 const cargado = ref(false);
-const modalAlert = ref(null);
+const notify = useNotify();
 
 const obtenerFechaLocal = () => {
     const hoy = new Date();
@@ -913,12 +868,12 @@ const formatNumber = (value) => {
 };
 
 // ============================================
-// 🔥 FUNCIÓN PARA APLANAR CUENTAS CON ORDEN INGRESOS/EGRESOS
+// FUNCIÓN PARA APLANAR CUENTAS CON ORDEN INGRESOS/EGRESOS
 // ============================================
 const aplanarCuentasJerarquicas = (cuentas, nivel = 1, resultado = []) => {
     const cuentasFiltradas = Array.isArray(cuentas) ? cuentas.filter(c => c !== '_totales') : cuentas;
     
-    // 🔥 ORDENAR: INGRESOS (saldo >= 0) ARRIBA, EGRESOS (saldo < 0) ABAJO
+    // ORDENAR: INGRESOS (saldo >= 0) ARRIBA, EGRESOS (saldo < 0) ABAJO
     const cuentasOrdenadas = [...cuentasFiltradas].sort((a, b) => {
         const aEsIngreso = (a.subtotal || 0) >= 0;
         const bEsIngreso = (b.subtotal || 0) >= 0;
@@ -936,7 +891,7 @@ const aplanarCuentasJerarquicas = (cuentas, nivel = 1, resultado = []) => {
         resultado.push(cuentaAplanada);
         
         if (cuenta.hijas && cuenta.hijas.length > 0) {
-            // 🔥 TAMBIÉN ORDENAR LAS HIJAS
+            // TAMBIÉN ORDENAR LAS HIJAS
             const hijasOrdenadas = [...cuenta.hijas].sort((a, b) => {
                 const aEsIngreso = (a.subtotal || 0) >= 0;
                 const bEsIngreso = (b.subtotal || 0) >= 0;
@@ -1027,7 +982,7 @@ const aplicarFiltrosResultados = async () => {
 
         if (response.data.success) {
             const cuentas = response.data.cuentas_resultados || [];
-            // 🔥 APLANAR CON ORDEN INGRESOS/EGRESOS
+            // APLANAR CON ORDEN INGRESOS/EGRESOS
             cuentasAplanadas.value = aplanarCuentasJerarquicas(cuentas);
             cuentasResultados.value = cuentas;
             
@@ -1045,12 +1000,7 @@ const aplicarFiltrosResultados = async () => {
         }
     } catch (error) {
         console.error('Error al filtrar cuentas de resultados:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response?.data?.message || error.message || 'Error al filtrar las cuentas',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error(error.response?.data?.message || error.message || 'Error al filtrar las cuentas', 'Error');
     } finally {
         loadingResultados.value = false;
     }
@@ -1061,22 +1011,12 @@ const aplicarFiltrosResultados = async () => {
 // ============================================
 const imprimirCuentasResultados = async () => {
     if (!empresaSeleccionada.value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin empresa',
-            text: 'Selecciona una empresa primero',
-            confirmButtonColor: '#667eea'
-        });
+        notify.warn('Selecciona una empresa primero', 'Sin empresa');
         return;
     }
 
     if (cuentasAplanadas.value.length === 0) {
-        Swal.fire({
-            icon: 'info',
-            title: 'Sin datos',
-            text: 'No hay cuentas de resultados para imprimir',
-            confirmButtonColor: '#667eea'
-        });
+        notify.info('No hay cuentas de resultados para imprimir', 'Sin datos');
         return;
     }
 
@@ -1092,12 +1032,7 @@ const imprimirCuentasResultados = async () => {
 
     } catch (error) {
         console.error('Error al imprimir:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || 'Error al generar el PDF',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error(error.message || 'Error al generar el PDF', 'Error');
     }
 };
 
@@ -1138,12 +1073,7 @@ const cambiarEmpresa = () => {
 // ============================================
 const abrirModalCuentasResultados = async () => {
     if (!empresaSeleccionada.value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin empresa',
-            text: 'Selecciona una empresa primero',
-            confirmButtonColor: '#667eea'
-        });
+        notify.warn('Selecciona una empresa primero', 'Sin empresa');
         return;
     }
 
@@ -1167,7 +1097,7 @@ const abrirModalCuentasResultados = async () => {
 
         if (response.data.success) {
             const cuentas = response.data.cuentas_resultados || [];
-            // 🔥 APLANAR CON ORDEN INGRESOS/EGRESOS
+            // APLANAR CON ORDEN INGRESOS/EGRESOS
             cuentasAplanadas.value = aplanarCuentasJerarquicas(cuentas);
             cuentasResultados.value = cuentas;
             
@@ -1185,12 +1115,7 @@ const abrirModalCuentasResultados = async () => {
         }
     } catch (error) {
         console.error('Error al cargar cuentas de resultados:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response?.data?.message || error.message || 'Error al cargar las cuentas de resultados',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error(error.response?.data?.message || error.message || 'Error al cargar las cuentas de resultados', 'Error');
         cuentasResultados.value = [];
         cuentasAplanadas.value = [];
         totalesResultados.value = {
@@ -1212,12 +1137,7 @@ const abrirModalCuentasResultados = async () => {
 // ============================================
 const cargarReporte = async () => {
     if (!empresaSeleccionada.value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin empresa',
-            text: 'Selecciona una empresa primero',
-            confirmButtonColor: '#667eea'
-        });
+        notify.warn('Selecciona una empresa primero', 'Sin empresa');
         return;
     }
 
@@ -1245,12 +1165,7 @@ const cargarReporte = async () => {
 
     } catch (error) {
         console.error('Error al cargar reporte:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al cargar',
-            text: error.response?.data?.message || error.message || 'Ocurrió un error inesperado',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error(error.response?.data?.message || error.message || 'Ocurrió un error inesperado', 'Error al cargar');
         reporteData.value = [];
         reporteFondeadoras.value = [];
         cargado.value = true;
@@ -1306,12 +1221,7 @@ const abrirDetalleCuenta = async (record, tipoFiltro = 'todas', fechaDesde = '',
         }
     } catch (error) {
         console.error('Error al cargar movimientos de cuenta:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response?.data?.message || error.message || 'Error al cargar los movimientos',
-            confirmButtonColor: '#dc2626'
-        });
+        notify.error(error.response?.data?.message || error.message || 'Error al cargar los movimientos', 'Error');
     } finally {
         loadingDetalle.value = false;
     }
@@ -1351,11 +1261,11 @@ const verPoliza = (idPoliza) => {
 // ============================================
 const exportarExcel = () => {
     if (!empresaSeleccionada.value) {
-        Swal.fire({ icon: 'warning', title: 'Sin empresa', text: 'Selecciona una empresa primero' });
+        notify.warn('Selecciona una empresa primero', 'Sin empresa');
         return;
     }
     if (!reporteData.value.length) {
-        Swal.fire({ icon: 'info', title: 'Sin datos', text: 'No hay datos para exportar' });
+        notify.info('No hay datos para exportar', 'Sin datos');
         return;
     }
     
@@ -1473,8 +1383,8 @@ onMounted(() => {
 }
 
 .empresa-select-native:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
     background: #ffffff;
 }
 
@@ -1568,8 +1478,8 @@ onMounted(() => {
 }
 
 .fecha-input-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
 }
 
 .filtros-separator {
@@ -1602,6 +1512,41 @@ onMounted(() => {
         width: 100%;
         flex-wrap: wrap;
     }
+}
+
+.btn-hoy-premium,
+.btn-limpiar-fechas,
+.btn-export-excel-mini,
+.btn-resultados-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.tabla-vacia {
+    padding: 28px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.btn-ver-poliza-mini {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border: none;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-ver-poliza-mini:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(26, 58, 92, 0.25);
 }
 
 .btn-hoy-premium {
@@ -1654,7 +1599,7 @@ onMounted(() => {
 
 .btn-resultados-mini {
     border-radius: 6px !important;
-    background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+    background: linear-gradient(135deg, #132a44, #6d28d9) !important;
     border: none !important;
     color: white !important;
     height: 36px !important;
@@ -1665,7 +1610,7 @@ onMounted(() => {
 
 .btn-resultados-mini:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.3) !important;
 }
 
 /* ===== REPORTE WRAPPER ===== */
@@ -1751,27 +1696,27 @@ onMounted(() => {
     border: 1px solid #f1f5f9;
 }
 
-.table-scroll-container :deep(.ant-table-body) {
+.table-scroll-container :deep(.p-datatable-table-container) {
     max-height: 400px !important;
     overflow-y: auto !important;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-track {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar-track {
     background: #f1f5f9;
     border-radius: 4px;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
 }
 
-.table-scroll-container :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
+.table-scroll-container :deep(.p-datatable-table-container)::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
 
@@ -1780,7 +1725,7 @@ onMounted(() => {
     width: 100%;
 }
 
-.reporte-table-ultra :deep(.ant-table-thead > tr > th) {
+.reporte-table-ultra :deep(.p-datatable-thead > tr > th) {
     background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%) !important;
     font-weight: 700;
     color: #ffffff !important;
@@ -1795,26 +1740,26 @@ onMounted(() => {
     box-shadow: 0 2px 8px rgba(26, 58, 92, 0.15);
 }
 
-.reporte-table-ultra :deep(.ant-table-tbody > tr:hover) {
+.reporte-table-ultra :deep(.p-datatable-tbody > tr:hover) {
     background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
-    box-shadow: inset 0 0 0 1px #667eea;
+    box-shadow: inset 0 0 0 1px #1a3a5c;
 }
 
-.reporte-table-ultra :deep(.ant-table-tbody > tr:nth-child(even)) {
+.reporte-table-ultra :deep(.p-datatable-tbody > tr:nth-child(even)) {
     background: #fafbfc;
 }
 
-.reporte-table-ultra :deep(.ant-table-tbody > tr:nth-child(even):hover) {
+.reporte-table-ultra :deep(.p-datatable-tbody > tr:nth-child(even):hover) {
     background: linear-gradient(90deg, #f8faff, #f0f7ff) !important;
 }
 
-.reporte-table-ultra :deep(.ant-table-cell) {
+.reporte-table-ultra :deep(.p-datatable-tbody > tr > td) {
     padding: 10px 12px !important;
     border-bottom: 1px solid #f1f5f9;
     font-size: 13px;
 }
 
-.reporte-table-ultra :deep(.ant-table-cell-fix-left) {
+.reporte-table-ultra :deep(.p-frozen-column) {
     background: #ffffff;
     z-index: 5;
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.04);
@@ -1826,7 +1771,7 @@ onMounted(() => {
 }
 
 .clickable:hover {
-    color: #667eea;
+    color: #1a3a5c;
     text-decoration: underline;
 }
 
@@ -2101,41 +2046,41 @@ onMounted(() => {
 }
 
 /* ===== MODALES ===== */
-.modal-resultados-premium :deep(.ant-modal-header) {
-    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+.modal-resultados-premium :deep(.p-dialog-header) {
+    background: linear-gradient(135deg, #132a44, #6d28d9);
     border-radius: 8px 8px 0 0;
     padding: 16px 24px;
 }
 
-.modal-resultados-premium :deep(.ant-modal-title) {
+.modal-resultados-premium :deep(.p-dialog-title) {
     color: white;
     font-weight: 700;
 }
 
-.modal-resultados-premium :deep(.ant-modal-close) {
+.modal-resultados-premium :deep(.p-dialog-close-button) {
     color: white;
 }
 
-.modal-resultados-premium :deep(.ant-modal-close:hover) {
+.modal-resultados-premium :deep(.p-dialog-close-button:hover) {
     color: #fca5a5;
 }
 
-.modal-detalle-premium :deep(.ant-modal-header) {
+.modal-detalle-premium :deep(.p-dialog-header) {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
     padding: 16px 24px;
 }
 
-.modal-detalle-premium :deep(.ant-modal-title) {
+.modal-detalle-premium :deep(.p-dialog-title) {
     color: white;
     font-weight: 700;
 }
 
-.modal-detalle-premium :deep(.ant-modal-close) {
+.modal-detalle-premium :deep(.p-dialog-close-button) {
     color: white;
 }
 
-.modal-detalle-premium :deep(.ant-modal-close:hover) {
+.modal-detalle-premium :deep(.p-dialog-close-button:hover) {
     color: #fca5a5;
 }
 
@@ -2184,8 +2129,8 @@ onMounted(() => {
 }
 
 .modal-filtro-input-top:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
 }
 
 .modal-filtro-actions-top {
@@ -2293,11 +2238,11 @@ onMounted(() => {
 }
 
 .resultado-total-item.iva {
-    border-left: 3px solid #7c3aed;
+    border-left: 3px solid #132a44;
 }
 
 .resultado-total-item.iva-ingresos {
-    border-left: 3px solid #8b5cf6;
+    border-left: 3px solid #1a3a5c;
 }
 
 .resultado-total-item.iva-egresos {
@@ -2335,7 +2280,7 @@ onMounted(() => {
 }
 
 .resultado-total-value.iva {
-    color: #7c3aed;
+    color: #132a44;
 }
 
 .resultado-total-value.iva-egreso {
@@ -2641,7 +2586,7 @@ onMounted(() => {
 }
 
 .folio-text-ultra:hover {
-    color: #667eea;
+    color: #1a3a5c;
     text-decoration: underline;
 }
 
@@ -2658,10 +2603,10 @@ onMounted(() => {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
-    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    background: linear-gradient(135deg, #e8eef5, #d3e0ee);
     border-radius: 12px;
     padding: 16px 24px;
-    border: 1px solid #c4b5fd;
+    border: 1px solid #a9c3dd;
 }
 
 .total-item-resultados {
@@ -2671,7 +2616,7 @@ onMounted(() => {
     padding: 8px 16px;
     background: white;
     border-radius: 8px;
-    border: 1px solid #ddd6fe;
+    border: 1px solid #d3e0ee;
     min-width: 140px;
     flex: 1;
 }
@@ -2691,7 +2636,7 @@ onMounted(() => {
 }
 
 .total-value-resultados.ingreso {
-    color: #7c3aed;
+    color: #132a44;
 }
 
 .total-value-resultados.egreso {

@@ -76,3 +76,16 @@ ALTER TABLE `poliza_archivos`
 --         WHERE (m.id_cuenta = c.id_cuenta OR m.id_caja_fondo = c.id_cuenta)
 --           AND (p.es_por_pagar = 0 OR p.es_por_pagar IS NULL)
 --     ), 0);
+
+
+-- ----------------------------------------------------------------------------
+-- 4) Error al crear/editar personas:
+--    SQLSTATE[23000]: Column 'Materno' cannot be null
+--    -> `personas.Materno` es NOT NULL, pero el apellido materno es OPCIONAL
+--       en el formulario, en la validación y en el modelo.
+-- ----------------------------------------------------------------------------
+ALTER TABLE `personas` MODIFY `Materno` VARCHAR(255) NULL DEFAULT NULL;
+UPDATE `personas` SET `Materno` = NULL WHERE `Materno` = '';
+
+-- (Opcional, si tu instalación aún no tiene la columna `empleado` en personas)
+-- ALTER TABLE `personas` ADD COLUMN `empleado` TINYINT(1) NOT NULL DEFAULT 0 AFTER `activo`;

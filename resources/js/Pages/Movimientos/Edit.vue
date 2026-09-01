@@ -1,35 +1,6 @@
 <template>
     <AppLayout :title="tituloPagina">
-        <!-- FLASH MESSAGES -->
-        <div v-if="$page.props.flash" class="flash-container">
-            <div v-if="$page.props.flash.success" class="flash-message flash-success">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.success }}</span>
-                <button @click="$page.props.flash.success = null" class="flash-close">✕</button>
-            </div>
-            <div v-if="$page.props.flash.error" class="flash-message flash-error">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.error }}</span>
-                <button @click="$page.props.flash.error = null" class="flash-close">✕</button>
-            </div>
-            <div v-if="$page.props.flash.info" class="flash-message flash-info">
-                <span class="flash-icon">
-                    <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </span>
-                <span class="flash-text">{{ $page.props.flash.info }}</span>
-                <button @click="$page.props.flash.info = null" class="flash-close">✕</button>
-            </div>
-        </div>
+        <!-- Los flash messages se muestran de forma global (AppLayout useFlashMessages) -->
 
         <template #header>
             <div class="header-wrapper">
@@ -47,7 +18,7 @@
                 <div class="header-right">
                     <div class="status-badge" :class="statusClass">
                         <span v-if="hasErrors">! {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✓ Completado</span>
+                        <span v-else-if="isComplete">Completado</span>
                         <span v-else>{{ Math.round(progressPercentage) }}%</span>
                     </div>
                     <span v-if="movimiento.estatus" class="status-badge" :class="getStatusClass(movimiento.estatus)">
@@ -106,8 +77,7 @@
                             <!-- FILA 1: TIPO, PERSONA, CUENTA -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Tipo <span class="required-star">*</span>
+                                    <label class="form-label">Tipo <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="form.tipo_poliza" 
@@ -127,8 +97,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Persona <span class="required-star">*</span>
+                                    <label class="form-label">Persona <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="form.id_persona"
@@ -149,8 +118,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Cuenta <span class="required-star">*</span>
+                                    <label class="form-label">Cuenta <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="form.id_cuenta"
@@ -183,8 +151,7 @@
                             <!-- FILA 2: MONTO + IVA + FECHA -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Monto <span class="required-star">*</span>
+                                    <label class="form-label">Monto <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper input-with-prefix">
                                         <span class="input-prefix">$</span>
@@ -215,15 +182,14 @@
                                             :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                                         >
                                             {{ iva.porcentaje }}%
-                                            <span class="iva-check" v-if="ivasSeleccionados.includes(iva.id)">✓</span>
+                                            <span class="iva-check" v-if="ivasSeleccionados.includes(iva.id)"><i class="pi pi-check"></i></span>
                                         </button>
                                     </div>
                                     <div class="hint-text">Selecciona hasta 2 tipos de IVA (opcional)</div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Fecha <span class="required-star">*</span>
+                                    <label class="form-label">Fecha <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper input-date-wrapper">
                                         <input type="date" v-model="form.fecha_poliza"
@@ -260,7 +226,7 @@
                                             >
                                         </div>
                                         <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMonto(ivaId)) }}</span>
-                                        <button type="button" @click="quitarIva(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">✕</button>
+                                        <button type="button" @click="quitarIva(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"><i class="pi pi-times"></i></button>
                                     </div>
                                     <div class="iva-total">
                                         <span>Total: <strong>${{ formatNumber(totalConIvaCalculado) }}</strong></span>
@@ -272,7 +238,7 @@
                             <div v-if="form.monto_directo > 0 && ivasSeleccionados.length > 0" 
                                  class="validacion-iva"
                                  :class="totalConIvaCalculado > form.monto_directo ? 'iva-invalido' : 'iva-valido'">
-                                <span class="validacion-icon">{{ totalConIvaCalculado > form.monto_directo ? '!' : '✓' }}</span>
+                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaCalculado > form.monto_directo) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
                                 <span class="validacion-texto">
                                     {{ totalConIvaCalculado > form.monto_directo 
                                         ? `La suma del desglose ($${formatNumber(totalConIvaCalculado)}) excede el monto ($${formatNumber(form.monto_directo)})` 
@@ -283,8 +249,7 @@
                             <!-- FILA 3: CUENTA FONDEADORA, OPCIONES, MARCADOR -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Cuenta Fondeadora
+                                    <label class="form-label">Cuenta Fondeadora
                                         <span v-if="!form.es_por_pagar" class="required-star">*</span>
                                         <span v-else class="opcional-label">(Opcional)</span>
                                     </label>
@@ -304,11 +269,10 @@
                                         </svg>
                                     </div>
                                     <div v-if="form.errors.id_cuenta_fondeadora" class="error-text">{{ form.errors.id_cuenta_fondeadora }}</div>
-                                    <div v-if="cuentaFondeadoraSeleccionada" class="saldo-disponible">
-                                        Saldo disponible: <strong>${{ formatNumber(cuentaFondeadoraSeleccionada.saldo || 0) }}</strong>
+                                    <div v-if="cuentaFondeadoraSeleccionada" class="saldo-disponible">Saldo disponible: <strong>${{ formatNumber(cuentaFondeadoraSeleccionada.saldo || 0) }}</strong>
                                     </div>
                                     <div v-if="form.es_por_pagar" class="hint-text" style="color: #92400e;">
-                                        ⚡ Póliza diferida - no requiere cuenta fondeadora
+                                        Póliza diferida - no requiere cuenta fondeadora
                                     </div>
                                 </div>
 
@@ -354,7 +318,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                             </svg>
                                         </div>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -408,7 +372,7 @@
                                                 <span>{{ archivos.pdf ? archivos.pdf.name : (movimiento.nombre_pdf || 'Seleccionar PDF') }}</span>
                                             </div>
                                             <input type="file" ref="pdfInput" @change="handleFileUpload('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
-                                            <button v-if="archivos.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivo('pdf')" class="file-remove">✕</button>
+                                            <button v-if="archivos.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivo('pdf')" class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
 
@@ -422,7 +386,7 @@
                                                 <span>{{ archivos.xml ? archivos.xml.name : (movimiento.nombre_xml || 'Seleccionar XML') }}</span>
                                             </div>
                                             <input type="file" ref="xmlInput" @change="handleFileUpload('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
-                                            <button v-if="archivos.xml || movimiento.xml_existente" type="button" @click="eliminarArchivo('xml')" class="file-remove">✕</button>
+                                            <button v-if="archivos.xml || movimiento.xml_existente" type="button" @click="eliminarArchivo('xml')" class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -447,7 +411,7 @@
                             <div v-if="!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && totalConIvaCalculado > 0 && cuentaFondeadoraSeleccionada" 
                                  class="validacion-saldo"
                                  :class="totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) ? 'saldo-insuficiente' : 'saldo-suficiente'">
-                                <span class="validacion-icon">{{ totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) ? '!' : '✓' }}</span>
+                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0)) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
                                 <span class="validacion-texto">
                                     {{ totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) 
                                         ? `El monto ($${formatNumber(totalConIvaCalculado)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.saldo || 0)})` 
@@ -463,8 +427,7 @@
                             <!-- FILA 1: TIPO, FECHA, MARCADOR -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Tipo <span class="required-star">*</span>
+                                    <label class="form-label">Tipo <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="formTraspaso.tipo_poliza"
@@ -481,8 +444,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Fecha <span class="required-star">*</span>
+                                    <label class="form-label">Fecha <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper input-date-wrapper">
                                         <input type="date" v-model="formTraspaso.fecha_poliza"
@@ -514,7 +476,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                             </svg>
                                         </div>
-                                        <button type="button" @click="abrirModalMarcador" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -527,8 +489,7 @@
                             <!-- FILA 2: CUENTA ORIGEN, CUENTA DESTINO, MONTO -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Cuenta Origen <span class="required-star">*</span>
+                                    <label class="form-label">Cuenta Origen <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="formTraspaso.id_cuenta_origen"
@@ -546,14 +507,12 @@
                                         </svg>
                                     </div>
                                     <div v-if="formTraspaso.errors.id_cuenta_origen" class="error-text">{{ formTraspaso.errors.id_cuenta_origen }}</div>
-                                    <div v-if="formTraspaso.id_cuenta_origen" class="saldo-disponible">
-                                        Saldo: <strong>${{ formatNumber(saldoCuentaOrigen) }}</strong>
+                                    <div v-if="formTraspaso.id_cuenta_origen" class="saldo-disponible">Saldo: <strong>${{ formatNumber(saldoCuentaOrigen) }}</strong>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Cuenta Destino <span class="required-star">*</span>
+                                    <label class="form-label">Cuenta Destino <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper">
                                         <select v-model="formTraspaso.id_cuenta_destino"
@@ -571,17 +530,15 @@
                                         </svg>
                                     </div>
                                     <div v-if="formTraspaso.errors.id_cuenta_destino" class="error-text">{{ formTraspaso.errors.id_cuenta_destino }}</div>
-                                    <div v-if="formTraspaso.id_cuenta_destino" class="saldo-disponible">
-                                        Saldo: <strong>${{ formatNumber(saldoCuentaDestino) }}</strong>
+                                    <div v-if="formTraspaso.id_cuenta_destino" class="saldo-disponible">Saldo: <strong>${{ formatNumber(saldoCuentaDestino) }}</strong>
                                         <span v-if="totalConIvaTraspasoCalculado > 0" class="nuevo-saldo">
-                                            → Nuevo: ${{ formatNumber(nuevoSaldoDestino) }}
+                                             Nuevo: ${{ formatNumber(nuevoSaldoDestino) }}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">
-                                        Monto <span class="required-star">*</span>
+                                    <label class="form-label">Monto <span class="required-star">*</span>
                                     </label>
                                     <div class="input-wrapper input-with-prefix">
                                         <span class="input-prefix">$</span>
@@ -615,7 +572,7 @@
                                             :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
                                         >
                                             {{ iva.porcentaje }}%
-                                            <span class="iva-check" v-if="ivasSeleccionadosTraspaso.includes(iva.id)">✓</span>
+                                            <span class="iva-check" v-if="ivasSeleccionadosTraspaso.includes(iva.id)"><i class="pi pi-check"></i></span>
                                         </button>
                                     </div>
                                     <div class="hint-text">Selecciona hasta 2 tipos de IVA (opcional)</div>
@@ -641,7 +598,7 @@
                                                 >
                                             </div>
                                             <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMontoTraspaso(ivaId)) }}</span>
-                                            <button type="button" @click="quitarIvaTraspaso(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">✕</button>
+                                            <button type="button" @click="quitarIvaTraspaso(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"><i class="pi pi-times"></i></button>
                                         </div>
                                         <div class="iva-total">
                                             <span>Total: <strong>${{ formatNumber(totalConIvaTraspasoCalculado) }}</strong></span>
@@ -654,7 +611,7 @@
                             <div v-if="formTraspaso.monto_directo > 0 && ivasSeleccionadosTraspaso.length > 0" 
                                  class="validacion-iva"
                                  :class="totalConIvaTraspasoCalculado > formTraspaso.monto_directo ? 'iva-invalido' : 'iva-valido'">
-                                <span class="validacion-icon">{{ totalConIvaTraspasoCalculado > formTraspaso.monto_directo ? '!' : '✓' }}</span>
+                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaTraspasoCalculado > formTraspaso.monto_directo) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
                                 <span class="validacion-texto">
                                     {{ totalConIvaTraspasoCalculado > formTraspaso.monto_directo 
                                         ? `La suma del desglose ($${formatNumber(totalConIvaTraspasoCalculado)}) excede el monto ($${formatNumber(formTraspaso.monto_directo)})` 
@@ -719,7 +676,7 @@
                                                     <span>{{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : (movimiento.nombre_pdf || 'Seleccionar PDF') }}</span>
                                                 </div>
                                                 <input type="file" ref="pdfInputTraspaso" @change="handleFileUploadTraspaso('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
-                                                <button v-if="archivosTraspaso.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivoTraspaso('pdf')" class="file-remove">✕</button>
+                                                <button v-if="archivosTraspaso.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivoTraspaso('pdf')" class="file-remove"><i class="pi pi-times"></i></button>
                                             </div>
                                         </div>
 
@@ -733,7 +690,7 @@
                                                     <span>{{ archivosTraspaso.xml ? archivosTraspaso.xml.name : (movimiento.nombre_xml || 'Seleccionar XML') }}</span>
                                                 </div>
                                                 <input type="file" ref="xmlInputTraspaso" @change="handleFileUploadTraspaso('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
-                                                <button v-if="archivosTraspaso.xml || movimiento.xml_existente" type="button" @click="eliminarArchivoTraspaso('xml')" class="file-remove">✕</button>
+                                                <button v-if="archivosTraspaso.xml || movimiento.xml_existente" type="button" @click="eliminarArchivoTraspaso('xml')" class="file-remove"><i class="pi pi-times"></i></button>
                                             </div>
                                         </div>
                                     </div>
@@ -759,7 +716,7 @@
                             <div v-if="formTraspaso.id_cuenta_origen && totalConIvaTraspasoCalculado > 0" 
                                  class="validacion-saldo"
                                  :class="totalConIvaTraspasoCalculado > saldoCuentaOrigen ? 'saldo-insuficiente' : 'saldo-suficiente'">
-                                <span class="validacion-icon">{{ totalConIvaTraspasoCalculado > saldoCuentaOrigen ? '!' : '✓' }}</span>
+                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaTraspasoCalculado > saldoCuentaOrigen) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
                                 <span class="validacion-texto">
                                     {{ totalConIvaTraspasoCalculado > saldoCuentaOrigen 
                                         ? `El monto ($${formatNumber(totalConIvaTraspasoCalculado)}) excede el saldo de origen ($${formatNumber(saldoCuentaOrigen)})` 
@@ -814,6 +771,8 @@
         </div>
 
         <!-- Modal Marcador -->
+        <MarcadoresModal v-model="marcadorGestorVisible" :marcadores="marcadores" @changed="(l) => marcadores = l" />
+
         <div v-if="modalMarcadorVisible" class="modal-overlay" @click.self="cerrarModalMarcador">
             <div class="modal-container">
                 <div class="modal-header">
@@ -853,17 +812,18 @@
                 </div>
             </div>
         </div>
-
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import MarcadoresModal from '@/Components/MarcadoresModal.vue';
 import { Link, useForm, router, usePage } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import { ref, computed, onMounted, watch } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+
+const notify = useNotify();
 
 // ============================================
 // PROPS
@@ -886,7 +846,6 @@ const props = defineProps({
 // ============================================
 // REFS
 // ============================================
-const alertRef = ref(null);
 const pdfInput = ref(null);
 const xmlInput = ref(null);
 const pdfInputTraspaso = ref(null);
@@ -895,6 +854,7 @@ const personas = ref(props.personas || []);
 const cuentaFondeadoraSeleccionada = ref(null);
 const fechaActual = ref(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }));
 const modalMarcadorVisible = ref(false);
+const marcadorGestorVisible = ref(false);
 const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
@@ -1164,7 +1124,7 @@ const getStatusColor = (estatus) => {
         'CAPTURADO': '#3b82f6',
         'REVISADO': '#f59e0b',
         'AUTORIZADO': '#10b981',
-        'ABONADO': '#8b5cf6',
+        'ABONADO': '#1a3a5c',
         'LIQUIDADO': '#059669',
         'PENDIENTE': '#f59e0b',
         'CERRADO': '#6b7280'
@@ -1182,12 +1142,7 @@ const toggleIva = (ivaId) => {
         delete form.ivas[ivaId];
     } else {
         if (ivasSeleccionados.value.length >= 2) {
-            alertRef.value?.show({
-                type: 'warning',
-                title: 'Limite alcanzado',
-                message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
-                buttonText: 'Entendido'
-            });
+            notify.warn('Solo puedes seleccionar hasta 2 tipos de IVA', 'Limite alcanzado');
             return;
         }
         ivasSeleccionados.value.push(ivaId);
@@ -1214,12 +1169,7 @@ const toggleIvaTraspaso = (ivaId) => {
         delete formTraspaso.ivas[ivaId];
     } else {
         if (ivasSeleccionadosTraspaso.value.length >= 2) {
-            alertRef.value?.show({
-                type: 'warning',
-                title: 'Limite alcanzado',
-                message: 'Solo puedes seleccionar hasta 2 tipos de IVA',
-                buttonText: 'Entendido'
-            });
+            notify.warn('Solo puedes seleccionar hasta 2 tipos de IVA', 'Limite alcanzado');
             return;
         }
         ivasSeleccionadosTraspaso.value.push(ivaId);
@@ -1310,12 +1260,7 @@ const onPersonaChange = async () => {};
 const onCuentaOrigenChange = () => {
     saldoCuentaOrigen.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_origen);
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: 'La cuenta de origen y destino no pueden ser la misma.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La cuenta de origen y destino no pueden ser la misma.', 'Error');
         formTraspaso.id_cuenta_origen = null;
     }
 };
@@ -1323,12 +1268,7 @@ const onCuentaOrigenChange = () => {
 const onCuentaDestinoChange = () => {
     saldoCuentaDestino.value = obtenerSaldoCuenta(formTraspaso.id_cuenta_destino);
     if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Error',
-            message: 'La cuenta de origen y destino no pueden ser la misma.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La cuenta de origen y destino no pueden ser la misma.', 'Error');
         formTraspaso.id_cuenta_destino = null;
     }
 };
@@ -1370,12 +1310,7 @@ const handleFileUpload = (tipo, event) => {
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Archivo demasiado grande', 
-                message: `El archivo ${file.name} excede el limite de 5MB.`, 
-                buttonText: 'Entendido' 
-            });
+            notify.error(`El archivo ${file.name} excede el limite de 5MB.`, 'Archivo demasiado grande');
             event.target.value = '';
             return;
         }
@@ -1399,12 +1334,7 @@ const handleFileUploadTraspaso = (tipo, event) => {
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Archivo demasiado grande', 
-                message: `El archivo ${file.name} excede el limite de 5MB.`, 
-                buttonText: 'Entendido' 
-            });
+            notify.error(`El archivo ${file.name} excede el limite de 5MB.`, 'Archivo demasiado grande');
             event.target.value = '';
             return;
         }
@@ -1433,12 +1363,7 @@ const cerrarModalMarcador = () => {
 
 const guardarMarcador = async () => {
     if (!nuevoMarcador.value.nombre.trim()) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: 'El nombre del marcador es obligatorio', 
-            buttonText: 'Entendido' 
-        });
+        notify.error('El nombre del marcador es obligatorio', 'Error');
         return;
     }
     guardandoMarcador.value = true;
@@ -1455,20 +1380,10 @@ const guardarMarcador = async () => {
                 formTraspaso.id_marcador = res.data.data.id;
             }
             cerrarModalMarcador();
-            alertRef.value?.show({ 
-                type: 'success', 
-                title: 'Marcador creado', 
-                message: 'El marcador se ha creado y seleccionado correctamente.', 
-                buttonText: 'Aceptar' 
-            });
+            notify.success('El marcador se ha creado y seleccionado correctamente.', 'Marcador creado');
         }
     } catch (error) {
-        alertRef.value?.show({ 
-            type: 'error', 
-            title: 'Error', 
-            message: error.response?.data?.message || 'Error al crear el marcador', 
-            buttonText: 'Entendido' 
-        });
+        notify.error(error.response?.data?.message || 'Error al crear el marcador', 'Error');
     } finally { guardandoMarcador.value = false; }
 };
 
@@ -1514,63 +1429,41 @@ const formTraspaso = useForm({
 // SUBMIT - CORREGIDO CON AXIOS PARA ARCHIVOS
 // ============================================
 const submit = () => {
-    console.log('=== INICIO SUBMIT ===');
-    console.log('Tipo de póliza seleccionado:', tipoPolizaSeleccionado.value);
 
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
-        // 🔥 VALIDACIONES
+        // VALIDACIONES
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Error en desglose de IVA',
-                message: `La suma del desglose ($${formatNumber(totalConIvaCalculado.value)}) excede el monto ($${formatNumber(form.monto_directo)}).`,
-                buttonText: 'Entendido'
-            });
+            notify.error(`La suma del desglose ($${formatNumber(totalConIvaCalculado.value)}) excede el monto ($${formatNumber(form.monto_directo)}).`, 'Error en desglose de IVA');
             return;
         }
 
         if (form.fecha_poliza && form.fecha_poliza > fechaActual.value) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Fecha invalida',
-                message: 'La fecha de la poliza no puede ser futura.',
-                buttonText: 'Entendido'
-            });
+            notify.error('La fecha de la poliza no puede ser futura.', 'Fecha invalida');
             return;
         }
 
         if (!form.id_persona) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Persona requerida',
-                message: 'Debes seleccionar una persona para la poliza.',
-                buttonText: 'Entendido'
-            });
+            notify.error('Debes seleccionar una persona para la poliza.', 'Persona requerida');
             return;
         }
 
         if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
             if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Saldo insuficiente',
-                    message: `El monto total ($${formatNumber(montoTotal)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.value.saldo || 0)}).`,
-                    buttonText: 'Entendido'
-                });
+                notify.error(`El monto total ($${formatNumber(montoTotal)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.value.saldo || 0)}).`, 'Saldo insuficiente');
                 return;
             }
         }
 
         processing.value = true;
 
-        // 🔥 CONSTRUIR FORM DATA CON AXIOS
+        // CONSTRUIR FORM DATA CON AXIOS
         const formData = new FormData();
         
-        // 🔥 Agregar _method para Laravel
+        // Agregar _method para Laravel
         formData.append('_method', 'PUT');
 
-        // 🔥 Agregar todos los campos del formulario
+        // Agregar todos los campos del formulario
         const campos = {
             tipo_poliza: form.tipo_poliza,
             fecha_poliza: form.fecha_poliza,
@@ -1600,7 +1493,7 @@ const submit = () => {
             }
         });
 
-        // 🔥 Agregar IVAs
+        // Agregar IVAs
         const ivasArray = ivasSeleccionados.value.map(ivaId => ({
             id: parseInt(ivaId),
             monto: parseFloat(form.ivas[ivaId]?.monto) || 0
@@ -1611,25 +1504,13 @@ const submit = () => {
             formData.append(`ivas[${index}][monto]`, iva.monto);
         });
 
-        // 🔥 🔥 🔥 AGREGAR EL PDF - ESTO ES LO IMPORTANTE
+        // AGREGAR EL PDF - ESTO ES LO IMPORTANTE
         if (archivos.value.pdf) {
             formData.append('pdf_file', archivos.value.pdf);
-            console.log('📎 PDF adjuntado:', archivos.value.pdf.name);
-        } else {
-            console.log('📎 No hay PDF para adjuntar');
         }
 
-        // 🔥 Log para depuración
-        console.log('=== FORM DATA A ENVIAR ===');
-        for (let [key, value] of formData.entries()) {
-            if (key === 'pdf_file') {
-                console.log(key, ':', value.name, '(archivo)');
-            } else {
-                console.log(key, ':', value);
-            }
-        }
 
-        // 🔥 ENVIAR CON AXIOS
+        // ENVIAR CON AXIOS
         axios.post(route('movimientos.update', props.movimiento.id), formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -1639,14 +1520,8 @@ const submit = () => {
         })
         .then(response => {
             processing.value = false;
-            console.log('✅ Respuesta exitosa:', response.data);
             
-            alertRef.value?.show({ 
-                type: 'success', 
-                title: 'Éxito', 
-                message: 'La póliza se ha actualizado correctamente.',
-                buttonText: 'Ir al listado'
-            });
+            notify.success('La póliza se ha actualizado correctamente.', 'Éxito');
             
             setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
@@ -1654,34 +1529,19 @@ const submit = () => {
         })
         .catch(error => {
             processing.value = false;
-            console.error('❌ Error completo:', error);
+            console.error(' Error completo:', error);
             
             if (error.response?.data?.errors) {
                 const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error de validación', 
-                    message: Array.isArray(firstError) ? firstError[0] : firstError,
-                    buttonText: 'Entendido' 
-                });
+                notify.error(Array.isArray(firstError) ? firstError[0] : firstError, 'Error de validación');
                 Object.keys(errors).forEach(key => {
                     form.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
                 });
             } else if (error.response?.data?.message) {
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error', 
-                    message: error.response.data.message,
-                    buttonText: 'Entendido' 
-                });
+                notify.error(error.response.data.message, 'Error');
             } else {
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error', 
-                    message: 'Error al actualizar la póliza. Intenta nuevamente.',
-                    buttonText: 'Entendido' 
-                });
+                notify.error('Error al actualizar la póliza. Intenta nuevamente.', 'Error');
             }
         });
 
@@ -1690,69 +1550,39 @@ const submit = () => {
         // TRASPASO - MISMO PATRÓN
         // ============================================
         if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Error en desglose de IVA',
-                message: `La suma del desglose ($${formatNumber(totalConIvaTraspasoCalculado.value)}) excede el monto ($${formatNumber(formTraspaso.monto_directo)}).`,
-                buttonText: 'Entendido'
-            });
+            notify.error(`La suma del desglose ($${formatNumber(totalConIvaTraspasoCalculado.value)}) excede el monto ($${formatNumber(formTraspaso.monto_directo)}).`, 'Error en desglose de IVA');
             return;
         }
 
         if (formTraspaso.fecha_poliza && formTraspaso.fecha_poliza > fechaActual.value) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Fecha invalida',
-                message: 'La fecha de la poliza no puede ser futura.',
-                buttonText: 'Entendido'
-            });
+            notify.error('La fecha de la poliza no puede ser futura.', 'Fecha invalida');
             return;
         }
 
         if (!formTraspaso.id_cuenta_origen) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Cuenta Origen requerida',
-                message: 'Debes seleccionar una cuenta de origen.',
-                buttonText: 'Entendido'
-            });
+            notify.error('Debes seleccionar una cuenta de origen.', 'Cuenta Origen requerida');
             return;
         }
 
         if (!formTraspaso.id_cuenta_destino) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Cuenta Destino requerida',
-                message: 'Debes seleccionar una cuenta de destino.',
-                buttonText: 'Entendido'
-            });
+            notify.error('Debes seleccionar una cuenta de destino.', 'Cuenta Destino requerida');
             return;
         }
 
         if (formTraspaso.id_cuenta_origen === formTraspaso.id_cuenta_destino) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Cuentas invalidas',
-                message: 'La cuenta de origen y destino no pueden ser la misma.',
-                buttonText: 'Entendido'
-            });
+            notify.error('La cuenta de origen y destino no pueden ser la misma.', 'Cuentas invalidas');
             return;
         }
 
         const montoTotalTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
         if (montoTotalTraspaso > saldoCuentaOrigen.value) {
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Saldo insuficiente en origen',
-                message: `El monto a transferir ($${formatNumber(montoTotalTraspaso)}) excede el saldo de la cuenta de origen ($${formatNumber(saldoCuentaOrigen.value)}).`,
-                buttonText: 'Entendido'
-            });
+            notify.error(`El monto a transferir ($${formatNumber(montoTotalTraspaso)}) excede el saldo de la cuenta de origen ($${formatNumber(saldoCuentaOrigen.value)}).`, 'Saldo insuficiente en origen');
             return;
         }
 
         processing.value = true;
 
-        // 🔥 CONSTRUIR FORM DATA PARA TRASPASO
+        // CONSTRUIR FORM DATA PARA TRASPASO
         const traspasoFormData = new FormData();
         traspasoFormData.append('_method', 'PUT');
 
@@ -1787,13 +1617,12 @@ const submit = () => {
             traspasoFormData.append(`ivas[${index}][monto]`, iva.monto);
         });
 
-        // 🔥 AGREGAR PDF PARA TRASPASO
+        // AGREGAR PDF PARA TRASPASO
         if (archivosTraspaso.value.pdf) {
             traspasoFormData.append('pdf_file', archivosTraspaso.value.pdf);
-            console.log('📎 PDF adjuntado (traspaso):', archivosTraspaso.value.pdf.name);
         }
 
-        // 🔥 ENVIAR CON AXIOS
+        // ENVIAR CON AXIOS
         axios.post(route('movimientos.update', props.movimiento.id), traspasoFormData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
@@ -1803,46 +1632,26 @@ const submit = () => {
         })
         .then(() => {
             processing.value = false;
-            alertRef.value?.show({ 
-                type: 'success', 
-                title: 'Éxito', 
-                message: 'El traspaso se ha actualizado correctamente.',
-                buttonText: 'Ir al listado'
-            });
+            notify.success('El traspaso se ha actualizado correctamente.', 'Éxito');
             setTimeout(() => {
                 router.visit(route('movimientos.index'), { method: 'get', replace: true });
             }, 1500);
         })
         .catch(error => {
             processing.value = false;
-            console.error('❌ Error completo:', error);
+            console.error(' Error completo:', error);
             
             if (error.response?.data?.errors) {
                 const errors = error.response.data.errors;
                 const firstError = Object.values(errors)[0];
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error de validación', 
-                    message: Array.isArray(firstError) ? firstError[0] : firstError,
-                    buttonText: 'Entendido' 
-                });
+                notify.error(Array.isArray(firstError) ? firstError[0] : firstError, 'Error de validación');
                 Object.keys(errors).forEach(key => {
                     formTraspaso.errors[key] = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
                 });
             } else if (error.response?.data?.message) {
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error', 
-                    message: error.response.data.message,
-                    buttonText: 'Entendido' 
-                });
+                notify.error(error.response.data.message, 'Error');
             } else {
-                alertRef.value?.show({ 
-                    type: 'error', 
-                    title: 'Error', 
-                    message: 'Error al actualizar el traspaso. Intenta nuevamente.',
-                    buttonText: 'Entendido' 
-                });
+                notify.error('Error al actualizar el traspaso. Intenta nuevamente.', 'Error');
             }
         });
     }
@@ -1858,9 +1667,6 @@ watch(() => form.tipo_poliza, () => {
 // MOUNTED
 // ============================================
 onMounted(() => {
-    console.log('=== MOUNTED - Edit.vue ===');
-    console.log('Movimiento recibido:', props.movimiento);
-    console.log('¿Es traspaso?', props.es_traspaso);
     
     const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
     
@@ -1965,7 +1771,7 @@ onMounted(() => {
 .status-capturado { background: #dbeafe; color: #1e40af; border: 1px solid #60a5fa; }
 .status-revisado { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
 .status-autorizado { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
-.status-abonado { background: #ede9fe; color: #5b21b6; border: 1px solid #8b5cf6; }
+.status-abonado { background: #ede9fe; color: #5b21b6; border: 1px solid #1a3a5c; }
 .status-liquidado { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
 .status-pendiente { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
 .status-cerrado { background: #f3f4f6; color: #4b5563; border: 1px solid #9ca3af; }
@@ -2058,7 +1864,7 @@ onMounted(() => {
 .tipo-btn-premium .tipo-btn-glow {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     opacity: 0;
     border-radius: 10px;
     transition: all 0.3s ease;
@@ -2066,7 +1872,7 @@ onMounted(() => {
 
 .tipo-btn-premium.active {
     color: white;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 .tipo-btn-premium.active .tipo-btn-glow { opacity: 1; }
 
@@ -2141,8 +1947,8 @@ onMounted(() => {
 }
 
 .form-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .form-input.error {
@@ -2174,8 +1980,8 @@ onMounted(() => {
 }
 
 .form-textarea:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 .form-textarea.error { border-color: #ef4444; }
 .form-textarea:disabled {
@@ -2242,14 +2048,14 @@ onMounted(() => {
     height: 34px;
 }
 .iva-btn:hover:not(.disabled):not(:disabled) {
-    border-color: #667eea;
-    color: #667eea;
+    border-color: #1a3a5c;
+    color: #1a3a5c;
 }
 .iva-btn.active {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
+    border-color: #1a3a5c;
     color: white;
-    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 2px 10px rgba(26, 58, 92, 0.2);
 }
 .iva-btn.disabled { opacity: 0.4; cursor: not-allowed; }
 .iva-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -2393,13 +2199,13 @@ onMounted(() => {
     content: '';
     position: absolute;
     inset: 3px;
-    background: #667eea;
+    background: #1a3a5c;
     border-radius: 2px;
     transform: scale(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .checkbox-input:checked + .checkbox-custom {
-    border-color: #667eea;
+    border-color: #1a3a5c;
 }
 .checkbox-input:checked + .checkbox-custom::after {
     transform: scale(1);
@@ -2443,13 +2249,13 @@ onMounted(() => {
     border: 2px dashed #d1d5db;
     border-radius: 8px;
     background: white;
-    color: #667eea;
+    color: #1a3a5c;
     cursor: pointer;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 .btn-add-marcador:hover:not(:disabled) {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f8f7ff;
     transform: scale(1.05);
 }
@@ -2536,7 +2342,7 @@ onMounted(() => {
     text-overflow: ellipsis;
 }
 .file-upload-area:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f8f7ff;
 }
 .file-icon {
@@ -2605,7 +2411,7 @@ onMounted(() => {
     padding: 6px 14px;
     background: #f8fafc;
     border-radius: 8px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     font-size: 0.8rem;
     color: #4b5563;
     margin-top: 8px;
@@ -2715,13 +2521,13 @@ onMounted(() => {
     border-color: #fca5a5;
 }
 .btn-submit {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 8px 24px rgba(26, 58, 92, 0.35);
 }
 .spinner-border {
     display: inline-block;

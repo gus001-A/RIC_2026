@@ -226,8 +226,6 @@ class DashboardController extends Controller
         });
 
         // ✅ Debug para verificar
-        \Log::info('Fecha de hoy:', ['hoy' => $hoy->toDateString()]);
-        \Log::info('Pólizas de hoy encontradas:', ['count' => $polizasHoy->count()]);
 
         return Inertia::render('Dashboard', [
             'usuario' => $usuario,

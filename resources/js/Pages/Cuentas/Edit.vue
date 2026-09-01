@@ -53,7 +53,7 @@
                             <svg v-else-if="isComplete" class="status-icon-success" fill="none" stroke="#10b981" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <svg v-else class="status-icon-progress" fill="none" stroke="#667eea" viewBox="0 0 24 24">
+                            <svg v-else class="status-icon-progress" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
                             </svg>
                         </span>
@@ -77,7 +77,7 @@
                         <!-- ============================================ -->
                         <div class="form-section-premium">
                             <div class="section-header-premium">
-                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #1a3a5c, #3d6ea5);">
                                     <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
@@ -178,7 +178,7 @@
                         <!-- ============================================ -->
                         <div class="form-section-premium compact">
                             <div class="section-header-premium">
-                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #1a3a5c, #132a44);">
                                     <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
@@ -289,7 +289,7 @@
                             <!-- ============================================ -->
                             <div class="resultados-padre-section" v-if="!form.es_cuenta_resultados && !form.fondeo_c">
                                 <div class="resultados-padre-header">
-                                    <svg class="resultados-padre-icon" fill="none" stroke="#8b5cf6" viewBox="0 0 24 24">
+                                    <svg class="resultados-padre-icon" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                                     </svg>
                                     <span class="resultados-padre-label">Cuenta de Resultados Padre <span class="required-star">*</span></span>
@@ -321,13 +321,14 @@
                                 <div class="jerarquia-resumen-title">
                                     <span class="jerarquia-resumen-title-text">Cuenta de Resultados asignada</span>
                                     <span class="jerarquia-resumen-status" :style="{ color: cuenta.en_uso ? '#10b981' : '#ef4444' }">
-                                        ● {{ cuenta.en_uso ? 'Activa' : 'Inactiva' }}
+                                        <i class="pi pi-circle-fill" style="font-size: 0.5rem;"></i>
+                                        {{ cuenta.en_uso ? 'Activa' : 'Inactiva' }}
                                     </span>
                                 </div>
                                 <div class="jerarquia-detalles">
                                     <div class="jerarquia-detalle">
                                         <span class="detalle-label">Resultados:</span>
-                                        <span class="detalle-valor" style="color: #8b5cf6; font-weight: 600;">
+                                        <span class="detalle-valor" style="color: #1a3a5c; font-weight: 600;">
                                             {{ getCuentaResultadosNombre(form.cuenta_resultados) }}
                                         </span>
                                     </div>
@@ -341,7 +342,7 @@
                         <div class="crear-hija-container">
                             <div class="crear-hija-content">
                                 <div class="crear-hija-info">
-                                    <svg class="crear-hija-icon" fill="none" stroke="#059669" viewBox="0 0 24 24">
+                                    <svg class="crear-hija-icon" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
                                     </svg>
                                     <div>
@@ -362,7 +363,7 @@
                         <!-- ============================================ -->
                         <div class="form-section-premium compact">
                             <div class="section-header-premium">
-                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                <div class="section-icon-premium" style="background: linear-gradient(135deg, #1a3a5c, #132a44);">
                                     <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
@@ -392,12 +393,13 @@
 
                         <!-- Info y acciones -->
                         <div class="info-box-premium">
-                            <svg class="info-icon-premium" fill="none" stroke="#667eea" viewBox="0 0 24 24">
+                            <svg class="info-icon-premium" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <span>Los campos con <strong class="text-danger">*</strong> son obligatorios</span>
-                            <span v-if="!form.es_cuenta_resultados && !form.fondeo_c" style="margin-left: auto; color: #8b5cf6; font-weight: 600;">
-                                ● Debes seleccionar una cuenta de resultados padre
+                            <span v-if="!form.es_cuenta_resultados && !form.fondeo_c" style="margin-left: auto; color: #1a3a5c; font-weight: 600;">
+                                <i class="pi pi-info-circle" style="font-size: 0.8rem;"></i>
+                                Debes seleccionar una cuenta de resultados padre
                             </span>
                         </div>
 
@@ -430,15 +432,14 @@
             <div class="modal-container-premium modal-hija">
                 <div class="modal-header-premium">
                     <div class="modal-header-info">
-                        <div class="modal-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="modal-icon-wrapper" style="background: linear-gradient(135deg, #1a3a5c, #3d6ea5);">
                             <svg class="modal-icon-premium" fill="none" stroke="white" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
                             </svg>
                         </div>
                         <div>
                             <h3 class="modal-title-premium">Crear Cuenta Hija</h3>
-                            <p class="modal-subtitle-premium">
-                                Bajo "{{ form.nombre_cuenta || 'Sin nombre' }}"
+                            <p class="modal-subtitle-premium">Bajo "{{ form.nombre_cuenta || 'Sin nombre' }}"
                             </p>
                         </div>
                     </div>
@@ -454,8 +455,7 @@
                         <div class="form-grid-modal">
                             <!-- Código -->
                             <div class="form-group-premium">
-                                <label class="form-label-premium">
-                                    Código <span class="required-star">*</span>
+                                <label class="form-label-premium">Código <span class="required-star">*</span>
                                     <span v-if="verificandoCodigoHija" class="label-badge-premium" style="background: #f59e0b;">Verificando...</span>
                                     <span v-else-if="codigoExisteHija && formHija.codigo_cuenta" class="label-badge-premium" style="background: #ef4444;">Ocupado</span>
                                     <span v-else-if="!codigoExisteHija && formHija.codigo_cuenta && formHija.codigo_cuenta.length > 0" class="label-badge-premium" style="background: #10b981;">Disponible</span>
@@ -478,8 +478,7 @@
 
                             <!-- Nombre -->
                             <div class="form-group-premium">
-                                <label class="form-label-premium">
-                                    Nombre <span class="required-star">*</span>
+                                <label class="form-label-premium">Nombre <span class="required-star">*</span>
                                 </label>
                                 <div class="input-wrapper-premium input-with-icon">
                                     <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
@@ -499,8 +498,7 @@
 
                             <!-- Naturaleza -->
                             <div class="form-group-premium">
-                                <label class="form-label-premium">
-                                    Naturaleza <span class="required-star">*</span>
+                                <label class="form-label-premium">Naturaleza <span class="required-star">*</span>
                                 </label>
                                 <div class="radio-group-modal">
                                     <div class="radio-card-modal" 
@@ -557,11 +555,10 @@
                             </div>
 
                             <!-- Cuenta de Resultados Padre - SOLO cuando NO es cuenta de resultados Y NO es fondeadora -->
-                            <!-- 🔥 MODIFICACIÓN: Esta sección usa cuentasResultadosFiltradas que incluye la cuenta actual -->
+                            <!-- MODIFICACIÓN: Esta sección usa cuentasResultadosFiltradas que incluye la cuenta actual -->
                             <div class="form-group-premium full-width-modal" 
                                  v-if="!formHija.es_cuenta_resultados && !formHija.fondeo_c">
-                                <label class="form-label-premium">
-                                    Cuenta de Resultados Padre <span class="required-star">*</span>
+                                <label class="form-label-premium">Cuenta de Resultados Padre <span class="required-star">*</span>
                                 </label>
                                 <div class="input-wrapper-premium input-with-icon">
                                     <svg class="input-icon-premium" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
@@ -573,7 +570,7 @@
                                             :class="{ 'error': formHija.errors.cuenta_resultados, 'modal-disabled': guardandoHija }"
                                             :disabled="guardandoHija">
                                         <option value="">-- Selecciona una cuenta de resultados --</option>
-                                        <!-- 🔥 Ahora incluye TODAS las cuentas de resultados, incluyendo la actual -->
+                                        <!-- Ahora incluye TODAS las cuentas de resultados, incluyendo la actual -->
                                         <option v-for="cuenta in cuentasResultadosFiltradas" 
                                                 :key="cuenta.id_cuenta" 
                                                 :value="cuenta.id_cuenta">
@@ -605,8 +602,7 @@
                             <button type="button" 
                                     @click="cerrarModalHija" 
                                     class="btn-cancel-premium"
-                                    :disabled="guardandoHija">
-                                Cancelar
+                                    :disabled="guardandoHija">Cancelar
                             </button>
                             <button type="submit" 
                                     :disabled="guardandoHija || !isFormHijaValid"
@@ -623,17 +619,15 @@
             </div>
         </div>
 
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
-import Swal from 'sweetalert2';
+import { useNotify } from '@/composables/useNotify';
 
 // ============================================
 // PROPS
@@ -660,7 +654,7 @@ const props = defineProps({
 // ============================================
 // REFS
 // ============================================
-const alertRef = ref(null);
+const notify = useNotify();
 const cuentasResultados = ref([]);
 const verificandoCodigo = ref(false);
 const codigoExiste = ref(false);
@@ -673,6 +667,12 @@ const guardandoHija = ref(false);
 const verificandoCodigoHija = ref(false);
 const codigoExisteHija = ref(false);
 let timeoutVerificarHija = null;
+
+// Bloquear el scroll de la página mientras el modal está abierto
+watch(modalHijaVisible, (abierto) => {
+    document.body.style.overflow = abierto ? 'hidden' : '';
+});
+onBeforeUnmount(() => { document.body.style.overflow = ''; });
 
 // ============================================
 // FORMULARIO PRINCIPAL
@@ -818,12 +818,6 @@ const clearErrorHija = (field) => {
 // TOGGLES
 // ============================================
 const toggleCuentaResultados = () => {
-    console.log('🔄 toggleCuentaResultados - ANTES:', {
-        es_cuenta_resultados: form.es_cuenta_resultados,
-        fondeo_c: form.fondeo_c,
-        cuenta_resultados: form.cuenta_resultados,
-        nivel: form.nivel
-    });
     
     form.es_cuenta_resultados = !form.es_cuenta_resultados;
     
@@ -843,23 +837,12 @@ const toggleCuentaResultados = () => {
         }
     }
     
-    console.log('🔄 toggleCuentaResultados - DESPUÉS:', {
-        es_cuenta_resultados: form.es_cuenta_resultados,
-        fondeo_c: form.fondeo_c,
-        cuenta_resultados: form.cuenta_resultados,
-        nivel: form.nivel
-    });
     
     clearError('nivel');
     clearError('cuenta_resultados');
 };
 
 const toggleFondeo = () => {
-    console.log('🔄 toggleFondeo - ANTES:', {
-        es_cuenta_resultados: form.es_cuenta_resultados,
-        fondeo_c: form.fondeo_c,
-        cuenta_resultados: form.cuenta_resultados
-    });
     
     form.fondeo_c = !form.fondeo_c;
     if (form.fondeo_c) {
@@ -872,11 +855,6 @@ const toggleFondeo = () => {
         }
     }
     
-    console.log('🔄 toggleFondeo - DESPUÉS:', {
-        es_cuenta_resultados: form.es_cuenta_resultados,
-        fondeo_c: form.fondeo_c,
-        cuenta_resultados: form.cuenta_resultados
-    });
 };
 
 const toggleHijaCuentaResultados = () => {
@@ -1018,7 +996,6 @@ const cargarCuentasResultados = async (empresaId = null) => {
                 }
             }
             
-            console.log('✅ Cuentas de resultados recargadas:', cuentasResultados.value.length);
         } else {
             cuentasResultados.value = [];
         }
@@ -1031,9 +1008,7 @@ const cargarCuentasResultados = async (empresaId = null) => {
 const validarCuentaResultadosSeleccionada = () => {
     if (form.cuenta_resultados) {
         const existe = cuentasResultadosFiltradas.value.some(c => c.id_cuenta === parseInt(form.cuenta_resultados));
-        if (!existe) {
-            console.log('⚠️ La cuenta de resultados seleccionada no existe en la lista.');
-        }
+
     }
 };
 
@@ -1041,7 +1016,7 @@ const validarCuentaResultadosSeleccionada = () => {
 // MODAL HIJA
 // ============================================
 const abrirModalCrearHija = () => {
-    // ✅ Recargar cuentas de resultados antes de abrir el modal
+    // Recargar cuentas de resultados antes de abrir el modal
     if (form.id_empresa) {
         cargarCuentasResultados();
     }
@@ -1076,22 +1051,12 @@ const cerrarModalHija = () => {
 // ============================================
 const guardarCuentaHija = () => {
     if (codigoExisteHija.value) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Código no disponible',
-            message: 'El código "' + formHija.codigo_cuenta + '" ya está en uso. Por favor, elige otro diferente.',
-            buttonText: 'Entendido'
-        });
+        notify.error('El código "' + formHija.codigo_cuenta + '" ya está en uso. Por favor, elige otro diferente.', 'Código no disponible');
         return;
     }
 
     if (!formHija.Naturaleza) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Naturaleza requerida',
-            message: 'Debes seleccionar una naturaleza para la cuenta (Deudora o Acreedora).',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes seleccionar una naturaleza para la cuenta (Deudora o Acreedora).', 'Naturaleza requerida');
         return;
     }
 
@@ -1102,12 +1067,7 @@ const guardarCuentaHija = () => {
             mensaje = 'Las cuentas normales deben tener una cuenta de resultados padre asignada.';
         }
         
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Campos incompletos',
-            message: mensaje,
-            buttonText: 'Entendido'
-        });
+        notify.error(mensaje, 'Campos incompletos');
         return;
     }
 
@@ -1122,12 +1082,7 @@ const guardarCuentaHija = () => {
 
     const cuentaMadre = props.cuenta;
     if (!cuentaMadre || !cuentaMadre.en_uso) {
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Cuenta madre inactiva',
-            message: 'La cuenta madre no está activa. No se puede crear una cuenta hija.',
-            buttonText: 'Entendido'
-        });
+        notify.error('La cuenta madre no está activa. No se puede crear una cuenta hija.', 'Cuenta madre inactiva');
         return;
     }
 
@@ -1143,12 +1098,7 @@ const guardarCuentaHija = () => {
             guardandoHija.value = false;
             cerrarModalHija();
             
-            alertRef.value?.show({
-                type: 'success',
-                title: '¡Cuenta hija creada!',
-                message: 'La cuenta hija se ha registrado exitosamente bajo "' + form.nombre_cuenta + '".',
-                buttonText: 'Ir al listado'
-            });
+            notify.success('La cuenta hija se ha registrado exitosamente bajo "' + form.nombre_cuenta + '".', '¡Cuenta hija creada!');
             
             setTimeout(() => {
                 router.visit(route('cuentas.index', { empresa_id: form.id_empresa }));
@@ -1160,13 +1110,8 @@ const guardarCuentaHija = () => {
             if (errors.codigo_cuenta) {
                 codigoExisteHija.value = true;
             }
-            const errorMsg = Object.values(errors).join('<br>');
-            alertRef.value?.show({
-                type: 'error',
-                title: 'Error al crear',
-                message: errorMsg || 'Ocurrió un error al crear la cuenta hija.',
-                buttonText: 'Intentar de nuevo'
-            });
+            const errorMsg = Object.values(errors).join(' · ');
+            notify.error(errorMsg || 'Ocurrió un error al crear la cuenta hija.', 'Error al crear');
         }
     });
 };
@@ -1175,81 +1120,24 @@ const guardarCuentaHija = () => {
 // ELIMINAR CUENTA
 // ============================================
 const confirmarEliminar = () => {
-    Swal.fire({
-        title: '¿Desactivar cuenta?',
-        html: `
-            <div class="text-center">
-                <div class="flex justify-center mb-3">
-                    <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="font-medium text-gray-800 text-lg">${form.nombre_cuenta}</p>
-                <p class="text-sm text-gray-500">Código: <strong>${form.codigo_cuenta}</strong></p>
-                <p class="text-sm text-gray-500">Nivel: <strong>${form.nivel}</strong></p>
-                <div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <p class="text-sm text-amber-700 font-medium">La cuenta quedará <strong>inactiva</strong></p>
-                    <p class="text-xs text-amber-600 mt-1">Podrás reactivarla más tarde desde el listado de cuentas</p>
-                </div>
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, desactivar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        customClass: {
-            popup: 'swal-premium-popup',
-            confirmButton: 'swal-premium-confirm',
-            cancelButton: 'swal-premium-cancel'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+    notify.confirmDelete({
+        header: '¿Desactivar cuenta?',
+        message: `La cuenta "${form.nombre_cuenta}" (código ${form.codigo_cuenta}, nivel ${form.nivel}) quedará inactiva. Podrás reactivarla más tarde desde el listado.`,
+        acceptLabel: 'Sí, desactivar',
+        accept: () => {
             router.delete(route('cuentas.destroy', props.cuenta.id_cuenta), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    Swal.fire({
-                        title: '¡Desactivada!',
-                        html: `
-                            <div class="text-center">
-                                <div class="flex justify-center mb-3">
-                                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-gray-700">Cuenta <strong>${form.nombre_cuenta}</strong></p>
-                                <p class="text-sm text-green-600 mt-1">Desactivada correctamente</p>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonText: 'Aceptar',
-                        confirmButtonColor: '#1a3a5c',
-                        timer: 3000,
-                        timerProgressBar: true
-                    }).then(() => {
+                    notify.success(`Cuenta "${form.nombre_cuenta}" desactivada correctamente`);
+                    setTimeout(() => {
                         router.visit(route('cuentas.index', { empresa_id: form.id_empresa }));
-                    });
+                    }, 1200);
                 },
                 onError: (errors) => {
-                    const errorMsg = errors?.error || 'Ocurrió un error al desactivar la cuenta';
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'Entendido',
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
+                    notify.error(errors?.error || 'Ocurrió un error al desactivar la cuenta');
+                },
             });
-        }
+        },
     });
 };
 
@@ -1257,79 +1145,26 @@ const confirmarEliminar = () => {
 // REACTIVAR CUENTA
 // ============================================
 const confirmarReactivar = () => {
-    Swal.fire({
-        title: '¿Reactivar cuenta?',
-        html: `
-            <div class="text-center">
-                <div class="flex justify-center mb-3">
-                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="font-medium text-gray-800 text-lg">${form.nombre_cuenta}</p>
-                <p class="text-sm text-gray-500">Código: <strong>${form.codigo_cuenta}</strong></p>
-                <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p class="text-sm text-green-700 font-medium">La cuenta volverá a estar <strong>activa</strong></p>
-                </div>
-            </div>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, reactivar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#64748b',
-        reverseButtons: true,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        customClass: {
-            popup: 'swal-premium-popup',
-            confirmButton: 'swal-premium-confirm',
-            cancelButton: 'swal-premium-cancel'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
+    notify.confirmAction({
+        header: '¿Reactivar cuenta?',
+        message: `La cuenta "${form.nombre_cuenta}" (código ${form.codigo_cuenta}) volverá a estar activa.`,
+        acceptLabel: 'Sí, reactivar',
+        acceptSeverity: 'success',
+        icon: 'pi pi-refresh',
+        accept: () => {
             router.patch(route('cuentas.reactivate', props.cuenta.id_cuenta), {}, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    Swal.fire({
-                        title: '¡Reactivada!',
-                        html: `
-                            <div class="text-center">
-                                <div class="flex justify-center mb-3">
-                                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-gray-700">Cuenta <strong>${form.nombre_cuenta}</strong></p>
-                                <p class="text-sm text-green-600 mt-1">Reactivada correctamente</p>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonText: 'Aceptar',
-                        confirmButtonColor: '#1a3a5c',
-                        timer: 3000,
-                        timerProgressBar: true
-                    }).then(() => {
+                    notify.success(`Cuenta "${form.nombre_cuenta}" reactivada correctamente`);
+                    setTimeout(() => {
                         router.visit(route('cuentas.index', { empresa_id: form.id_empresa }));
-                    });
+                    }, 1200);
                 },
                 onError: (errors) => {
-                    const errorMsg = errors?.error || 'Ocurrió un error al reactivar la cuenta';
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'Entendido',
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
+                    notify.error(errors?.error || 'Ocurrió un error al reactivar la cuenta');
+                },
             });
-        }
+        },
     });
 };
 
@@ -1337,54 +1172,23 @@ const confirmarReactivar = () => {
 // SUBMIT
 // ============================================
 const submit = () => {
-    console.log('🚀 ========== INICIO SUBMIT ==========');
-    console.log('📋 DATOS DEL FORMULARIO:', {
-        id_empresa: form.id_empresa,
-        codigo_cuenta: form.codigo_cuenta,
-        nombre_cuenta: form.nombre_cuenta,
-        Naturaleza: form.Naturaleza,
-        es_cuenta_resultados: form.es_cuenta_resultados,
-        fondeo_c: form.fondeo_c,
-        nivel: form.nivel,
-        cuenta_resultados: form.cuenta_resultados,
-        descripcion: form.descripcion
-    });
 
     if (!form.Naturaleza) {
-        console.log('❌ ERROR: Naturaleza no seleccionada');
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Naturaleza requerida',
-            message: 'Debes seleccionar una naturaleza para la cuenta (Deudora o Acreedora).',
-            buttonText: 'Entendido'
-        });
+        notify.error('Debes seleccionar una naturaleza para la cuenta (Deudora o Acreedora).', 'Naturaleza requerida');
         return;
     }
 
     if (!form.es_cuenta_resultados && !form.fondeo_c && !form.cuenta_resultados) {
-        console.log('❌ ERROR: Cuenta de resultados no seleccionada');
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Cuenta de resultados requerida',
-            message: 'Las cuentas normales deben tener una cuenta de resultados padre asignada.',
-            buttonText: 'Entendido'
-        });
+        notify.error('Las cuentas normales deben tener una cuenta de resultados padre asignada.', 'Cuenta de resultados requerida');
         return;
     }
 
     if (codigoExiste.value && form.codigo_cuenta !== codigoOriginal.value) {
-        console.log('❌ ERROR: Código duplicado');
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Código no disponible',
-            message: 'El código "' + form.codigo_cuenta + '" ya está en uso. Por favor, elige otro diferente.',
-            buttonText: 'Entendido'
-        });
+        notify.error('El código "' + form.codigo_cuenta + '" ya está en uso. Por favor, elige otro diferente.', 'Código no disponible');
         return;
     }
 
     if (!isFormValid.value) {
-        console.log('❌ ERROR: Formulario inválido');
         let mensaje = 'Por favor, complete todos los campos obligatorios.';
         
         if (form.es_cuenta_resultados) {
@@ -1395,12 +1199,7 @@ const submit = () => {
             mensaje = 'Las cuentas normales deben tener una cuenta de resultados padre asignada.';
         }
         
-        alertRef.value?.show({
-            type: 'error',
-            title: 'Campos incompletos',
-            message: mensaje,
-            buttonText: 'Entendido'
-        });
+        notify.error(mensaje, 'Campos incompletos');
         return;
     }
 
@@ -1426,44 +1225,26 @@ const submit = () => {
         dataToSend.cuenta_resultados = null;
     }
 
-    console.log('📤 DATOS A ENVIAR:', dataToSend);
 
     form.put(route('cuentas.update', props.cuenta.id_cuenta), {
         data: dataToSend,
         preserveScroll: true,
         onSuccess: () => {
-            console.log('✅ SUCCESS: Cuenta actualizada correctamente');
             
-            // 🔥 Recargar cuentas de resultados después de actualizar
+            // Recargar cuentas de resultados después de actualizar
             if (form.id_empresa) {
                 cargarCuentasResultados();
             }
             
-            alertRef.value?.show({
-                type: 'success',
-                title: '¡Cuenta actualizada!',
-                message: 'Los datos de la cuenta se han actualizado exitosamente.',
-                buttonText: 'Aceptar'
-            });
+            notify.success('Los datos de la cuenta se han actualizado exitosamente.', '¡Cuenta actualizada!');
         },
         onError: (errors) => {
-            console.log('❌ ERROR en la respuesta:', errors);
             if (errors.codigo_cuenta) {
                 codigoExiste.value = true;
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Código duplicado',
-                    message: 'El código "' + form.codigo_cuenta + '" ya existe. Por favor, elige otro diferente.',
-                    buttonText: 'Entendido'
-                });
+                notify.error('El código "' + form.codigo_cuenta + '" ya existe. Por favor, elige otro diferente.', 'Código duplicado');
             } else {
-                const errorMessages = Object.values(errors).join('<br>');
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error al actualizar',
-                    message: errorMessages || 'Ocurrió un error al actualizar la cuenta.',
-                    buttonText: 'Intentar de nuevo'
-                });
+                const errorMessages = Object.values(errors).join(' · ');
+                notify.error(errorMessages || 'Ocurrió un error al actualizar la cuenta.', 'Error al actualizar');
             }
         }
     });
@@ -1478,23 +1259,10 @@ watch(() => form.id_empresa, (newVal, oldVal) => {
     }
 });
 
-// 🔥 WATCHER PARA FLASH - RECARGAR CUENTAS DE RESULTADOS
-watch(() => props.flash, (newFlash) => {
-    if (newFlash && newFlash.success) {
-        // Si hay un mensaje de éxito, recargar las cuentas de resultados
-        if (form.id_empresa) {
-            cargarCuentasResultados();
-        }
-    }
-}, { deep: true });
-
 // ============================================
 // MOUNTED
 // ============================================
 onMounted(async () => {
-    console.log('🔵 ========== MOUNTED ==========');
-    console.log('📋 PROPS CUENTA:', props.cuenta);
-    console.log('📋 PROPS CUENTAS RESULTADOS:', props.cuentasResultados);
     
     codigoOriginal.value = props.cuenta.codigo_cuenta || '';
     
@@ -1522,19 +1290,13 @@ onMounted(async () => {
         form.fondeo_c = false;
     }
     
-    console.log('📋 FORM INICIALIZADO:', form.data());
     
     if (form.id_empresa) {
         await cargarCuentasResultados();
     }
     
-    if (props.flash && props.flash.success) {
-        await cargarCuentasResultados();
-    }
-    
     nextTick(() => {
         validarCuentaResultadosSeleccionada();
-        console.log('✅ MOUNTED COMPLETADO');
     });
 });
 </script>
@@ -1698,7 +1460,7 @@ onMounted(async () => {
 }
 
 .status-banner-premium.status-progress {
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
 }
 
 .status-banner-content {
@@ -1759,7 +1521,7 @@ onMounted(async () => {
 }
 
 .status-progress .status-banner-progress-bar {
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #1a3a5c, #3d6ea5);
 }
 
 .status-error .status-banner-progress-bar {
@@ -1779,15 +1541,15 @@ onMounted(async () => {
     background: #ffffff;
     border-radius: 16px;
     border: 1px solid #f0f2f5;
-    padding: 28px;
+    padding: 20px 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* FORM SECTIONS */
 .form-section-premium {
-    margin-bottom: 24px;
-    padding-bottom: 24px;
-    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .form-section-premium:last-of-type {
@@ -1797,15 +1559,15 @@ onMounted(async () => {
 }
 
 .form-section-premium.compact {
-    margin-bottom: 16px;
-    padding-bottom: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
 }
 
 .section-header-premium {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 11px;
+    margin-bottom: 12px;
 }
 
 .section-icon-premium {
@@ -1927,8 +1689,8 @@ onMounted(async () => {
 }
 
 .form-input-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.08);
 }
 
 .form-input-premium:hover:not(:focus) {
@@ -1961,8 +1723,8 @@ onMounted(async () => {
 }
 
 .form-textarea-premium:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.08);
 }
 
 /* ERROR MESSAGES */
@@ -2028,9 +1790,9 @@ onMounted(async () => {
 }
 
 .radio-card-premium.selected {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f0f4ff;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.08);
 }
 
 .radio-content {
@@ -2049,8 +1811,8 @@ onMounted(async () => {
 }
 
 .radio-card-premium.selected .radio-dot {
-    border-color: #667eea;
-    background: #667eea;
+    border-color: #1a3a5c;
+    background: #1a3a5c;
     box-shadow: inset 0 0 0 3px white;
 }
 
@@ -2117,7 +1879,7 @@ onMounted(async () => {
 }
 
 .checkbox-premium.checked {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f0f4ff;
 }
 
@@ -2134,8 +1896,8 @@ onMounted(async () => {
 }
 
 .checkbox-premium.checked .checkbox-custom-premium {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
+    border-color: #1a3a5c;
 }
 
 .checkbox-check-premium {
@@ -2166,7 +1928,7 @@ onMounted(async () => {
 .resultados-padre-icon {
     width: 18px;
     height: 18px;
-    color: #8b5cf6;
+    color: #1a3a5c;
 }
 
 .resultados-padre-label {
@@ -2181,12 +1943,12 @@ onMounted(async () => {
     padding: 1px 10px;
     border-radius: 10px;
     background: #f3e8ff;
-    color: #8b5cf6;
+    color: #1a3a5c;
 }
 
 .info-box-premium {
     background: #f8faff;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     border-radius: 8px;
     padding: 10px 14px;
     display: flex;
@@ -2258,10 +2020,11 @@ onMounted(async () => {
 /* CREAR HIJA CONTAINER - SIEMPRE VISIBLE */
 .crear-hija-container {
     margin: 12px 0 16px 0;
-    padding: 12px 18px;
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    border-radius: 10px;
-    border: 2px solid #86efac;
+    padding: 13px 18px;
+    background: linear-gradient(135deg, #f4f7fb, #eef3f9);
+    border-radius: 12px;
+    border: 1px solid #d9e2ee;
+    border-left: 4px solid #1a3a5c;
 }
 
 .crear-hija-content {
@@ -2279,16 +2042,16 @@ onMounted(async () => {
 }
 
 .crear-hija-icon {
-    width: 28px;
-    height: 28px;
-    color: #059669;
+    width: 26px;
+    height: 26px;
+    color: #1a3a5c;
     flex-shrink: 0;
 }
 
 .crear-hija-titulo {
     font-size: 14px;
     font-weight: 700;
-    color: #065f46;
+    color: #0b1426;
 }
 
 .btn-crear-hija-premium {
@@ -2296,20 +2059,20 @@ onMounted(async () => {
     align-items: center;
     gap: 8px;
     padding: 8px 18px;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: #1a3a5c;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-weight: 700;
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.25);
 }
 
 .btn-crear-hija-premium:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 6px 16px rgba(26, 58, 92, 0.3);
 }
 
 .btn-crear-hija-premium .btn-icon-premium {
@@ -2522,9 +2285,9 @@ onMounted(async () => {
 }
 
 .radio-card-modal.selected {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f0f4ff;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.08);
+    box-shadow: 0 0 0 2px rgba(26, 58, 92, 0.08);
 }
 
 .radio-label-modal {
@@ -2556,7 +2319,7 @@ onMounted(async () => {
 }
 
 .checkbox-modal.checked {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: #f0f4ff;
 }
 
@@ -2573,8 +2336,8 @@ onMounted(async () => {
 }
 
 .checkbox-modal.checked .checkbox-custom-modal {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
+    border-color: #1a3a5c;
 }
 
 .checkbox-label-modal {
@@ -2770,27 +2533,6 @@ onMounted(async () => {
         width: 18px;
         height: 18px;
     }
-}
-
-/* SWEETALERT2 CUSTOM */
-:deep(.swal-premium-popup) {
-    border-radius: 16px !important;
-    padding: 20px !important;
-}
-
-:deep(.swal-premium-confirm) {
-    background: #1a3a5c !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    padding: 8px 24px !important;
-}
-
-:deep(.swal-premium-cancel) {
-    background: #e5e7eb !important;
-    color: #64748b !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    padding: 8px 24px !important;
 }
 
 .spinner-border {

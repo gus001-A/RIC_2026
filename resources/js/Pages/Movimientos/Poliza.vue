@@ -15,9 +15,9 @@
                 </div>
                 <div class="header-right">
                     <div class="status-badge" :class="statusClass">
-                        <span v-if="hasErrors">⚠ {{ errorCount }} errores</span>
-                        <span v-else-if="isComplete">✓ Completado</span>
-                        <span v-else>📝 {{ Math.round(progressPercentage) }}%</span>
+                        <span v-if="hasErrors"> {{ errorCount }} errores</span>
+                        <span v-else-if="isComplete">Completado</span>
+                        <span v-else> {{ Math.round(progressPercentage) }}%</span>
                     </div>
                 </div>
             </div>
@@ -106,7 +106,7 @@
                                     </div>
                                     <div v-if="form.errors.id_cuenta_fondeadora" class="error-message">{{ form.errors.id_cuenta_fondeadora }}</div>
                                     <div v-if="cuentas_fondeadoras.length === 0" class="warning-message">
-                                        ⚠️ No hay cuentas fondeadoras configuradas. Contacta al administrador.
+                                        No hay cuentas fondeadoras configuradas. Contacta al administrador.
                                     </div>
                                 </div>
 
@@ -364,7 +364,7 @@
                                             class="file-remove-premium"
                                             title="Eliminar archivo"
                                         >
-                                            ✕
+
                                         </button>
                                     </div>
                                     <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo PDF (máx. 5MB)</div>
@@ -403,7 +403,7 @@
                                             class="file-remove-premium"
                                             title="Eliminar archivo"
                                         >
-                                            ✕
+
                                         </button>
                                     </div>
                                     <div class="field-hint-premium">Haz clic en el área para seleccionar un archivo XML (máx. 5MB)</div>
@@ -412,19 +412,19 @@
 
                             <!-- Archivos seleccionados - Mejorado -->
                             <div v-if="archivos.pdf || archivos.xml" class="archivos-seleccionados-premium">
-                                <span class="archivos-seleccionados-title">📎 Archivos seleccionados:</span>
+                                <span class="archivos-seleccionados-title">Archivos seleccionados:</span>
                                 <div class="archivos-seleccionados-list">
                                     <span v-if="archivos.pdf" class="archivo-item pdf">
-                                        <span class="archivo-icon">📄</span>
+                                        <span class="archivo-icon"></span>
                                         {{ archivos.pdf.name }}
                                         <span class="archivo-size">({{ (archivos.pdf.size / 1024).toFixed(2) }} KB)</span>
-                                        <button type="button" @click="eliminarArchivo('pdf')" class="archivo-remove" title="Eliminar">✕</button>
+                                        <button type="button" @click="eliminarArchivo('pdf')" class="archivo-remove" title="Eliminar"><i class="pi pi-times"></i></button>
                                     </span>
                                     <span v-if="archivos.xml" class="archivo-item xml">
-                                        <span class="archivo-icon">📋</span>
+                                        <span class="archivo-icon"></span>
                                         {{ archivos.xml.name }}
                                         <span class="archivo-size">({{ (archivos.xml.size / 1024).toFixed(2) }} KB)</span>
-                                        <button type="button" @click="eliminarArchivo('xml')" class="archivo-remove" title="Eliminar">✕</button>
+                                        <button type="button" @click="eliminarArchivo('xml')" class="archivo-remove" title="Eliminar"><i class="pi pi-times"></i></button>
                                     </span>
                                 </div>
                             </div>
@@ -461,7 +461,7 @@
                         <!-- BOTONES                                     -->
                         <!-- ============================================ -->
                         <div class="info-box">
-                            <span class="info-icon">ℹ️</span>
+                            <span class="info-icon"></span>
                             <span>Los campos con <strong class="text-danger">*</strong> son obligatorios</span>
                         </div>
 
@@ -488,20 +488,20 @@
                 </div>
             </div>
         </div>
-
-        <AlertModal ref="alertRef" />
     </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
-import AlertModal from '@/Components/AlertModal.vue';
 import axios from 'axios';
 import { ref, computed, onMounted, watch } from 'vue';
+import { useNotify } from '@/composables/useNotify';
+
+const notify = useNotify();
 
 // ============================================
-// ✅ PROPS
+// PROPS
 // ============================================
 const props = defineProps({
     empresa_id: { type: Number, default: null },
@@ -511,15 +511,7 @@ const props = defineProps({
     personas: { type: Array, default: () => [] }
 });
 
-// 🔍 DEBUG
-console.log('📊 Props recibidas en Poliza.vue:', {
-    cuentas_fondeadoras: props.cuentas_fondeadoras,
-    cuentas: props.cuentas,
-    personas: props.personas,
-    marcadores: props.marcadores
-});
-
-const alertRef = ref(null);
+// DEBUG
 const pdfInput = ref(null);
 const xmlInput = ref(null);
 const fechaActual = ref(new Date().toISOString().split('T')[0]);
@@ -527,7 +519,7 @@ const processing = ref(false);
 const archivos = ref({ pdf: null, xml: null });
 
 // ============================================
-// ✅ FORMULARIO
+// FORMULARIO
 // ============================================
 const form = ref({
     tipo_poliza: 'INGRESO',
@@ -547,7 +539,7 @@ const form = ref({
 });
 
 // ============================================
-// ✅ COMPUTED
+// COMPUTED
 // ============================================
 const ivaDieciseisCalculado = computed(() => {
     return Math.round((form.value.monto_iva_dieciseis || 0) * 0.16 * 100) / 100;
@@ -613,7 +605,7 @@ const isFormValid = computed(() => {
 });
 
 // ============================================
-// ✅ MÉTODOS
+// MÉTODOS
 // ============================================
 const calcularTotales = () => {
     form.value.total_factura = totalFacturaCalculado.value;
@@ -624,24 +616,14 @@ const handleFileUpload = (tipo, event) => {
     const file = event.target.files[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Archivo demasiado grande', 
-                message: `El archivo ${file.name} excede el límite de 5MB.`, 
-                buttonText: 'Entendido' 
-            });
+            notify.error(`El archivo ${file.name} excede el límite de 5MB.`, 'Archivo demasiado grande');
             event.target.value = '';
             return;
         }
         
         archivos.value[tipo] = file;
         
-        alertRef.value?.show({ 
-            type: 'success', 
-            title: 'Archivo seleccionado', 
-            message: `Se ha seleccionado ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 
-            buttonText: 'Aceptar' 
-        });
+        notify.success(`Se ha seleccionado ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'Archivo seleccionado');
     }
 };
 
@@ -669,17 +651,17 @@ const submit = () => {
 
     // Validaciones finales
     if (!form.value.id_cuenta_fondeadora) {
-        alertRef.value?.show({ type: 'error', title: 'Error', message: 'Selecciona una cuenta fondeadora', buttonText: 'Entendido' });
+        notify.error('Selecciona una cuenta fondeadora', 'Error');
         processing.value = false;
         return;
     }
     if (form.value.total_factura <= 0) {
-        alertRef.value?.show({ type: 'error', title: 'Error', message: 'El total debe ser mayor a 0', buttonText: 'Entendido' });
+        notify.error('El total debe ser mayor a 0', 'Error');
         processing.value = false;
         return;
     }
     if (form.value.es_por_pagar && !form.value.fecha_vencimiento) {
-        alertRef.value?.show({ type: 'error', title: 'Error', message: 'Ingresa una fecha de vencimiento', buttonText: 'Entendido' });
+        notify.error('Ingresa una fecha de vencimiento', 'Error');
         processing.value = false;
         return;
     }
@@ -704,12 +686,7 @@ const submit = () => {
     })
     .then(() => {
         processing.value = false;
-        alertRef.value?.show({ 
-            type: 'success', 
-            title: 'Éxito', 
-            message: 'Póliza fiscal con doble IVA creada correctamente.',
-            buttonText: 'Ir al listado'
-        });
+        notify.success('Póliza fiscal con doble IVA creada correctamente.', 'Éxito');
         setTimeout(() => {
             router.visit(route('movimientos.index'), { method: 'get', replace: true });
         }, 1500);
@@ -719,25 +696,15 @@ const submit = () => {
         if (error.response?.data?.errors) {
             form.value.errors = error.response.data.errors;
             const firstError = Object.values(error.response.data.errors)[0];
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Error de validación', 
-                message: Array.isArray(firstError) ? firstError[0] : firstError,
-                buttonText: 'Entendido' 
-            });
+            notify.error(Array.isArray(firstError) ? firstError[0] : firstError, 'Error de validación');
         } else {
-            alertRef.value?.show({ 
-                type: 'error', 
-                title: 'Error', 
-                message: error.response?.data?.message || 'Error al guardar la póliza.',
-                buttonText: 'Entendido' 
-            });
+            notify.error(error.response?.data?.message || 'Error al guardar la póliza.', 'Error');
         }
     });
 };
 
 // ============================================
-// ✅ WATCHER PARA ERRORES
+// WATCHER PARA ERRORES
 // ============================================
 watch(
     () => form.value.errors,
@@ -745,12 +712,7 @@ watch(
         if (Object.keys(newErrors).length > 0) {
             const firstError = Object.values(newErrors)[0];
             if (firstError) {
-                alertRef.value?.show({
-                    type: 'error',
-                    title: 'Error de validación',
-                    message: firstError,
-                    buttonText: 'Entendido'
-                });
+                notify.error(firstError, 'Error de validación');
             }
         }
     },
@@ -758,19 +720,15 @@ watch(
 );
 
 // ============================================
-// ✅ LIFECYCLE
+// LIFECYCLE
 // ============================================
 onMounted(() => {
-    console.log('🚀 Poliza.vue montado');
-    console.log('📊 cuentas_fondeadoras:', props.cuentas_fondeadoras);
-    console.log('📊 cuentas:', props.cuentas);
     
-    // ✅ Si hay cuentas fondeadoras, seleccionar la primera
+    // Si hay cuentas fondeadoras, seleccionar la primera
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         form.value.id_cuenta_fondeadora = props.cuentas_fondeadoras[0].id_cuenta;
-        console.log('✅ Cuenta fondeadora seleccionada:', form.value.id_cuenta_fondeadora);
     } else {
-        console.warn('⚠️ No hay cuentas fondeadoras disponibles');
+        console.warn(' No hay cuentas fondeadoras disponibles');
     }
 });
 </script>
@@ -913,13 +871,13 @@ onMounted(() => {
     border-radius: 14px;
     color: white;
     flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(102,126,234,0.25);
+    box-shadow: 0 4px 16px rgba(26, 58, 92,0.25);
 }
 
-.icon-blue { background: linear-gradient(135deg, #667eea, #764ba2); }
+.icon-blue { background: linear-gradient(135deg, #1a3a5c, #3d6ea5); }
 .icon-green { background: linear-gradient(135deg, #10b981, #059669); }
 .icon-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.icon-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.icon-purple { background: linear-gradient(135deg, #1a3a5c, #132a44); }
 .icon-teal { background: linear-gradient(135deg, #14b8a6, #0d9488); }
 
 .section-icon svg {
@@ -986,8 +944,8 @@ onMounted(() => {
 }
 
 .form-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92,0.1);
 }
 
 .form-input.error {
@@ -1010,8 +968,8 @@ onMounted(() => {
 }
 
 .form-textarea:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92,0.1);
 }
 
 .input-prefix {
@@ -1096,14 +1054,14 @@ onMounted(() => {
     content: '';
     position: absolute;
     inset: 2px;
-    background: #667eea;
+    background: #1a3a5c;
     border-radius: 3px;
     transform: scale(0);
     transition: all 0.3s ease;
 }
 
 .checkbox-input:checked + .checkbox-custom {
-    border-color: #667eea;
+    border-color: #1a3a5c;
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
@@ -1379,10 +1337,10 @@ onMounted(() => {
 }
 
 .file-upload-area-premium:hover {
-    border-color: #667eea;
+    border-color: #1a3a5c;
     background: linear-gradient(135deg, #f8f7ff, #eef2ff);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 4px 12px rgba(26, 58, 92, 0.1);
 }
 
 .file-upload-area-premium.has-file {
@@ -1534,7 +1492,7 @@ onMounted(() => {
     padding: 12px 20px;
     background: #f8f7ff;
     border-radius: 12px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #1a3a5c;
     font-size: 0.85rem;
     color: #4b5563;
     margin-top: 20px;
@@ -1617,14 +1575,14 @@ onMounted(() => {
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
-    box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+    box-shadow: 0 4px 20px rgba(26, 58, 92,0.3);
 }
 
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(102,126,234,0.4);
+    box-shadow: 0 8px 32px rgba(26, 58, 92,0.4);
 }
 
 .btn-submit:disabled {

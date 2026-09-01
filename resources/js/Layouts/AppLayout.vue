@@ -1,7 +1,7 @@
 <template>
     <Head :title="title" />
     
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100/50">
+    <div class="min-h-screen bg-white">
         <!-- Navbar -->
         <nav class="bg-white/80 backdrop-blur-md border-b border-gray-200/30 sticky top-0 z-50 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -17,8 +17,7 @@
                                     @error="handleLogoError"
                                     v-if="logoExists"
                                 />
-                                <div v-else class="h-12 w-12 bg-gradient-to-br from-[#0A1628] to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                                    RIC
+                                <div v-else class="h-12 w-12 bg-gradient-to-br from-[#0A1628] to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">RIC
                                 </div>
                                 <div class="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0A1628] to-blue-600 transition-all duration-300 group-hover:w-full"></div>
                             </div>
@@ -128,7 +127,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
                                     Empresas
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold">Super</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold">Super</span>
                                 </span>
                                 <span v-if="$page.url.startsWith('/empresas')" 
                                       class="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#0A1628] rounded-full"></span>
@@ -200,7 +199,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- ✅ SOLO CERRAR SESIÓN - ELIMINADO MI PERFIL Y CONFIGURACIÓN -->
+                                    <!-- SOLO CERRAR SESIÓN - ELIMINADO MI PERFIL Y CONFIGURACIÓN -->
                                     <div class="py-1">
                                         <!-- Cerrar sesión -->
                                         <DropdownLink :href="'/logout'" method="post" as="button" 
@@ -356,7 +355,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
                                     Empresas
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold ml-auto">Super</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold ml-auto">Super</span>
                                 </span>
                             </Link>
 
@@ -387,25 +386,32 @@
 
         <!-- Page Heading -->
         <header v-if="$slots.header" class="bg-white/80 backdrop-blur-sm border-b border-gray-200/30 shadow-sm">
-            <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
                 <slot name="header" />
             </div>
         </header>
 
         <!-- Page Content -->
-        <main class="py-6">
+        <main class="py-4">
             <slot />
         </main>
+
+        <!-- Notificaciones y confirmaciones globales (PrimeVue) -->
+        <Toast position="top-center" />
+        <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
 import { Link, usePage, Head } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useFlashMessages } from '@/composables/useFlashMessages';
 
-// ✅ IMPORTAR EL LOGO DESDE resources/js/images/logo.png
+// IMPORTAR EL LOGO DESDE resources/js/images/logo.png
 import logoImage from '@/images/logo.png';
 
 // Definir props para el título
@@ -416,23 +422,14 @@ const props = defineProps({
     }
 });
 
-
-// ✅ AGREGAR ESTO PARA DEBUG
-console.log('🔍 AppLayout montado', {
-    url: usePage().url,
-    props: usePage().props
-});
-
-// ✅ WATCH PARA VER CAMBIOS DE URL
-watch(() => usePage().url, (newUrl) => {
-    console.log('🔄 Navegación detectada en AppLayout:', newUrl);
-});
+// Muestra los flash messages de Laravel como toasts (una sola vez, global)
+useFlashMessages();
 
 const page = usePage();
 const mobileMenuOpen = ref(false);
 const logoExists = ref(true);
 
-// ✅ OBTENER PERMISOS DESDE EL BACKEND
+// OBTENER PERMISOS DESDE EL BACKEND
 const permisos = computed(() => page.props.permisos || {});
 const tipoUsuario = computed(() => page.props.auth?.user?.tipo_usuario || '');
 
@@ -440,7 +437,7 @@ const handleLogoError = () => {
     logoExists.value = false;
 };
 
-// ✅ Iniciales del usuario para el avatar
+// Iniciales del usuario para el avatar
 const userInitials = computed(() => {
     const name = page.props.auth?.user?.nombre_completo || '';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);

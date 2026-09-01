@@ -270,7 +270,12 @@ class Persona extends Model
 
     public function setMaternoAttribute($value)
     {
-        $this->attributes['Materno'] = $value ? strtoupper($value) : null;
+        // La columna `Materno` en algunas instalaciones es NOT NULL, pero el
+        // apellido materno es opcional en toda la app. Guardamos '' en vez de
+        // NULL para no romper el INSERT/UPDATE cuando viene vacío.
+        // (La migración make_persona_materno_nullable arregla el esquema; esto
+        //  mantiene el sistema funcionando aunque aún no se haya aplicado.)
+        $this->attributes['Materno'] = $value ? strtoupper($value) : '';
     }
 
     public function setRfcAttribute($value)
