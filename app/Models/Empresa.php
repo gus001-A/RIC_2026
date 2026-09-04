@@ -135,13 +135,21 @@ class Empresa extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->where('nombre_empresa', 'LIKE', "%{$search}%")
-                     ->orWhere('rfc', 'LIKE', "%{$search}%")
-                     ->orWhere('clave', 'LIKE', "%{$search}%")
-                     ->orWhere('calle', 'LIKE', "%{$search}%")
-                     ->orWhere('colonia', 'LIKE', "%{$search}%")
-                     ->orWhere('ciudad', 'LIKE', "%{$search}%")
-                     ->orWhere('estado', 'LIKE', "%{$search}%");
+        // Los orWhere() deben ir agrupados en su propio paréntesis; si no, el
+        // filtro de "Nombre" se combinaba mal con los DEMÁS filtros del index
+        // (RFC, tipo, ubicación, contacto, activo): por precedencia de SQL,
+        // "A OR B OR C AND D" sólo aplica el AND al último término (C), y las
+        // filas que hacían match por A o B se colaban sin respetar el resto
+        // de los filtros activos.
+        return $query->where(function ($q) use ($search) {
+            $q->where('nombre_empresa', 'LIKE', "%{$search}%")
+              ->orWhere('rfc', 'LIKE', "%{$search}%")
+              ->orWhere('clave', 'LIKE', "%{$search}%")
+              ->orWhere('calle', 'LIKE', "%{$search}%")
+              ->orWhere('colonia', 'LIKE', "%{$search}%")
+              ->orWhere('ciudad', 'LIKE', "%{$search}%")
+              ->orWhere('estado', 'LIKE', "%{$search}%");
+        });
     }
 
     public function scopeByEstado($query, $estado)

@@ -192,7 +192,7 @@
                             :loading="loading"
                             data-key="id_movimiento"
                             lazy
-                            :sort-field="filtros.sort_by === 'fecha_vencimiento' ? 'vencimiento' : 'fecha_poliza'"
+                            :sort-field="filtros.sort_by === 'fecha_vencimiento' ? 'vencimiento' : filtros.sort_by"
                             :sort-order="filtros.sort_order === 'asc' ? 1 : -1"
                             scrollable
                             scroll-height="500px"
@@ -611,9 +611,17 @@
             class="modal-recurso-premium"
             :style="{ width: '90vw', maxWidth: '900px' }"
         >
-            <div class="modal-recurso-content">
+            <div class="modal-recurso-content" :class="{ 'modal-recurso-content-ver': modalRecursoModo === 'ver' }">
                 <!-- Si es para ver -->
                 <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
+                    <div class="recurso-toolbar-top">
+                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Descargar
+                        </a>
+                    </div>
                     <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
                         <iframe :src="modalRecursoUrl" class="recurso-pdf" frameborder="0"></iframe>
                     </div>
@@ -688,15 +696,6 @@
                 </div>
             </div>
 
-            <div v-if="modalRecursoModo === 'ver'" class="recurso-footer">
-                <button class="btn-modal-cancel" @click="cerrarModalRecurso">Cerrar</button>
-                <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
-                    <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    Descargar
-                </a>
-            </div>
         </Dialog>
     </AppLayout>
 </template>
@@ -853,7 +852,7 @@ const getColumnasDisponibles = () => {
 const columnasDisponibles = computed(() => getColumnasDisponibles());
 
 const columnasNormal = [
-    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left' },
+    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left', sorter: true },
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
     { title: 'Persona', key: 'persona', width: '180px' },
@@ -866,7 +865,7 @@ const columnasNormal = [
 ];
 
 const columnasTraspasos = [
-    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left' },
+    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left', sorter: true },
     { title: 'Tipo', key: 'tipo_poliza', width: '100px', align: 'center' },
     { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
     { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
@@ -952,8 +951,8 @@ const filtros = ref({
     cuenta_fondeadora: props.filtros?.cuenta_fondeadora || '',
     nota: props.filtros?.nota || '',
     usuario: props.filtros?.usuario || '',
-    sort_by: props.filtros?.sort_by || 'fecha_poliza',
-    sort_order: props.filtros?.sort_order || 'desc',
+    sort_by: props.filtros?.sort_by || 'referencia',
+    sort_order: props.filtros?.sort_order || 'asc',
     vista: vistaActual.value,
     mostrar_todos: false,
     solo_fiscales: false
@@ -1026,8 +1025,8 @@ const limpiarFiltros = () => {
         cuenta_fondeadora: '',
         nota: '',
         usuario: '',
-        sort_by: vistaActual.value === 'diferidas' ? 'fecha_vencimiento' : 'fecha_poliza',
-        sort_order: vistaActual.value === 'diferidas' ? 'asc' : 'desc',
+        sort_by: vistaActual.value === 'diferidas' ? 'fecha_vencimiento' : 'referencia',
+        sort_order: 'asc',
         vista: vistaActual.value,
         mostrar_todos: false,
         solo_fiscales: false
@@ -1054,8 +1053,8 @@ const cambiarVista = (vista) => {
     if (vistaActual.value === vista) return;
     vistaActual.value = vista;
     filtros.value.vista = vista;
-    filtros.value.sort_by = vista === 'diferidas' ? 'fecha_vencimiento' : 'fecha_poliza';
-    filtros.value.sort_order = vista === 'diferidas' ? 'asc' : 'desc';
+    filtros.value.sort_by = vista === 'diferidas' ? 'fecha_vencimiento' : 'referencia';
+    filtros.value.sort_order = 'asc';
     soloFiscales.value = false;
     filtros.value.solo_fiscales = false;
     aplicarFiltros();
@@ -1063,7 +1062,7 @@ const cambiarVista = (vista) => {
 
 const handleTableChange = (event) => {
     if (event && event.sortField) {
-        const map = { vencimiento: 'fecha_vencimiento', fecha_poliza: 'fecha_poliza' };
+        const map = { vencimiento: 'fecha_vencimiento', fecha_poliza: 'fecha_poliza', referencia: 'referencia' };
         filtros.value.sort_by = map[event.sortField] || event.sortField;
         filtros.value.sort_order = event.sortOrder === 1 ? 'asc' : 'desc';
         aplicarFiltros();
@@ -2652,6 +2651,11 @@ onMounted(() => {
 
 .modal-recurso-premium :deep(.p-dialog-content) {
     padding: 0;
+    overflow: hidden;
+}
+
+.modal-recurso-premium :deep(.p-dialog) {
+    max-height: 92vh;
 }
 
 .modal-recurso-content {
@@ -2659,10 +2663,33 @@ onMounted(() => {
     padding: 24px;
 }
 
+/* Modo "ver": sin scroll interno, el contenido se ajusta al alto disponible */
+.modal-recurso-content-ver {
+    min-height: 0;
+    padding: 14px 16px 16px;
+    overflow: hidden;
+}
+
+.recurso-toolbar-top {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
 .recurso-pdf-wrapper {
     width: 100%;
     height: 70vh;
     min-height: 400px;
+}
+
+.modal-recurso-content-ver .recurso-pdf-wrapper {
+    height: calc(92vh - 130px);
+    min-height: 320px;
+}
+
+.modal-recurso-content-ver .recurso-image-wrapper {
+    max-height: calc(92vh - 130px);
+    overflow: hidden;
 }
 
 .recurso-pdf {

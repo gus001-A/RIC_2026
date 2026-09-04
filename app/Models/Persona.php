@@ -245,9 +245,12 @@ class Persona extends Model
             $q->where('Nombre', 'LIKE', "%{$search}%")
               ->orWhere('Paterno', 'LIKE', "%{$search}%")
               ->orWhere('Materno', 'LIKE', "%{$search}%")
+              ->orWhereRaw("CONCAT_WS(' ', Nombre, Paterno, Materno) LIKE ?", ["%{$search}%"])
               ->orWhere('rfc', 'LIKE', "%{$search}%")
               ->orWhere('curp', 'LIKE', "%{$search}%")
               ->orWhere('email', 'LIKE', "%{$search}%")
+              ->orWhere('telefono_particular', 'LIKE', "%{$search}%")
+              ->orWhere('telefono_trabajo', 'LIKE', "%{$search}%")
               ->orWhere('representante_nombre', 'LIKE', "%{$search}%")
               ->orWhere('representante_paterno', 'LIKE', "%{$search}%")
               ->orWhere('representante_materno', 'LIKE', "%{$search}%");

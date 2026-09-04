@@ -88,7 +88,11 @@ class CuentaController extends Controller
         ];
         
         $stats = null;
-        $filtros = $request->only(['codigo_cuenta', 'nombre_cuenta', 'nivel', 'Naturaleza', 'tipo_cuenta']);
+        // OJO: el frontend manda 'naturaleza' en minúsculas (así queda el filtro
+        // en la URL); si aquí se pedía 'Naturaleza' con mayúscula nunca hacía
+        // match y el filtro de Naturaleza no funcionaba. También se agregan
+        // 'indice' y 'cuenta_madre' para que el valor se conserve al recargar.
+        $filtros = $request->only(['codigo_cuenta', 'nombre_cuenta', 'nivel', 'naturaleza', 'tipo_cuenta', 'indice', 'cuenta_madre']);
 
         if ($empresaId) {
             $tieneAcceso = DB::table('empresas_usuarios')
@@ -111,6 +115,26 @@ class CuentaController extends Controller
                         ->count(),
                 ];
 
+                // 🔥 TODAS LAS CUENTAS DE LA EMPRESA (para resolver madres y,
+                // si aplica, para el filtro por "Cuenta Madre").
+                $todasLasCuentas = Cuenta::where('id_empresa', $empresaId)
+                    ->where('en_uso', true)
+                    ->get()
+                    ->keyBy('id_cuenta');
+
+                $resolverIdMadre = function ($cuenta) {
+                    if (!empty($cuenta->madre_c)) {
+                        return $cuenta->madre_c;
+                    }
+                    if (!empty($cuenta->id_cuenta_madre)) {
+                        return $cuenta->id_cuenta_madre;
+                    }
+                    if ($cuenta->es_cuenta_resultados && !empty($cuenta->cuenta_resultados)) {
+                        return $cuenta->cuenta_resultados;
+                    }
+                    return null;
+                };
+
                 $query = Cuenta::where('id_empresa', $empresaId)
                     ->where('en_uso', true)
                     ->orderBy('codigo_cuenta', 'asc');
@@ -124,20 +148,38 @@ class CuentaController extends Controller
                 if ($request->filled('nivel')) {
                     $query->where('nivel', $request->nivel);
                 }
-                if ($request->filled('Naturaleza')) {
-                    $query->where('Naturaleza', $request->Naturaleza);
+                if ($request->filled('naturaleza')) {
+                    $query->where('Naturaleza', $request->naturaleza);
                 }
                 if ($request->filled('tipo_cuenta')) {
                     $query->where('tipo_cuenta', $request->tipo_cuenta);
                 }
+                // "Índice" busca lo que se ve en esa columna (código - nombre),
+                // no la columna cruda `indice_c` (que es otra numeración interna).
+                if ($request->filled('indice')) {
+                    $texto = $request->indice;
+                    $query->where(function ($q) use ($texto) {
+                        $q->where('codigo_cuenta', 'LIKE', "%{$texto}%")
+                          ->orWhere('nombre_cuenta', 'LIKE', "%{$texto}%");
+                    });
+                }
+                // "Cuenta Madre" no es una columna directa: hay que resolver la
+                // madre de cada cuenta (madre_c / id_cuenta_madre / cuenta_resultados)
+                // y comparar su NOMBRE contra el texto buscado.
+                if ($request->filled('cuenta_madre')) {
+                    $texto = mb_strtolower(trim($request->cuenta_madre));
+                    $idsConMadreCoincidente = $todasLasCuentas->filter(function ($cuenta) use ($resolverIdMadre, $todasLasCuentas, $texto) {
+                        $idMadre = $resolverIdMadre($cuenta);
+                        $nombreMadre = $idMadre && isset($todasLasCuentas[$idMadre])
+                            ? $todasLasCuentas[$idMadre]->nombre_cuenta
+                            : null;
+                        return $nombreMadre && str_contains(mb_strtolower($nombreMadre), $texto);
+                    })->pluck('id_cuenta')->all();
+
+                    $query->whereIn('id_cuenta', $idsConMadreCoincidente ?: [0]);
+                }
 
                 $cuentas = $query->paginate(100);
-
-                // 🔥 OBTENER TODAS LAS CUENTAS DE LA EMPRESA PARA BUSCAR MADRES
-                $todasLasCuentas = Cuenta::where('id_empresa', $empresaId)
-                    ->where('en_uso', true)
-                    ->get()
-                    ->keyBy('id_cuenta');
 
                 $cuentasData = [
                     'data' => $cuentas->items(),

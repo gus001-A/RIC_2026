@@ -153,39 +153,33 @@
                                 </template>
                             </Column>
 
-                            <Column header="RFC" style="width: 10%">
+                            <Column header="RFC" style="width: 11%">
                                 <template #body="{ data }">
                                     <span class="rfc-text-ultra">{{ data.rfc || '-' }}</span>
                                 </template>
                             </Column>
 
-                            <Column header="Ubicación" style="width: 12%">
+                            <Column header="Correo" style="width: 16%">
                                 <template #body="{ data }">
-                                    <span class="ubicacion-text-ultra">
-                                        {{ data.ciudad || '' }}{{ data.ciudad && data.estado ? ', ' : '' }}{{ data.estado || 'Sin ubicación' }}
+                                    <a v-if="data.email" :href="`mailto:${data.email}`" class="contacto-email-ultra">
+                                        <i class="pi pi-envelope contacto-icon-ultra"></i>
+                                        <span>{{ data.email }}</span>
+                                    </a>
+                                    <span v-else class="contacto-vacio-ultra">—</span>
+                                </template>
+                            </Column>
+
+                            <Column header="Teléfono" style="width: 12%">
+                                <template #body="{ data }">
+                                    <span v-if="data.telefono_particular || data.telefono_trabajo" class="contacto-telefono-ultra">
+                                        <i class="pi pi-phone contacto-icon-ultra"></i>
+                                        <span>{{ data.telefono_particular || data.telefono_trabajo }}</span>
                                     </span>
+                                    <span v-else class="contacto-vacio-ultra">—</span>
                                 </template>
                             </Column>
 
-                            <Column header="Contacto" style="width: 18%">
-                                <template #body="{ data }">
-                                    <div class="contacto-cell-ultra">
-                                        <a v-if="data.email" :href="`mailto:${data.email}`" class="contacto-email-ultra">
-                                            <i class="pi pi-envelope contacto-icon-ultra"></i>
-                                            <span>{{ data.email }}</span>
-                                        </a>
-                                        <span v-if="data.telefono_particular || data.telefono_trabajo" class="contacto-telefono-ultra">
-                                            <i class="pi pi-phone contacto-icon-ultra"></i>
-                                            <span>{{ data.telefono_particular || data.telefono_trabajo }}</span>
-                                        </span>
-                                        <span v-if="!data.email && !data.telefono_particular && !data.telefono_trabajo" class="contacto-vacio-ultra">
-                                            Sin contacto
-                                        </span>
-                                    </div>
-                                </template>
-                            </Column>
-
-                            <Column header="Representante" style="width: 12%">
+                            <Column header="Representante" style="width: 13%">
                                 <template #body="{ data }">
                                     <span v-if="data.representante_nombre_completo" class="representante-nombre-ultra">
                                         {{ data.representante_nombre_completo }}
@@ -279,20 +273,7 @@
                             </div>
 
                             <div class="filtro-item-ultra">
-                                <InputLabel>Ciudad</InputLabel>
-                                <Select
-                                    v-model="filtros.ciudad"
-                                    :options="ciudadesUnicas"
-                                    placeholder="Todas"
-                                    show-clear
-                                    filter
-                                    class="filtro-select-ultra"
-                                    @change="aplicarFiltros"
-                                />
-                            </div>
-
-                            <div class="filtro-item-ultra">
-                                <InputLabel>Contacto</InputLabel>
+                                <InputLabel>Correo / Teléfono</InputLabel>
                                 <TextInput
                                     v-model="filtros.contacto"
                                     @input="aplicarFiltros"
@@ -410,7 +391,6 @@ const filtros = ref({
     search: props.filtros?.search || '',
     tipo_persona: props.filtros?.tipo_persona || null,
     rfc: props.filtros?.rfc || '',
-    ciudad: props.filtros?.ciudad || null,
     contacto: props.filtros?.contacto || '',
     representante: props.filtros?.representante || '',
     estado: props.filtros?.estado || null,
@@ -418,14 +398,6 @@ const filtros = ref({
 
 const filtrosActivos = computed(() => {
     return Object.values(filtros.value).some(value => value !== '' && value !== null && value !== undefined);
-});
-
-const ciudadesUnicas = computed(() => {
-    if (!props.personas?.data) return [];
-    const ciudades = props.personas.data
-        .map(p => p.ciudad)
-        .filter(c => c && c.trim() !== '');
-    return [...new Set(ciudades)].sort();
 });
 
 let timeoutId = null;
@@ -455,7 +427,6 @@ const limpiarFiltros = () => {
         search: '',
         tipo_persona: null,
         rfc: '',
-        ciudad: null,
         contacto: '',
         representante: '',
         estado: null,

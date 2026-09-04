@@ -177,13 +177,17 @@ class UsuarioController extends Controller
             ->orderBy('nombre_empresa')
             ->get(['id', 'nombre_empresa']);
 
-        $tipos = [
+        $etiquetas = [
             'LECTOR' => 'Lector',
             'CAPTURISTA' => 'Capturista',
             'ADMINISTRADOR' => 'Administrador',
             'AUDITOR' => 'Auditor',
             'SUPERUSUARIO' => 'Super Usuario'
         ];
+
+        // Sólo los tipos que el rol actual puede crear.
+        $permitidos = \App\Providers\AppServiceProvider::tiposUsuarioQuePuedeCrear(auth()->user()->tipo_usuario);
+        $tipos = collect($permitidos)->mapWithKeys(fn ($t) => [$t => $etiquetas[$t] ?? $t])->all();
 
         // ✅ RECOPILAR FLASH MESSAGES
         $flash = [];
@@ -213,16 +217,24 @@ class UsuarioController extends Controller
         }
 
         try {
+            // Qué TIPOS de usuario puede crear el rol actual (según especificación):
+            //  ADMINISTRADOR -> LECTOR, CAPTURISTA, ADMINISTRADOR
+            //  AUDITOR       -> todos menos SUPERUSUARIO
+            //  SUPERUSUARIO  -> todos
+            $tiposPermitidos = \App\Providers\AppServiceProvider::tiposUsuarioQuePuedeCrear(auth()->user()->tipo_usuario);
+
             $validated = $request->validate([
                 'nombre_completo' => 'required|string|max:255',
                 'nombre_usuario' => 'required|string|max:50|unique:usuarios,nombre_usuario',
                 'email' => 'required|email|max:255',
                 'password' => 'required|string|min:8|confirmed',
                 'telefono' => 'nullable|string|max:20',
-                'tipo_usuario' => 'required|string|in:LECTOR,CAPTURISTA,ADMINISTRADOR,AUDITOR,SUPERUSUARIO',
+                'tipo_usuario' => ['required', 'string', \Illuminate\Validation\Rule::in($tiposPermitidos)],
                 'activo' => 'sometimes|boolean',
                 'empresas' => 'sometimes|array',
                 'empresas.*' => 'exists:empresas,id'
+            ], [
+                'tipo_usuario.in' => 'No tienes permiso para crear un usuario de ese tipo.',
             ]);
 
             DB::beginTransaction();
@@ -265,25 +277,31 @@ class UsuarioController extends Controller
     public function edit(string $id)
     {
         // ✅ Verificar permiso para editar usuarios
-        if (!Gate::allows('crear-usuarios')) {
+        if (!Gate::allows('editar-usuarios')) {
             return redirect()->route('usuarios.index')
                 ->with('error', 'No tienes permiso para editar usuarios');
         }
 
         try {
             $usuario = Usuario::with('empresas')->findOrFail($id);
-            
+
             $empresas = Empresa::where('activo', true)
                 ->orderBy('nombre_empresa')
                 ->get(['id', 'nombre_empresa']);
 
-            $tipos = [
+            $etiquetas = [
                 'LECTOR' => 'Lector',
                 'CAPTURISTA' => 'Capturista',
                 'ADMINISTRADOR' => 'Administrador',
                 'AUDITOR' => 'Auditor',
                 'SUPERUSUARIO' => 'Super Usuario'
             ];
+
+            // Tipos que el rol actual puede asignar + el tipo actual del usuario
+            // editado (para no ocultarlo del <select> si es superior).
+            $permitidos = \App\Providers\AppServiceProvider::tiposUsuarioQuePuedeCrear(auth()->user()->tipo_usuario);
+            $permitidos = array_values(array_unique(array_merge($permitidos, [$usuario->tipo_usuario])));
+            $tipos = collect($permitidos)->mapWithKeys(fn ($t) => [$t => $etiquetas[$t] ?? $t])->all();
 
             // ✅ RECOPILAR FLASH MESSAGES
             $flash = [];
@@ -314,12 +332,18 @@ class UsuarioController extends Controller
     public function update(Request $request, string $id)
     {
         // ✅ Verificar permiso para editar usuarios
-        if (!Gate::allows('crear-usuarios')) {
+        if (!Gate::allows('editar-usuarios')) {
             return redirect()->route('usuarios.index')
                 ->with('error', 'No tienes permiso para editar usuarios');
         }
 
         try {
+            $usuarioEditado = Usuario::findOrFail($id);
+            $tiposPermitidos = \App\Providers\AppServiceProvider::tiposUsuarioQuePuedeCrear(auth()->user()->tipo_usuario);
+            // Permitir conservar el tipo actual del usuario aunque el editor no
+            // pueda "crear" ese tipo (p. ej. admin editando datos de un auditor).
+            $tiposPermitidos = array_values(array_unique(array_merge($tiposPermitidos, [$usuarioEditado->tipo_usuario])));
+
             $validated = $request->validate([
                 'nombre_completo' => 'required|string|max:255',
                 'nombre_usuario' => 'required|string|max:50|unique:usuarios,nombre_usuario,' . $id . ',id_usuario',
@@ -327,15 +351,17 @@ class UsuarioController extends Controller
                 // La contraseña es opcional al editar: sólo se cambia si se captura.
                 'password' => 'nullable|string|min:8|confirmed',
                 'telefono' => 'nullable|string|max:20',
-                'tipo_usuario' => 'required|string|in:LECTOR,CAPTURISTA,ADMINISTRADOR,AUDITOR,SUPERUSUARIO',
+                'tipo_usuario' => ['required', 'string', \Illuminate\Validation\Rule::in($tiposPermitidos)],
                 'activo' => 'sometimes|boolean',
                 'empresas' => 'sometimes|array',
                 'empresas.*' => 'exists:empresas,id'
+            ], [
+                'tipo_usuario.in' => 'No tienes permiso para asignar ese tipo de usuario.',
             ]);
 
             DB::beginTransaction();
 
-            $usuario = Usuario::findOrFail($id);
+            $usuario = $usuarioEditado;
 
             $data = [
                 'nombre_completo' => $validated['nombre_completo'],

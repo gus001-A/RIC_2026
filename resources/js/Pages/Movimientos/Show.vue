@@ -529,11 +529,19 @@
             class="modal-recurso-premium"
             :style="{ width: '90vw', maxWidth: '900px' }"
         >
-            <div class="modal-recurso-content">
+            <div class="modal-recurso-content" :class="{ 'modal-recurso-content-ver': modalRecursoModo === 'ver' }">
                 <!-- ========================================================== -->
                 <!-- MODO VER: muestra PDF, imagen o mensaje de descarga        -->
                 <!-- ========================================================== -->
                 <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
+                    <div class="recurso-toolbar-top">
+                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Descargar
+                        </a>
+                    </div>
                     <!-- PDF -->
                     <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
                         <iframe :src="modalRecursoUrl" class="recurso-pdf" frameborder="0"></iframe>
@@ -613,16 +621,6 @@
                 </div>
             </div>
 
-            <!-- Footer para el modo VER -->
-            <div v-if="modalRecursoModo === 'ver'" class="recurso-footer">
-                <button class="btn-modal-cancel" @click="cerrarModalRecurso">Cerrar</button>
-                <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
-                    <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    Descargar
-                </a>
-            </div>
         </Dialog>
 
         <!-- ============================================================ -->
@@ -1879,6 +1877,11 @@ const accionEliminar = () => {
 
 .modal-recurso-premium :deep(.p-dialog-content) {
     padding: 0;
+    overflow: hidden;
+}
+
+.modal-recurso-premium :deep(.p-dialog) {
+    max-height: 92vh;
 }
 
 .modal-recurso-content {
@@ -1886,10 +1889,32 @@ const accionEliminar = () => {
     padding: 24px;
 }
 
+.modal-recurso-content-ver {
+    min-height: 0;
+    padding: 14px 16px 16px;
+    overflow: hidden;
+}
+
+.recurso-toolbar-top {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
 .recurso-pdf-wrapper {
     width: 100%;
     height: 70vh;
     min-height: 400px;
+}
+
+.modal-recurso-content-ver .recurso-pdf-wrapper {
+    height: calc(92vh - 130px);
+    min-height: 320px;
+}
+
+.modal-recurso-content-ver .recurso-image-wrapper {
+    max-height: calc(92vh - 130px);
+    overflow: hidden;
 }
 
 .recurso-pdf {

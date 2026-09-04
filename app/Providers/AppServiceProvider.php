@@ -19,102 +19,74 @@ class AppServiceProvider extends ServiceProvider
         // ✅ ¡ESTA LÍNEA ES LA QUE SOLUCIONA EL ERROR!
         Schema::defaultStringLength(191);
 
-        // ✅ MOVIMIENTOS
-        Gate::define('ver-movimientos', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ============================================================
+        // PERMISOS POR ROL (según especificación del negocio)
+        //  LECTOR       -> sólo ve la pantalla de Movimientos (nada más)
+        //  CAPTURISTA   -> captura pólizas y personas; ve sólo lo suyo;
+        //                  NO edita/revisa/autoriza pólizas; NO cuentas/usuarios/empresas
+        //  ADMINISTRADOR-> crea usuarios (lector/capturista/admin), personas;
+        //                  REVISA y EDITA pólizas (NO autoriza); ve todo; NO empresas
+        //  AUDITOR      -> crea usuarios (todos menos super); AUTORIZA pólizas;
+        //                  crea cuentas; NO empresas
+        //  SUPERUSUARIO -> todo, incluye empresas
+        // ============================================================
+        $lector       = 'LECTOR';
+        $capturista   = 'CAPTURISTA';
+        $administrador = 'ADMINISTRADOR';
+        $auditor      = 'AUDITOR';
+        $super        = 'SUPERUSUARIO';
 
-        Gate::define('crear-movimientos', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ✅ MOVIMIENTOS / PÓLIZAS
+        Gate::define('ver-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$lector, $capturista, $administrador, $auditor, $super]));
+        Gate::define('crear-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
+        // Editar una póliza: NO el capturista, NO el lector.
+        Gate::define('editar-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('eliminar-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        // Revisar: administrador (y super). El auditor autoriza, no revisa.
+        Gate::define('revisar-polizas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $super]));
+        // Autorizar: SÓLO auditor y super (el administrador YA NO autoriza).
+        Gate::define('autorizar-polizas', fn (Usuario $user) => in_array($user->tipo_usuario, [$auditor, $super]));
+        // Ver los movimientos de todos los usuarios (el capturista sólo ve los suyos).
+        Gate::define('ver-todos-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$lector, $administrador, $auditor, $super]));
 
-        Gate::define('editar-movimientos', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ✅ PERSONAS  (el LECTOR no ve personas)
+        Gate::define('ver-personas', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
+        Gate::define('crear-personas', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
+        Gate::define('editar-personas', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
+        Gate::define('eliminar-personas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
 
-        Gate::define('eliminar-movimientos', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ✅ CUENTAS  (ni LECTOR ni CAPTURISTA)
+        Gate::define('ver-cuentas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('crear-cuentas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('editar-cuentas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('eliminar-cuentas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
 
-        Gate::define('autorizar-polizas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ✅ USUARIOS  (qué TIPOS puede crear cada rol se valida en UsuarioController)
+        Gate::define('ver-usuarios', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('crear-usuarios', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('editar-usuarios', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        Gate::define('eliminar-usuarios', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
 
-        Gate::define('ver-todos-movimientos', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ✅ EMPRESAS  (sólo SUPERUSUARIO)
+        Gate::define('ver-empresas', fn (Usuario $user) => $user->tipo_usuario === $super);
+        Gate::define('crear-empresas', fn (Usuario $user) => $user->tipo_usuario === $super);
+        Gate::define('editar-empresas', fn (Usuario $user) => $user->tipo_usuario === $super);
+        Gate::define('eliminar-empresas', fn (Usuario $user) => $user->tipo_usuario === $super);
 
-        // ✅ PERSONAS
-        Gate::define('ver-personas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+        // ✅ REPORTES  (ni LECTOR ni CAPTURISTA)
+        Gate::define('ver-reportes', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+    }
 
-        Gate::define('crear-personas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('editar-personas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('eliminar-personas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        // ✅ CUENTAS
-        Gate::define('ver-cuentas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('crear-cuentas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('editar-cuentas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('eliminar-cuentas', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        // ✅ USUARIOS
-        Gate::define('ver-usuarios', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('crear-usuarios', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('editar-usuarios', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        Gate::define('eliminar-usuarios', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
-
-        // ✅ EMPRESAS
-        Gate::define('ver-empresas', function (Usuario $user) {
-            return $user->tipo_usuario === 'SUPERUSUARIO';
-        });
-
-        Gate::define('crear-empresas', function (Usuario $user) {
-            return $user->tipo_usuario === 'SUPERUSUARIO';
-        });
-
-        Gate::define('editar-empresas', function (Usuario $user) {
-            return $user->tipo_usuario === 'SUPERUSUARIO';
-        });
-
-        Gate::define('eliminar-empresas', function (Usuario $user) {
-            return $user->tipo_usuario === 'SUPERUSUARIO';
-        });
-
-        // ✅ REPORTES
-        Gate::define('ver-reportes', function (Usuario $user) {
-            return in_array($user->tipo_usuario, ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO']);
-        });
+    /**
+     * Tipos de usuario que un rol puede CREAR (usado por UsuarioController).
+     */
+    public static function tiposUsuarioQuePuedeCrear(string $tipoUsuario): array
+    {
+        return match ($tipoUsuario) {
+            'SUPERUSUARIO'  => ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR', 'SUPERUSUARIO'],
+            'AUDITOR'       => ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR', 'AUDITOR'],
+            'ADMINISTRADOR' => ['LECTOR', 'CAPTURISTA', 'ADMINISTRADOR'],
+            default         => [],
+        };
     }
 }

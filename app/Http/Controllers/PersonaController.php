@@ -37,6 +37,21 @@ class PersonaController extends Controller
                 $query->where('tipo_persona', $request->tipo_persona);
             }
 
+            // Filtro por RFC
+            if ($request->filled('rfc')) {
+                $query->where('rfc', 'LIKE', '%' . $request->rfc . '%');
+            }
+
+            // Filtro por contacto (correo / teléfonos)
+            if ($request->filled('contacto')) {
+                $c = $request->contacto;
+                $query->where(function ($q) use ($c) {
+                    $q->where('email', 'LIKE', "%{$c}%")
+                        ->orWhere('telefono_particular', 'LIKE', "%{$c}%")
+                        ->orWhere('telefono_trabajo', 'LIKE', "%{$c}%");
+                });
+            }
+
             // Filtro de estado
             if ($request->filled('estado')) {
                 $estado = $request->estado;
@@ -178,8 +193,7 @@ class PersonaController extends Controller
             return Inertia::render('Personas/Index', [
                 'personas' => $personasData,
                 'stats' => $stats,
-                'filtros' => $request->only(['search', 'tipo_persona', 'estado', 'ciudad', 'representante', 'empleado']),
-                'flash' => session()->all(),
+                'filtros' => $request->only(['search', 'tipo_persona', 'rfc', 'contacto', 'estado', 'representante', 'empleado']),
             ]);
 
         } catch (\Exception $e) {
@@ -208,7 +222,6 @@ class PersonaController extends Controller
                     'no_empleados' => 0,
                 ],
                 'filtros' => [],
-                'flash' => session()->all(),
                 'error' => 'Error al cargar las personas: ' . $e->getMessage()
             ]);
         }
@@ -825,11 +838,13 @@ class PersonaController extends Controller
             'activo' => 'boolean',
             'empleado' => 'boolean',
             'Nombre' => 'required|string|max:200',
-            'Paterno' => 'required|string|max:100',
+            // A pedido del negocio: para registrar una persona basta el NOMBRE.
+            // Apellido paterno, RFC, fecha de nacimiento y sexo NO son obligatorios.
+            'Paterno' => 'nullable|string|max:100',
             'Materno' => 'nullable|string|max:100',
-            'Fecha_nacimiento' => 'required|date|before:today',
-            'sexo' => 'required|in:MASCULINO,FEMENINO,NO_ESPECIFICADO',
-            'rfc' => 'nullable|string|max:20|unique:personas,rfc,' . $id . ',id_persona',
+            'Fecha_nacimiento' => 'nullable|date|before:today',
+            'sexo' => 'nullable|in:MASCULINO,FEMENINO,NO_ESPECIFICADO',
+            'rfc' => 'nullable|string|max:20',
             'curp' => 'nullable|string|max:18|unique:personas,curp,' . $id . ',id_persona',
             'email' => 'nullable|email|max:100',
             'telefono_particular' => 'nullable|string|max:20',
@@ -865,11 +880,7 @@ class PersonaController extends Controller
 
         $messages = [
             'Nombre.required' => 'El nombre es obligatorio',
-            'Paterno.required' => 'El apellido paterno es obligatorio',
-            'Fecha_nacimiento.required' => 'La fecha es obligatoria',
             'Fecha_nacimiento.before' => 'La fecha debe ser anterior a hoy',
-            'sexo.required' => 'El sexo es obligatorio',
-            'rfc.unique' => 'Este RFC ya está registrado en el sistema',
             'curp.unique' => 'Este CURP ya está registrado en el sistema',
             'representante_paterno.required' => 'El apellido paterno del representante es obligatorio',
             'representante_fecha_nacimiento.required' => 'La fecha de nacimiento del representante es obligatoria',

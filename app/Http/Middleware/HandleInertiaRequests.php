@@ -99,6 +99,13 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'permisos' => $permisos,
+            // Flash compartido para TODAS las páginas (useFlashMessages -> toasts).
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error'   => $request->session()->get('error'),
+                'warning' => $request->session()->get('warning'),
+                'info'    => $request->session()->get('info'),
+            ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

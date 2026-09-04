@@ -72,7 +72,13 @@ public function index(Request $request)
         $empresaId = $empresas->first()->id;
     }
     if ($empresaId) {
-        session(['empresa_seleccionada' => $empresaId]);
+        // Mantener AMBAS claves sincronizadas: create/edit/store/nomina/abono
+        // leen 'empresa_movimientos', y si no se actualiza aquí queda apuntando
+        // a la empresa anterior (se veían las cuentas fondeadoras de otra empresa).
+        session([
+            'empresa_seleccionada' => $empresaId,
+            'empresa_movimientos'  => $empresaId,
+        ]);
     }
 
     $vista = $request->get('vista', 'normal');
@@ -114,6 +120,13 @@ public function index(Request $request)
                 $sub->where('activo', true);
             });
     });
+
+    // El CAPTURISTA sólo ve las pólizas que él capturó.
+    if (!Gate::allows('ver-todos-movimientos')) {
+        $query->whereHas('poliza', function($q) {
+            $q->where('id_usuario_creador', auth()->id());
+        });
+    }
 
     // 🔥 EXCLUIR TRASPASOS EN TODAS LAS VISTAS EXCEPTO "TRASPASOS"
     $query->whereHas('poliza', function($q) {
@@ -210,8 +223,9 @@ public function index(Request $request)
     }
 
     // Ordenamiento
-    $sortBy = $request->get('sort_by', 'fecha_poliza');
-    $sortOrder = $request->get('sort_order', 'desc');
+    // Por defecto las pólizas van por REFERENCIA (folio) ascendente: 0001, 0002, ...
+    $sortBy = $request->get('sort_by', 'referencia');
+    $sortOrder = $request->get('sort_order', 'asc');
     $sortMap = [
         'fecha_poliza' => 'polizas.fecha_poliza',
         'fecha_vencimiento' => 'polizas.fecha_vencimiento',
@@ -225,8 +239,15 @@ public function index(Request $request)
     if (isset($sortMap[$sortBy])) {
         if (strpos($sortMap[$sortBy], '.') !== false) {
             $query->join('polizas', 'movimientos_poliza.id_poliza', '=', 'polizas.id')
-                ->orderBy($sortMap[$sortBy], $sortOrder)
                 ->select('movimientos_poliza.*');
+            if ($sortBy === 'referencia') {
+                // El folio es VARCHAR ("0001"); ordenar numéricamente y luego como
+                // texto para que folios legacy no numéricos no rompan el orden.
+                $query->orderByRaw('CAST(polizas.folio AS UNSIGNED) ' . ($sortOrder === 'desc' ? 'desc' : 'asc'))
+                      ->orderBy('polizas.folio', $sortOrder === 'desc' ? 'desc' : 'asc');
+            } else {
+                $query->orderBy($sortMap[$sortBy], $sortOrder);
+            }
         } else {
             $query->orderBy($sortMap[$sortBy], $sortOrder);
         }
@@ -305,18 +326,23 @@ public function index(Request $request)
         'sort_by', 'sort_order', 'vista', 'mostrar_todos', 'solo_fiscales'
     ]);
 
-    // Contadores
+    // Contadores (respetan el alcance del CAPTURISTA: sólo lo que él capturó)
+    $soloMios = !Gate::allows('ver-todos-movimientos');
+    $baseContador = fn () => Poliza::where('id_empresa', $empresaId)
+        ->when($soloMios, fn ($q) => $q->where('id_usuario_creador', auth()->id()));
     $contadores = [
-        'capturados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'PENDIENTE')->count(),
-        'revisados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'REVISADO')->count(),
-        'autorizados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'AUTORIZADO')->count(),
-        'abonados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'ABONADO')->count(),
-        'liquidados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'LIQUIDADO')->count(),
-        'traspasos' => Poliza::where('id_empresa', $empresaId)->where('tipo_poliza', 'TRASPASO')->count(),
+        'capturados' => $baseContador()->where('estatus', 'PENDIENTE')->count(),
+        'revisados' => $baseContador()->where('estatus', 'REVISADO')->count(),
+        'autorizados' => $baseContador()->where('estatus', 'AUTORIZADO')->count(),
+        'abonados' => $baseContador()->where('estatus', 'ABONADO')->count(),
+        'liquidados' => $baseContador()->where('estatus', 'LIQUIDADO')->count(),
+        'traspasos' => $baseContador()->where('tipo_poliza', 'TRASPASO')->count(),
     ];
 
     // 🔥 CORREGIDO: Usar fondeo_c en lugar de es_fondeadora
-    $cuentasFondeadoras = Cuenta::where(function($q) {
+    // Debe filtrarse por empresa; sin este where salían las fondeadoras de TODAS las empresas.
+    $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+        ->where(function($q) {
             $q->where('fondeo_c', 1)
               ->orWhere('tipo_cuenta', 'FONDEADORA');
         })
@@ -347,12 +373,24 @@ public function index(Request $request)
  */
 private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empresas)
 {
-    $sortBy = $request->get('sort_by', 'fecha_poliza');
-    $sortOrder = $request->get('sort_order', 'desc');
+    $sortBy = $request->get('sort_by', 'referencia');
+    $sortOrder = $request->get('sort_order', 'asc');
     $perPage = $request->get('per_page', 15);
+
+    // Mapear el sort del frontend a columnas reales de `polizas`.
+    $sortColumnMap = [
+        'referencia' => 'folio',
+        'fecha_poliza' => 'fecha_poliza',
+        'fecha_vencimiento' => 'fecha_vencimiento',
+        'estatus' => 'estatus',
+    ];
+    $sortColumn = $sortColumnMap[$sortBy] ?? 'folio';
 
     $polizas = Poliza::where('id_empresa', $empresaId)
         ->where('tipo_poliza', 'TRASPASO')
+        ->when(!Gate::allows('ver-todos-movimientos'), function($q) {
+            $q->where('id_usuario_creador', auth()->id());
+        })
         ->with([
             'movimientos.cuenta',
             'movimientos.cuentaFondeadora',
@@ -397,7 +435,12 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             return $q;
         })
         // Ordenamiento
-        ->orderBy($sortBy, $sortOrder);
+        ->when($sortColumn === 'folio', function ($q) use ($sortOrder) {
+            $dir = $sortOrder === 'desc' ? 'desc' : 'asc';
+            $q->orderByRaw('CAST(folio AS UNSIGNED) ' . $dir)->orderBy('folio', $dir);
+        }, function ($q) use ($sortColumn, $sortOrder) {
+            $q->orderBy($sortColumn, $sortOrder);
+        });
 
     $polizasPaginadas = $polizas->paginate($perPage);
 
@@ -459,17 +502,22 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
         'sort_by', 'sort_order', 'vista', 'solo_fiscales'
     ]);
 
+    $soloMios = !Gate::allows('ver-todos-movimientos');
+    $baseContador = fn () => Poliza::where('id_empresa', $empresaId)
+        ->when($soloMios, fn ($q) => $q->where('id_usuario_creador', auth()->id()));
     $contadores = [
-        'capturados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'PENDIENTE')->count(),
-        'revisados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'REVISADO')->count(),
-        'autorizados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'AUTORIZADO')->count(),
-        'abonados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'ABONADO')->count(),
-        'liquidados' => Poliza::where('id_empresa', $empresaId)->where('estatus', 'LIQUIDADO')->count(),
-        'traspasos' => Poliza::where('id_empresa', $empresaId)->where('tipo_poliza', 'TRASPASO')->count(),
+        'capturados' => $baseContador()->where('estatus', 'PENDIENTE')->count(),
+        'revisados' => $baseContador()->where('estatus', 'REVISADO')->count(),
+        'autorizados' => $baseContador()->where('estatus', 'AUTORIZADO')->count(),
+        'abonados' => $baseContador()->where('estatus', 'ABONADO')->count(),
+        'liquidados' => $baseContador()->where('estatus', 'LIQUIDADO')->count(),
+        'traspasos' => $baseContador()->where('tipo_poliza', 'TRASPASO')->count(),
     ];
 
     // 🔥 CORREGIDO: Usar fondeo_c en lugar de es_fondeadora
-    $cuentasFondeadoras = Cuenta::where(function($q) {
+    // Debe filtrarse por empresa; sin este where salían las fondeadoras de TODAS las empresas.
+    $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+        ->where(function($q) {
             $q->where('fondeo_c', 1)
               ->orWhere('tipo_cuenta', 'FONDEADORA');
         })
@@ -1778,22 +1826,24 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
         
         $permisos = [
             'puede_ver' => true,
-            'puede_ver_personas' => $esAdministrador || $esSuperUsuario || $esAuditor || $esCapturista,
-            'puede_ver_cuentas' => $esAdministrador || $esSuperUsuario || $esAuditor || $esCapturista,
-            'puede_ver_usuarios' => $esAdministrador || $esSuperUsuario || $esAuditor,
+            // El LECTOR sólo ve Movimientos; el CAPTURISTA además Personas.
+            'puede_ver_personas' => $esCapturista || $esAdministrador || $esAuditor || $esSuperUsuario,
+            'puede_ver_cuentas' => $esAdministrador || $esAuditor || $esSuperUsuario,
+            'puede_ver_usuarios' => $esAdministrador || $esAuditor || $esSuperUsuario,
             'puede_ver_empresas' => $esSuperUsuario,
-            'puede_ver_reportes' => $esAdministrador || $esSuperUsuario || $esAuditor,
+            'puede_ver_reportes' => $esAdministrador || $esAuditor || $esSuperUsuario,
             'puede_ver_pdf' => true,
-            'puede_revisar' => ($esAdministrador || $esSuperUsuario) && $estatus === 'CAPTURADO',
+            // Revisar: administrador (y super). Autorizar: auditor (y super), NO el administrador.
+            'puede_revisar' => ($esAdministrador || $esSuperUsuario) && in_array($estatus, ['CAPTURADO', 'PENDIENTE']),
             'puede_autorizar' => ($esAuditor || $esSuperUsuario) && $estatus === 'REVISADO',
-            'puede_cerrar' => ($esCapturista || $esAdministrador || $esSuperUsuario) && 
-                            !$esAuditor && 
+            'puede_cerrar' => ($esCapturista || $esAdministrador || $esSuperUsuario) &&
+                            !$esAuditor &&
                             !$esLector &&
                             !in_array($estatus, ['LIQUIDADO', 'AUTORIZADO', 'CERRADO']),
             'puede_reabrir' => ($esAdministrador || $esSuperUsuario) && $estatus === 'CERRADO',
-            'puede_editar' => !$esAuditor && 
-                            !$esLector && 
-                            ($esSuperUsuario || ($esAdministrador && $estatus === 'CAPTURADO') || ($esCapturista && $estatus === 'CAPTURADO')),
+            // Editar póliza: administrador, auditor y super (NO capturista, NO lector).
+            // Se puede editar en cualquier estado salvo CERRADO ("puedo modificarle todo").
+            'puede_editar' => ($esAdministrador || $esAuditor || $esSuperUsuario) && $estatus !== 'CERRADO',
             'puede_eliminar' => $esSuperUsuario,
             'puede_regresar' => true,
             'rol' => $user->tipo_usuario_texto ?? 'Sin rol',
@@ -2409,6 +2459,44 @@ public function showAbono(string $id)
                 ];
             });
 
+        // ============================================
+        // 🔥 GARANTIZAR QUE LA CUENTA / FONDEADORA ACTUAL SIEMPRE ESTÉ EN SU LISTA.
+        // Los filtros por naturaleza pueden excluir la cuenta que la póliza ya usa
+        // (p. ej. un INGRESO histórico sobre una cuenta DEUDORA). Si no está en el
+        // <select>, el usuario la ve vacía y puede perderla al guardar.
+        // ============================================
+        $incluirCuentaActual = function ($lista, $idCuenta, array $extra = []) {
+            if (!$idCuenta || $lista->contains('id_cuenta', $idCuenta)) {
+                return $lista;
+            }
+            $c = Cuenta::find($idCuenta);
+            if (!$c) {
+                return $lista;
+            }
+            return $lista->prepend(array_merge([
+                'id_cuenta' => $c->id_cuenta,
+                'nombre_cuenta' => $c->nombre_cuenta,
+                'codigo_cuenta' => $c->codigo_cuenta,
+                'Naturaleza' => $c->Naturaleza ?? 'SIN NATURALEZA',
+                'es_cuenta_resultados' => (bool) $c->es_cuenta_resultados,
+                'fondeo_c' => (int) ($c->fondeo_c ?? 0),
+                'saldo_inicial' => (float) ($c->saldo_inicial ?? 0),
+                'saldo' => (float) ($c->saldo_inicial ?? 0),
+            ], $extra));
+        };
+
+        if (!$esTraspaso) {
+            if ($movimiento->poliza->tipo_poliza === 'EGRESO') {
+                $cuentasEgreso = $incluirCuentaActual($cuentasEgreso, $movimiento->id_cuenta, ['tipo_movimiento' => 'egreso']);
+            } else {
+                $cuentasIngreso = $incluirCuentaActual($cuentasIngreso, $movimiento->id_cuenta, ['tipo_movimiento' => 'ingreso']);
+            }
+            $cuentasFondeadoras = $incluirCuentaActual($cuentasFondeadoras, $movimiento->id_caja_fondo, ['tipo' => 'fondeadora']);
+        } else {
+            $cuentasFondeadoras = $incluirCuentaActual($cuentasFondeadoras, $cuentaOrigenId, ['tipo' => 'fondeadora']);
+            $cuentasFondeadoras = $incluirCuentaActual($cuentasFondeadoras, $cuentaDestinoId, ['tipo' => 'fondeadora']);
+        }
+
         \Log::info('✅ === EDIT COMPLETADO EXITOSAMENTE ===');
         \Log::info('Renderizando Edit con movimiento ID:', ['id' => $movimientoData['id']]);
 
@@ -2430,25 +2518,36 @@ public function showAbono(string $id)
         \Log::info('=== INICIO UPDATE ===');
         \Log::info('Datos recibidos:', $request->all());
 
+        // El frontend (Movimientos/Edit.vue) envía este update por axios con
+        // header X-Requested-With. Si respondemos con redirect (302), axios lo
+        // sigue, recibe 200 y cree que todo salió bien aunque haya fallado.
+        // Por eso, ante un error devolvemos JSON con status de error.
+        $esAjax = $request->ajax() || $request->wantsJson();
+        $errorResponse = function (string $mensaje, int $status = 422) use ($esAjax) {
+            if ($esAjax) {
+                return response()->json(['success' => false, 'message' => $mensaje], $status);
+            }
+            return back()->with('error', $mensaje);
+        };
+
         if (!Gate::allows('editar-movimientos')) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes permiso para editar movimientos');
+            return $esAjax
+                ? response()->json(['success' => false, 'message' => 'No tienes permiso para editar movimientos'], 403)
+                : redirect()->route('movimientos.index')->with('error', 'No tienes permiso para editar movimientos');
         }
 
         $movimiento = MovimientoPoliza::find($id);
 
         if (!$movimiento) {
             \Log::error('Movimiento no encontrado:', ['id' => $id]);
-            return redirect()->route('movimientos.index')
-                ->with('error', 'Movimiento no encontrado');
+            return $errorResponse('Movimiento no encontrado', 404);
         }
 
         $poliza = Poliza::find($movimiento->id_poliza);
-        
+
         if (!$poliza) {
             \Log::error('Póliza no encontrada:', ['id_poliza' => $movimiento->id_poliza]);
-            return redirect()->route('movimientos.index')
-                ->with('error', 'Póliza no encontrada');
+            return $errorResponse('Póliza no encontrada', 404);
         }
 
         \Log::info('Póliza encontrada:', [
@@ -2458,11 +2557,15 @@ public function showAbono(string $id)
             'estatus' => $poliza->estatus
         ]);
 
-        if (in_array($poliza->estatus, ['AUTORIZADO', 'ABONADO', 'LIQUIDADO', 'CERRADO'])) {
-            return back()->with('error', 'No se puede editar una póliza en estado ' . $this->getEstatusTexto($poliza->estatus));
+        // Sólo una póliza CERRADA es inmutable. Antes update() bloqueaba también
+        // AUTORIZADO/ABONADO/LIQUIDADO aunque edit() sí abría el formulario, así
+        // que el usuario podía llenar el form y al guardar le rebotaba.
+        if (in_array($poliza->estatus, ['CERRADO'])) {
+            return $errorResponse('No se puede editar una póliza CERRADA.', 409);
         }
 
         $rules = [
+            'tipo_poliza' => 'nullable|in:INGRESO,EGRESO,TRASPASO',
             'id_cuenta' => 'nullable|exists:cuentas,id_cuenta',
             'id_cuenta_fondeadora' => 'nullable|exists:cuentas,id_cuenta',
             'nota' => 'nullable|string',
@@ -2489,6 +2592,13 @@ public function showAbono(string $id)
 
         if ($validator->fails()) {
             \Log::error('Validación update fallida:', $validator->errors()->toArray());
+            if ($esAjax) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors'  => $validator->errors()->toArray(),
+                ], 422);
+            }
             return back()->withErrors($validator)->withInput();
         }
 
@@ -2504,7 +2614,19 @@ public function showAbono(string $id)
             $ivas = $request->input('ivas', []);
             $esTraspaso = $poliza->tipo_poliza === 'TRASPASO';
 
+            // El tipo de póliza (INGRESO/EGRESO) es editable en el formulario.
+            // Un TRASPASO se edita por otro flujo, así que no se permite convertir
+            // desde/hacia TRASPASO por aquí.
+            $tipoPolizaNuevo = $poliza->tipo_poliza;
+            if (!$esTraspaso) {
+                $solicitado = strtoupper((string) $request->input('tipo_poliza'));
+                if (in_array($solicitado, ['INGRESO', 'EGRESO'], true)) {
+                    $tipoPolizaNuevo = $solicitado;
+                }
+            }
+
             // 🔥 GUARDAR VALORES ANTERIORES
+            $tipoPolizaAnterior = $poliza->tipo_poliza;
             $cuentaAnterior = $movimiento->id_cuenta;
             $cajaFondoAnterior = $movimiento->id_caja_fondo;
             $montoAnterior = (float) $movimiento->monto;
@@ -2527,11 +2649,14 @@ public function showAbono(string $id)
 
             // 🔥 ACTUALIZAR PÓLIZA
             $polizaData = [
+                'tipo_poliza' => $tipoPolizaNuevo,
                 'nota' => $request->nota,
                 'referencia' => $request->referencia,
                 'id_persona' => $request->id_persona,
                 'id_marcador' => $request->id_marcador,
                 'es_por_pagar' => $esPorPagar,
+                // La fecha de póliza es editable en el formulario pero no se estaba guardando.
+                'fecha_poliza' => $request->filled('fecha_poliza') ? $request->fecha_poliza : $poliza->fecha_poliza,
                 'fecha_vencimiento' => $esPorPagar ? $request->fecha_vencimiento : null,
                 'fecha_factura' => $request->fecha_factura,
                 'numero_factura' => $request->numero_factura,
@@ -2568,7 +2693,103 @@ public function showAbono(string $id)
             // ACTUALIZAR SEGÚN TIPO DE PÓLIZA
             // ============================================
             if ($esTraspaso) {
-                // ... (código de traspaso existente)
+                // ============================================
+                // ACTUALIZAR TRASPASO (2 movimientos: origen - / destino +)
+                // Antes esta rama estaba vacía: al editar un traspaso sólo se
+                // guardaba la cabecera de la póliza y los montos/cuentas se
+                // ignoraban en silencio.
+                // ============================================
+                $movs = MovimientoPoliza::where('id_poliza', $poliza->id)->get();
+                $movOrigen  = $movs->firstWhere('monto', '<', 0) ?? $movs->first();
+                $movDestino = $movs->firstWhere('monto', '>', 0) ?? $movs->last();
+
+                $cuentasAfectadas = collect([
+                    $movOrigen?->id_cuenta,
+                    $movDestino?->id_cuenta,
+                ]);
+
+                $nuevaOrigen  = $request->input('id_cuenta_origen')  ?: ($movOrigen?->id_cuenta);
+                $nuevaDestino = $request->input('id_cuenta_destino') ?: ($movDestino?->id_cuenta);
+
+                if ($nuevaOrigen && $nuevaDestino && $nuevaOrigen == $nuevaDestino) {
+                    throw new \Exception('La cuenta de origen y destino no pueden ser la misma.');
+                }
+
+                // Monto / desglose de IVA (mismo criterio que storeTraspaso)
+                $monto = $montoDirecto > 0 ? round($montoDirecto, 2) : abs((float) ($movOrigen->monto_traspaso ?? $movOrigen->monto ?? 0));
+                $totalBase = $monto;
+                $totalIva = 0;
+                $montoIvaCero = 0;
+                $montoIvaDieciseis = 0;
+                $ivaDieciseisCalc = 0;
+                $ivaIds = [];
+
+                if ($modoIva === 'CON_IVA' && !empty($ivas)) {
+                    $totalBase = 0;
+                    foreach ($ivas as $ivaData) {
+                        $iid = isset($ivaData['id']) ? (int) $ivaData['id'] : null;
+                        $imonto = isset($ivaData['monto']) ? (float) $ivaData['monto'] : 0;
+                        if ($iid && $imonto > 0 && ($tipoIva = TipoIva::find($iid))) {
+                            $base = round($imonto, 2);
+                            $ivaCalc = round($base * ($tipoIva->porcentaje / 100), 2);
+                            $totalBase += $base;
+                            $totalIva += $ivaCalc;
+                            $ivaIds[] = $iid;
+                            if ($tipoIva->porcentaje == 0) {
+                                $montoIvaCero += $base;
+                            } elseif ($tipoIva->porcentaje == 16) {
+                                $montoIvaDieciseis += $base;
+                                $ivaDieciseisCalc += $ivaCalc;
+                            }
+                        }
+                    }
+                    if ($totalBase == 0) {
+                        $totalBase = $monto;
+                    }
+                }
+
+                $primerIvaId = !empty($ivaIds) ? $ivaIds[0] : null;
+
+                if ($movOrigen) {
+                    $movOrigen->update([
+                        'id_cuenta'           => $nuevaOrigen,
+                        'id_tipo_iva'         => $primerIvaId,
+                        'monto'               => -$monto,
+                        'monto_base'          => -$totalBase,
+                        'monto_iva'           => -$totalIva,
+                        'monto_traspaso'      => $monto,
+                        'monto_iva_cero'      => -$montoIvaCero,
+                        'monto_iva_dieciseis' => -$montoIvaDieciseis,
+                        'iva_dieciseis'       => -$ivaDieciseisCalc,
+                    ]);
+                }
+
+                if ($movDestino) {
+                    $movDestino->update([
+                        'id_cuenta'           => $nuevaDestino,
+                        'id_tipo_iva'         => $primerIvaId,
+                        'monto'               => $monto,
+                        'monto_base'          => $totalBase,
+                        'monto_iva'           => $totalIva,
+                        'monto_traspaso'      => $monto,
+                        'monto_iva_cero'      => $montoIvaCero,
+                        'monto_iva_dieciseis' => $montoIvaDieciseis,
+                        'iva_dieciseis'       => $ivaDieciseisCalc,
+                    ]);
+                }
+
+                // Recalcular saldos de todas las cuentas involucradas (antiguas y nuevas)
+                $cuentasAfectadas->push($nuevaOrigen)->push($nuevaDestino);
+                $cuentasAfectadas->filter()->unique()->each(function ($idCuenta) {
+                    $this->actualizarSaldoCuenta($idCuenta);
+                });
+
+                \Log::info('Traspaso actualizado:', [
+                    'poliza' => $poliza->id,
+                    'origen' => $nuevaOrigen,
+                    'destino' => $nuevaDestino,
+                    'monto' => $monto,
+                ]);
             } else {
                 // ============================================
                 // ACTUALIZAR INGRESO/EGRESO
@@ -2576,9 +2797,20 @@ public function showAbono(string $id)
                 $movimientoData = [];
                 $montoCambio = false;
 
+                // Si sólo cambió el TIPO (INGRESO<->EGRESO) pero no el monto, hay
+                // que reescribir igualmente el movimiento con el signo correcto.
+                $cambioTipo = ($tipoPolizaNuevo !== $tipoPolizaAnterior)
+                    || ($tipoPolizaNuevo === 'EGRESO' && $montoAnterior > 0)
+                    || ($tipoPolizaNuevo === 'INGRESO' && $montoAnterior < 0);
+
+                if ($montoDirecto <= 0 && $cambioTipo) {
+                    // Reusar el monto actual, sólo corrige el signo.
+                    $montoDirecto = abs($montoAnterior);
+                }
+
                 if ($montoDirecto > 0) {
-                    $signo = $poliza->tipo_poliza === 'EGRESO' ? -1 : 1;
-                    
+                    $signo = $tipoPolizaNuevo === 'EGRESO' ? -1 : 1;
+
                     if ($modoIva === 'SIN_IVA') {
                         $totalBase = $montoDirecto;
                         $totalIva = 0;
@@ -2638,56 +2870,25 @@ public function showAbono(string $id)
                     $movimientoData['id_caja_fondo'] = $request->id_cuenta_fondeadora;
                 }
 
-                // ============================================================
-                // 🔥 ACTUALIZAR SALDOS - CORRECCIÓN CON saldo_inicial
-                // ============================================================
-                if (!$esPorPagar) {
-                    $nuevoMonto = $movimientoData['monto'] ?? $montoAnterior;
-
-                    // 1️⃣ REVERTIR SALDOS ANTERIORES
-                    // Revertir saldo de la caja fondeadora anterior
-                    if ($cajaFondoAnterior && ($cambioCuentaFondeadora || $montoCambio)) {
-                        $this->revertirSaldoCuenta($cajaFondoAnterior, $montoAnterior);
-                        \Log::info('Saldo revertido de caja anterior:', [
-                            'cuenta_id' => $cajaFondoAnterior,
-                            'monto_revertido' => $montoAnterior
-                        ]);
-                    }
-
-                    // Revertir saldo de la cuenta anterior
-                    if ($cuentaAnterior && $cuentaAnterior != $cajaFondoAnterior && $cambioCuenta) {
-                        $this->revertirSaldoCuenta($cuentaAnterior, $montoAnterior);
-                        \Log::info('Saldo revertido de cuenta anterior:', [
-                            'cuenta_id' => $cuentaAnterior,
-                            'monto_revertido' => $montoAnterior
-                        ]);
-                    }
-
-                    // 2️⃣ APLICAR NUEVOS SALDOS
-                    // Aplicar a la nueva caja fondeadora
-                    if ($nuevaCuentaFondeadora) {
-                        $this->aplicarSaldoCuenta($nuevaCuentaFondeadora, $nuevoMonto);
-                        \Log::info('Saldo aplicado a nueva caja:', [
-                            'cuenta_id' => $nuevaCuentaFondeadora,
-                            'monto_aplicado' => $nuevoMonto
-                        ]);
-                    }
-
-                    // Aplicar a la nueva cuenta
-                    if ($nuevaCuenta && $nuevaCuenta != $nuevaCuentaFondeadora) {
-                        $this->aplicarSaldoCuenta($nuevaCuenta, $nuevoMonto);
-                        \Log::info('Saldo aplicado a nueva cuenta:', [
-                            'cuenta_id' => $nuevaCuenta,
-                            'monto_aplicado' => $nuevoMonto
-                        ]);
-                    }
-                }
-
                 // 🔥 ACTUALIZAR EL MOVIMIENTO
                 if (!empty($movimientoData)) {
                     $movimiento->update($movimientoData);
                     \Log::info('Movimiento actualizado:', $movimientoData);
                 }
+
+                // ============================================================
+                // 🔥 RECALCULAR SALDOS desde cero (igual que store() y traspasos).
+                // Antes se hacía ajuste incremental con guardas que fallaban al
+                // cambiar sólo el signo (INGRESO<->EGRESO) o al no mover la cuenta.
+                // ============================================================
+                collect([
+                    $cuentaAnterior,
+                    $cajaFondoAnterior,
+                    $movimiento->id_cuenta,
+                    $movimiento->id_caja_fondo,
+                ])->filter()->unique()->each(function ($idCuenta) {
+                    $this->actualizarSaldoCuenta($idCuenta);
+                });
             }
 
             $this->actualizarEstatusPoliza($poliza);
@@ -2695,6 +2896,9 @@ public function showAbono(string $id)
             DB::commit();
             \Log::info('=== UPDATE COMPLETADO EXITOSAMENTE ===');
 
+            if ($esAjax) {
+                return response()->json(['success' => true, 'message' => 'Movimiento actualizado exitosamente']);
+            }
             return redirect()->route('movimientos.index')
                 ->with('success', 'Movimiento actualizado exitosamente');
 
@@ -2703,7 +2907,7 @@ public function showAbono(string $id)
             \Log::error('=== ERROR EN UPDATE ===');
             \Log::error('Mensaje:', ['message' => $e->getMessage()]);
             \Log::error('Trace:', ['trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Error al actualizar el movimiento: ' . $e->getMessage())->withInput();
+            return $errorResponse('Error al actualizar el movimiento: ' . $e->getMessage(), 500);
         }
     }
 
@@ -3692,7 +3896,7 @@ public function showAbono(string $id)
     // ✅ REVISAR PÓLIZA
     // ============================================
     public function revisarPoliza(Request $request, $id){
-        if (!Gate::allows('editar-movimientos')) {
+        if (!Gate::allows('revisar-polizas')) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permiso para revisar pólizas'
@@ -3883,7 +4087,7 @@ public function showAbono(string $id)
     // ============================================
     public function revertirRevision(Request $request, $id)
     {
-        if (!Gate::allows('editar-movimientos')) {
+        if (!Gate::allows('revisar-polizas')) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permiso para revertir revisiones'

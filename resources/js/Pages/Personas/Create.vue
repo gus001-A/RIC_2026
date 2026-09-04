@@ -190,9 +190,7 @@
                                             <div v-if="textErrors.Nombre" class="error-premium">{{ textErrors.Nombre }}</div>
                                         </div>
                                         <div class="field-premium">
-                                            <label class="label-premium">Apellido Paterno 
-                                                <span class="star">*</span>
-                                            </label>
+                                            <label class="label-premium">Apellido Paterno</label>
                                             <div class="input-wrapper-premium">
                                                 <input type="text" v-model="form.Paterno"
                                                        @input="clearError('Paterno'); autoGenerarRFC(); validateText('Paterno')"
@@ -225,9 +223,7 @@
                                     <!-- RFC + CURP (primera fila) -->
                                     <div class="grid-2">
                                         <div class="field-premium">
-                                            <label class="label-premium">RFC 
-                                                <span class="star">*</span>
-                                            </label>
+                                            <label class="label-premium">RFC</label>
                                             <div class="input-with-btn">
                                                 <input type="text" v-model="form.rfc"
                                                        @input="clearError('rfc'); form.rfc = form.rfc.toUpperCase(); validateRFC()"
@@ -267,9 +263,7 @@
                                     <!-- Fecha Nacimiento + Sexo + Empleado (segunda fila) -->
                                     <div class="grid-3">
                                         <div class="field-premium">
-                                            <label class="label-premium">Fecha Nacimiento 
-                                                <span class="star">*</span>
-                                            </label>
+                                            <label class="label-premium">Fecha Nacimiento</label>
                                             <div class="input-wrapper-premium">
                                                 <input type="date" v-model="form.Fecha_nacimiento"
                                                        @change="clearError('Fecha_nacimiento'); validateEdad(); autoGenerarRFC()"
@@ -285,9 +279,7 @@
                                         </div>
 
                                         <div class="field-premium">
-                                            <label class="label-premium">Sexo 
-                                                <span class="star">*</span>
-                                            </label>
+                                            <label class="label-premium">Sexo</label>
                                             <div class="input-wrapper-premium" style="padding-right: 0;">
                                                 <div class="radio-group-sm">
                                                     <div class="radio-sm" 
@@ -1107,14 +1099,14 @@ const onTipoChange = () => {
 // COMPUTED PARA ERRORES POR TAB
 // ============================================
 const hasGeneralesErrors = computed(() => {
-    return form.errors.tipo_persona || form.errors.Nombre || form.errors.Paterno || 
-           form.errors.Fecha_nacimiento || form.errors.sexo || form.errors.rfc ||
-           rfcError.value || edadError.value;
+    return form.errors.tipo_persona || form.errors.Nombre ||
+           form.errors.Fecha_nacimiento || form.errors.sexo ||
+           edadError.value;
 });
 
 const isGeneralesComplete = computed(() => {
-    return form.tipo_persona && form.Nombre && form.Paterno && 
-           form.Fecha_nacimiento && form.sexo && form.rfc && !rfcError.value && !edadError.value;
+    // Sólo el nombre es obligatorio (a pedido del negocio).
+    return form.tipo_persona && form.Nombre && !edadError.value;
 });
 
 const hasContactoErrors = computed(() => {
@@ -1146,19 +1138,19 @@ const isRepresentanteComplete = computed(() => {
 // COMPUTED
 // ============================================
 const isFormValid = computed(() => {
-    const requiredFields = ['tipo_persona', 'Nombre', 'Paterno', 'Fecha_nacimiento', 'sexo', 'rfc'];
+    // Sólo el nombre es obligatorio (a pedido del negocio).
+    const requiredFields = ['tipo_persona', 'Nombre'];
     const hasRequiredErrors = requiredFields.some(field => {
         const val = form[field];
         return !val || val.toString().trim().length === 0;
     });
     if (hasRequiredErrors) return false;
-    
-    const textFields = ['Nombre', 'Paterno', 'Materno'];
+
+    const textFields = ['Nombre', 'Materno'];
     const hasTextErrors = textFields.some(field => textErrors.value[field]);
     if (hasTextErrors) return false;
-    
+
     if (emailError.value) return false;
-    if (rfcError.value) return false;
     if (curpError.value) return false;
     if (edadError.value) return false;
     if (codigoPostalError.value) return false;
@@ -1213,7 +1205,7 @@ const errorCount = computed(() => {
 });
 
 const requiredFields = computed(() => {
-    return ['tipo_persona', 'Nombre', 'Paterno', 'Fecha_nacimiento', 'sexo', 'rfc'];
+    return ['tipo_persona', 'Nombre'];
 });
 
 const progressPercentage = computed(() => {
@@ -1279,15 +1271,21 @@ const submit = () => {
     if (form.codigo_postal) validateCodigoPostal();
     if (form.representante_email) validateRepresentanteEmail();
     
-    ['Nombre', 'Paterno', 'Materno'].forEach(field => validateText(field));
-    
-    if (!isFormValid.value) {
-        if (hasGeneralesErrors.value || !isGeneralesComplete.value) activeTab.value = 'generales';
-        else if (hasContactoErrors.value) activeTab.value = 'contacto';
-        else if (hasDireccionErrors.value) activeTab.value = 'direccion';
-        else if (hasRepresentanteErrors.value) activeTab.value = 'representante';
-        notify.error('Por favor, corrija los errores en el formulario antes de continuar.', 'Error de validación');
+    ['Nombre', 'Materno'].forEach(field => validateText(field));
+
+    // Mínimo indispensable (a pedido del negocio): sólo el NOMBRE.
+    const camposMinimos = ['tipo_persona', 'Nombre'];
+    const faltanMinimos = camposMinimos.some(f => !form[f] || !form[f].toString().trim());
+    if (faltanMinimos) {
+        activeTab.value = 'generales';
+        notify.error('El nombre es obligatorio.', 'Datos mínimos');
         return;
+    }
+
+    // El resto de avisos (apellido paterno vacío, RFC con formato raro, etc.)
+    // NO bloquean: se avisa y se continúa con el guardado.
+    if (!isFormValid.value) {
+        notify.warn('Hay campos con observaciones; se guardará de todos modos.', 'Aviso');
     }
 
     // Inertia sigue el redirect a personas.index; el toast de exito lo muestra el

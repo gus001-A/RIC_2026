@@ -38,7 +38,7 @@
                             @click="seleccionarTipo('INGRESO_EGRESO')"
                             class="tipo-btn-premium"
                             :class="{ active: tipoPolizaSeleccionado === 'INGRESO_EGRESO' }"
-                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
+                            :disabled="bloqueado"
                         >
                             <div class="tipo-btn-content">
                                 <span class="tipo-btn-icon">
@@ -55,7 +55,7 @@
                             @click="seleccionarTipo('TRASPASO')"
                             class="tipo-btn-premium"
                             :class="{ active: tipoPolizaSeleccionado === 'TRASPASO' }"
-                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
+                            :disabled="bloqueado"
                         >
                             <div class="tipo-btn-content">
                                 <span class="tipo-btn-icon">
@@ -84,7 +84,7 @@
                                                 class="form-input"
                                                 :class="{ error: form.errors.tipo_poliza }"
                                                 @change="onTipoPolizaChange"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                :disabled="bloqueado">
                                             <option value="">Selecciona un tipo</option>
                                             <option value="INGRESO">Ingreso</option>
                                             <option value="EGRESO">Egreso</option>
@@ -104,7 +104,7 @@
                                                 @change="onPersonaChange"
                                                 class="form-input"
                                                 :class="{ error: form.errors.id_persona }"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                :disabled="bloqueado">
                                             <option value="">Selecciona una persona</option>
                                             <option v-for="p in personas" :key="p.id_persona" :value="p.id_persona">
                                                 {{ p.nombre_completo }}
@@ -124,7 +124,7 @@
                                         <select v-model="form.id_cuenta"
                                                 class="form-input"
                                                 :class="{ error: form.errors.id_cuenta }"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                :disabled="bloqueado">
                                             <option value="">Selecciona una cuenta</option>
                                             <optgroup v-if="form.tipo_poliza === 'EGRESO'" label="Cuentas para Egresos">
                                                 <option v-for="c in cuentasEgreso" :key="c.id_cuenta" :value="c.id_cuenta">
@@ -161,7 +161,7 @@
                                                :class="{ error: form.errors.monto_directo }"
                                                placeholder="0.00"
                                                min="0.01"
-                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                               :disabled="bloqueado">
                                     </div>
                                     <div v-if="form.errors.monto_directo" class="error-text">{{ form.errors.monto_directo }}</div>
                                 </div>
@@ -179,7 +179,7 @@
                                                 disabled: ivasSeleccionados.length >= 2 && !ivasSeleccionados.includes(iva.id)
                                             }"
                                             @click="toggleIva(iva.id)"
-                                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
+                                            :disabled="bloqueado"
                                         >
                                             {{ iva.porcentaje }}%
                                             <span class="iva-check" v-if="ivasSeleccionados.includes(iva.id)"><i class="pi pi-check"></i></span>
@@ -196,7 +196,7 @@
                                                class="form-input input-date"
                                                :class="{ error: form.errors.fecha_poliza }"
                                                :max="fechaActual"
-                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                               :disabled="bloqueado">
                                         <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
@@ -222,11 +222,11 @@
                                                 class="form-input iva-input"
                                                 placeholder="0.00"
                                                 min="0"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
+                                                :disabled="bloqueado"
                                             >
                                         </div>
                                         <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMonto(ivaId)) }}</span>
-                                        <button type="button" @click="quitarIva(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"><i class="pi pi-times"></i></button>
+                                        <button type="button" @click="quitarIva(ivaId)" class="iva-remove-btn" :disabled="bloqueado"><i class="pi pi-times"></i></button>
                                     </div>
                                     <div class="iva-total">
                                         <span>Total: <strong>${{ formatNumber(totalConIvaCalculado) }}</strong></span>
@@ -258,7 +258,7 @@
                                                 @change="cambiarCuentaFondeadora"
                                                 class="form-input"
                                                 :class="{ error: form.errors.id_cuenta_fondeadora }"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                :disabled="bloqueado">
                                             <option value="">Selecciona una fondeadora</option>
                                             <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
@@ -269,7 +269,7 @@
                                         </svg>
                                     </div>
                                     <div v-if="form.errors.id_cuenta_fondeadora" class="error-text">{{ form.errors.id_cuenta_fondeadora }}</div>
-                                    <div v-if="cuentaFondeadoraSeleccionada" class="saldo-disponible">Saldo disponible: <strong>${{ formatNumber(cuentaFondeadoraSeleccionada.saldo || 0) }}</strong>
+                                    <div v-if="cuentaFondeadoraSeleccionada" class="saldo-disponible">Saldo disponible: <strong>${{ formatNumber(saldoFondeadoraEfectivo) }}</strong>
                                     </div>
                                     <div v-if="form.es_por_pagar" class="hint-text" style="color: #92400e;">
                                         Póliza diferida - no requiere cuenta fondeadora
@@ -280,12 +280,12 @@
                                     <label class="form-label">Opciones</label>
                                     <div class="options-grid">
                                         <label class="checkbox">
-                                            <input type="checkbox" v-model="form.es_por_pagar" @change="onEsPorPagarChange" class="checkbox-input" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <input type="checkbox" v-model="form.es_por_pagar" @change="onEsPorPagarChange" class="checkbox-input" :disabled="bloqueado">
                                             <span class="checkbox-custom"></span>
                                             <span class="checkbox-text">Por Pagar</span>
                                         </label>
                                         <label class="checkbox">
-                                            <input type="checkbox" v-model="form.es_fiscal" @change="toggleFiscal" class="checkbox-input" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <input type="checkbox" v-model="form.es_fiscal" @change="toggleFiscal" class="checkbox-input" :disabled="bloqueado">
                                             <span class="checkbox-custom"></span>
                                             <span class="checkbox-text">Fiscal</span>
                                         </label>
@@ -296,7 +296,7 @@
                                                class="form-input vencimiento-input input-date"
                                                :min="fechaActual"
                                                :class="{ error: form.errors.fecha_vencimiento }"
-                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                               :disabled="bloqueado">
                                         <div v-if="form.errors.fecha_vencimiento" class="error-text">{{ form.errors.fecha_vencimiento }}</div>
                                     </div>
                                 </div>
@@ -308,7 +308,7 @@
                                             <select v-model="form.id_marcador"
                                                     class="form-input"
                                                     :class="{ error: form.errors.id_marcador }"
-                                                    :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                    :disabled="bloqueado">
                                                 <option value="">Selecciona un marcador</option>
                                                 <option v-for="m in marcadores" :key="m.id" :value="m.id">
                                                     {{ m.nombre_marcador }}
@@ -318,7 +318,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                             </svg>
                                         </div>
-                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador" title="Nuevo marcador" :disabled="bloqueado">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -342,7 +342,7 @@
                                                    class="form-input input-date"
                                                    :class="{ error: form.errors.fecha_factura }"
                                                    :max="fechaActual"
-                                                   :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                   :disabled="bloqueado">
                                             <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
@@ -357,7 +357,7 @@
                                                    class="form-input"
                                                    :class="{ error: form.errors.numero_factura }"
                                                    placeholder="Ej: A-1258"
-                                                   :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                   :disabled="bloqueado">
                                         </div>
                                         <div v-if="form.errors.numero_factura" class="error-text">{{ form.errors.numero_factura }}</div>
                                     </div>
@@ -371,7 +371,7 @@
                                                 </svg>
                                                 <span>{{ archivos.pdf ? archivos.pdf.name : (movimiento.nombre_pdf || 'Seleccionar PDF') }}</span>
                                             </div>
-                                            <input type="file" ref="pdfInput" @change="handleFileUpload('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <input type="file" ref="pdfInput" @change="handleFileUpload('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="bloqueado">
                                             <button v-if="archivos.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivo('pdf')" class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
@@ -385,7 +385,7 @@
                                                 </svg>
                                                 <span>{{ archivos.xml ? archivos.xml.name : (movimiento.nombre_xml || 'Seleccionar XML') }}</span>
                                             </div>
-                                            <input type="file" ref="xmlInput" @change="handleFileUpload('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <input type="file" ref="xmlInput" @change="handleFileUpload('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="bloqueado">
                                             <button v-if="archivos.xml || movimiento.xml_existente" type="button" @click="eliminarArchivo('xml')" class="file-remove"><i class="pi pi-times"></i></button>
                                         </div>
                                     </div>
@@ -401,21 +401,21 @@
                                                   class="form-textarea"
                                                   :class="{ error: form.errors.nota }"
                                                   placeholder="Agrega notas o comentarios..."
-                                                  :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"></textarea>
+                                                  :disabled="bloqueado"></textarea>
                                     </div>
                                     <div v-if="form.errors.nota" class="error-text">{{ form.errors.nota }}</div>
                                 </div>
                             </div>
 
                             <!-- VALIDACION DE SALDO -->
-                            <div v-if="!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && totalConIvaCalculado > 0 && cuentaFondeadoraSeleccionada" 
+                            <div v-if="!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && totalConIvaCalculado > 0 && cuentaFondeadoraSeleccionada"
                                  class="validacion-saldo"
-                                 :class="totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) ? 'saldo-insuficiente' : 'saldo-suficiente'">
-                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0)) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
+                                 :class="totalConIvaCalculado > saldoFondeadoraEfectivo ? 'saldo-insuficiente' : 'saldo-suficiente'">
+                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaCalculado > saldoFondeadoraEfectivo) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
                                 <span class="validacion-texto">
-                                    {{ totalConIvaCalculado > (cuentaFondeadoraSeleccionada.saldo || 0) 
-                                        ? `El monto ($${formatNumber(totalConIvaCalculado)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.saldo || 0)})` 
-                                        : `Saldo suficiente: $${formatNumber((cuentaFondeadoraSeleccionada.saldo || 0) - totalConIvaCalculado)} restante` }}
+                                    {{ totalConIvaCalculado > saldoFondeadoraEfectivo
+                                        ? `El monto ($${formatNumber(totalConIvaCalculado)}) excede el saldo disponible ($${formatNumber(saldoFondeadoraEfectivo)})`
+                                        : `Saldo suficiente: $${formatNumber(saldoFondeadoraEfectivo - totalConIvaCalculado)} restante` }}
                                 </span>
                             </div>
                         </div>
@@ -451,7 +451,7 @@
                                                class="form-input input-date"
                                                :class="{ error: formTraspaso.errors.fecha_poliza }"
                                                :max="fechaActual"
-                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                               :disabled="bloqueado">
                                         <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
@@ -466,7 +466,7 @@
                                             <select v-model="formTraspaso.id_marcador"
                                                     class="form-input"
                                                     :class="{ error: formTraspaso.errors.id_marcador }"
-                                                    :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                    :disabled="bloqueado">
                                                 <option value="">Selecciona un marcador</option>
                                                 <option v-for="m in marcadores" :key="m.id" :value="m.id">
                                                     {{ m.nombre_marcador }}
@@ -476,7 +476,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                             </svg>
                                         </div>
-                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador" title="Nuevo marcador" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                        <button type="button" @click="marcadorGestorVisible = true" class="btn-add-marcador" title="Nuevo marcador" :disabled="bloqueado">
                                             <svg class="icon-svg-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                             </svg>
@@ -496,7 +496,7 @@
                                                 @change="onCuentaOrigenChange"
                                                 class="form-input"
                                                 :class="{ error: formTraspaso.errors.id_cuenta_origen }"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                :disabled="bloqueado">
                                             <option value="">Selecciona una cuenta</option>
                                             <option v-for="c in cuentasOrigenTraspaso" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
@@ -507,7 +507,7 @@
                                         </svg>
                                     </div>
                                     <div v-if="formTraspaso.errors.id_cuenta_origen" class="error-text">{{ formTraspaso.errors.id_cuenta_origen }}</div>
-                                    <div v-if="formTraspaso.id_cuenta_origen" class="saldo-disponible">Saldo: <strong>${{ formatNumber(saldoCuentaOrigen) }}</strong>
+                                    <div v-if="formTraspaso.id_cuenta_origen" class="saldo-disponible">Saldo: <strong>${{ formatNumber(saldoOrigenTraspasoEfectivo) }}</strong>
                                     </div>
                                 </div>
 
@@ -519,7 +519,7 @@
                                                 @change="onCuentaDestinoChange"
                                                 class="form-input"
                                                 :class="{ error: formTraspaso.errors.id_cuenta_destino }"
-                                                :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                :disabled="bloqueado">
                                             <option value="">Selecciona una cuenta</option>
                                             <option v-for="c in cuentasDestinoTraspaso" :key="c.id_cuenta" :value="c.id_cuenta">
                                                 {{ c.nombre_cuenta }}
@@ -548,7 +548,7 @@
                                                :class="{ error: formTraspaso.errors.monto_directo }"
                                                placeholder="0.00"
                                                min="0.01"
-                                               :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                               :disabled="bloqueado">
                                     </div>
                                     <div v-if="formTraspaso.errors.monto_directo" class="error-text">{{ formTraspaso.errors.monto_directo }}</div>
                                 </div>
@@ -569,7 +569,7 @@
                                                 disabled: ivasSeleccionadosTraspaso.length >= 2 && !ivasSeleccionadosTraspaso.includes(iva.id)
                                             }"
                                             @click="toggleIvaTraspaso(iva.id)"
-                                            :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
+                                            :disabled="bloqueado"
                                         >
                                             {{ iva.porcentaje }}%
                                             <span class="iva-check" v-if="ivasSeleccionadosTraspaso.includes(iva.id)"><i class="pi pi-check"></i></span>
@@ -594,11 +594,11 @@
                                                     class="form-input iva-input"
                                                     placeholder="0.00"
                                                     min="0"
-                                                    :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"
+                                                    :disabled="bloqueado"
                                                 >
                                             </div>
                                             <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMontoTraspaso(ivaId)) }}</span>
-                                            <button type="button" @click="quitarIvaTraspaso(ivaId)" class="iva-remove-btn" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"><i class="pi pi-times"></i></button>
+                                            <button type="button" @click="quitarIvaTraspaso(ivaId)" class="iva-remove-btn" :disabled="bloqueado"><i class="pi pi-times"></i></button>
                                         </div>
                                         <div class="iva-total">
                                             <span>Total: <strong>${{ formatNumber(totalConIvaTraspasoCalculado) }}</strong></span>
@@ -625,7 +625,7 @@
                                     <label class="form-label">Opciones</label>
                                     <div class="options-grid">
                                         <label class="checkbox">
-                                            <input type="checkbox" v-model="formTraspaso.es_fiscal" @change="toggleFiscalTraspaso" class="checkbox-input" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                            <input type="checkbox" v-model="formTraspaso.es_fiscal" @change="toggleFiscalTraspaso" class="checkbox-input" :disabled="bloqueado">
                                             <span class="checkbox-custom"></span>
                                             <span class="checkbox-text">Fiscal</span>
                                         </label>
@@ -646,7 +646,7 @@
                                                        class="form-input input-date"
                                                        :class="{ error: formTraspaso.errors.fecha_factura }"
                                                        :max="fechaActual"
-                                                       :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                       :disabled="bloqueado">
                                                 <svg class="input-icon input-date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                                 </svg>
@@ -661,7 +661,7 @@
                                                        class="form-input"
                                                        :class="{ error: formTraspaso.errors.numero_factura }"
                                                        placeholder="Ej: A-1258"
-                                                       :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                       :disabled="bloqueado">
                                             </div>
                                             <div v-if="formTraspaso.errors.numero_factura" class="error-text">{{ formTraspaso.errors.numero_factura }}</div>
                                         </div>
@@ -675,7 +675,7 @@
                                                     </svg>
                                                     <span>{{ archivosTraspaso.pdf ? archivosTraspaso.pdf.name : (movimiento.nombre_pdf || 'Seleccionar PDF') }}</span>
                                                 </div>
-                                                <input type="file" ref="pdfInputTraspaso" @change="handleFileUploadTraspaso('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                <input type="file" ref="pdfInputTraspaso" @change="handleFileUploadTraspaso('pdf', $event)" accept=".pdf" class="file-input-hidden" :disabled="bloqueado">
                                                 <button v-if="archivosTraspaso.pdf || movimiento.pdf_existente" type="button" @click="eliminarArchivoTraspaso('pdf')" class="file-remove"><i class="pi pi-times"></i></button>
                                             </div>
                                         </div>
@@ -689,7 +689,7 @@
                                                     </svg>
                                                     <span>{{ archivosTraspaso.xml ? archivosTraspaso.xml.name : (movimiento.nombre_xml || 'Seleccionar XML') }}</span>
                                                 </div>
-                                                <input type="file" ref="xmlInputTraspaso" @change="handleFileUploadTraspaso('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'">
+                                                <input type="file" ref="xmlInputTraspaso" @change="handleFileUploadTraspaso('xml', $event)" accept=".xml" class="file-input-hidden" :disabled="bloqueado">
                                                 <button v-if="archivosTraspaso.xml || movimiento.xml_existente" type="button" @click="eliminarArchivoTraspaso('xml')" class="file-remove"><i class="pi pi-times"></i></button>
                                             </div>
                                         </div>
@@ -706,20 +706,20 @@
                                                   class="form-textarea"
                                                   :class="{ error: formTraspaso.errors.nota }"
                                                   placeholder="Agrega notas o comentarios..."
-                                                  :disabled="movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO'"></textarea>
+                                                  :disabled="bloqueado"></textarea>
                                     </div>
                                     <div v-if="formTraspaso.errors.nota" class="error-text">{{ formTraspaso.errors.nota }}</div>
                                 </div>
                             </div>
 
                             <!-- VALIDACION DE SALDO TRASPASO -->
-                            <div v-if="formTraspaso.id_cuenta_origen && totalConIvaTraspasoCalculado > 0" 
+                            <div v-if="formTraspaso.id_cuenta_origen && totalConIvaTraspasoCalculado > 0"
                                  class="validacion-saldo"
-                                 :class="totalConIvaTraspasoCalculado > saldoCuentaOrigen ? 'saldo-insuficiente' : 'saldo-suficiente'">
-                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaTraspasoCalculado > saldoCuentaOrigen) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
+                                 :class="totalConIvaTraspasoCalculado > saldoOrigenTraspasoEfectivo ? 'saldo-insuficiente' : 'saldo-suficiente'">
+                                <span class="validacion-icon"><i class="pi" :class="(totalConIvaTraspasoCalculado > saldoOrigenTraspasoEfectivo) ? 'pi-exclamation-triangle' : 'pi-check'"></i></span>
                                 <span class="validacion-texto">
-                                    {{ totalConIvaTraspasoCalculado > saldoCuentaOrigen 
-                                        ? `El monto ($${formatNumber(totalConIvaTraspasoCalculado)}) excede el saldo de origen ($${formatNumber(saldoCuentaOrigen)})` 
+                                    {{ totalConIvaTraspasoCalculado > saldoOrigenTraspasoEfectivo
+                                        ? `El monto ($${formatNumber(totalConIvaTraspasoCalculado)}) excede el saldo de origen ($${formatNumber(saldoOrigenTraspasoEfectivo)})`
                                         : `Saldo suficiente en origen` }}
                                 </span>
                             </div>
@@ -754,8 +754,8 @@
                                     </svg>
                                     Cancelar
                                 </Link>
-                                <button type="submit" 
-                                        :disabled="processing || !isFormValid"
+                                <button type="submit"
+                                        :disabled="processing"
                                         class="btn btn-submit">
                                     <span v-if="processing" class="spinner-border"></span>
                                     <svg v-else class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -843,6 +843,10 @@ const props = defineProps({
     es_traspaso: { type: Boolean, default: false }
 });
 
+// Sólo una póliza CERRADA queda bloqueada para edición (a pedido del negocio:
+// "puedo modificarle todo"). Antes se bloqueaban también AUTORIZADO/ABONADO/LIQUIDADO.
+const bloqueado = computed(() => props.movimiento?.estatus === 'CERRADO');
+
 // ============================================
 // REFS
 // ============================================
@@ -904,6 +908,39 @@ const cuentasDestinoTraspaso = computed(() => {
 });
 
 // ============================================
+// SALDO "EFECTIVO" PARA EDITAR
+// El saldo que trae la cuenta/fondeadora del servidor ya incluye el efecto
+// de ESTA MISMA póliza (porque ya está guardada en la BD). Si comparamos el
+// monto nuevo contra ese saldo tal cual, una póliza que ya consumió casi todo
+// el saldo de su propia fondeadora queda imposible de volver a guardar
+// -aunque no cambies nada- y el botón "Actualizar" se ve deshabilitado.
+// Por eso, antes de validar, le "devolvemos" a la cuenta lo que esta póliza
+// ya le había restado/sumado (equivalente a revertirla y volver a aplicarla).
+// ============================================
+const montoAnteriorFirmado = computed(() => {
+    if (props.movimiento?.es_por_pagar) return 0; // diferida: nunca tocó saldos
+    const signo = props.movimiento?.tipo_poliza === 'EGRESO' ? -1 : 1;
+    return signo * (Number(props.movimiento?.monto_abs) || 0);
+});
+
+const saldoFondeadoraEfectivo = computed(() => {
+    const base = cuentaFondeadoraSeleccionada.value?.saldo || 0;
+    if (String(form.id_cuenta_fondeadora || '') === String(props.movimiento?.id_cuenta_fondeadora || '')) {
+        return base - montoAnteriorFirmado.value;
+    }
+    return base;
+});
+
+const saldoOrigenTraspasoEfectivo = computed(() => {
+    const base = saldoCuentaOrigen.value || 0;
+    if (String(formTraspaso.id_cuenta_origen || '') === String(props.movimiento?.id_cuenta_origen || '')) {
+        const montoAnteriorTraspaso = Number(props.movimiento?.monto_traspaso) || Number(props.movimiento?.monto_abs) || 0;
+        return base + montoAnteriorTraspaso;
+    }
+    return base;
+});
+
+// ============================================
 // COMPUTED - VALIDACIONES
 // ============================================
 const isIvaValid = computed(() => {
@@ -932,7 +969,7 @@ const isFormValid = computed(() => {
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) return false;
         if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
-            if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) return false;
+            if (montoTotal > saldoFondeadoraEfectivo.value) return false;
         }
         return true;
     } else {
@@ -943,7 +980,7 @@ const isFormValid = computed(() => {
         if (!formTraspaso.monto_directo || formTraspaso.monto_directo <= 0) return false;
         if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) return false;
         const montoTotal = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
-        if (montoTotal > saldoCuentaOrigen.value) return false;
+        if (montoTotal > saldoOrigenTraspasoEfectivo.value) return false;
         return true;
     }
 });
@@ -1201,7 +1238,7 @@ const onMontoTraspasoChange = () => {};
 // METODOS GENERALES
 // ============================================
 const seleccionarTipo = (tipo) => {
-    if (movimiento.estatus === 'AUTORIZADO' || movimiento.estatus === 'ABONADO' || movimiento.estatus === 'LIQUIDADO') {
+    if (bloqueado.value) {
         return;
     }
     tipoPolizaSeleccionado.value = tipo;
@@ -1432,12 +1469,40 @@ const submit = () => {
 
     if (tipoPolizaSeleccionado.value === 'INGRESO_EGRESO') {
         // VALIDACIONES
+        // El botón ya no se deshabilita solo (se valida aquí, al querer guardar,
+        // con los datos reales de la cuenta — no con una condición reactiva que
+        // podía dejarlo gris sin explicar por qué).
+        if (!form.tipo_poliza) {
+            notify.error('Selecciona si es Ingreso o Egreso.', 'Tipo requerido');
+            return;
+        }
+
+        if (!form.fecha_poliza) {
+            notify.error('La fecha de la póliza es obligatoria.', 'Fecha requerida');
+            return;
+        }
+
+        if (!form.id_cuenta) {
+            notify.error('Selecciona la cuenta de la póliza.', 'Cuenta requerida');
+            return;
+        }
+
+        if (!form.monto_directo || form.monto_directo <= 0) {
+            notify.error('Captura un monto mayor a $0.', 'Monto requerido');
+            return;
+        }
+
+        if (!form.es_por_pagar && !form.id_cuenta_fondeadora) {
+            notify.error('Selecciona la cuenta fondeadora.', 'Fondeadora requerida');
+            return;
+        }
+
         if (ivasSeleccionados.value.length > 0 && totalConIvaCalculado.value > form.monto_directo) {
             notify.error(`La suma del desglose ($${formatNumber(totalConIvaCalculado.value)}) excede el monto ($${formatNumber(form.monto_directo)}).`, 'Error en desglose de IVA');
             return;
         }
 
-        if (form.fecha_poliza && form.fecha_poliza > fechaActual.value) {
+        if (form.fecha_poliza > fechaActual.value) {
             notify.error('La fecha de la poliza no puede ser futura.', 'Fecha invalida');
             return;
         }
@@ -1449,8 +1514,8 @@ const submit = () => {
 
         if (!form.es_por_pagar && form.tipo_poliza === 'EGRESO' && cuentaFondeadoraSeleccionada.value) {
             const montoTotal = ivasSeleccionados.value.length > 0 ? totalConIvaCalculado.value : form.monto_directo;
-            if (montoTotal > (cuentaFondeadoraSeleccionada.value.saldo || 0)) {
-                notify.error(`El monto total ($${formatNumber(montoTotal)}) excede el saldo disponible ($${formatNumber(cuentaFondeadoraSeleccionada.value.saldo || 0)}).`, 'Saldo insuficiente');
+            if (montoTotal > saldoFondeadoraEfectivo.value) {
+                notify.error(`El monto total ($${formatNumber(montoTotal)}) excede el saldo disponible ($${formatNumber(saldoFondeadoraEfectivo.value)}).`, 'Saldo insuficiente');
                 return;
             }
         }
@@ -1549,12 +1614,22 @@ const submit = () => {
         // ============================================
         // TRASPASO - MISMO PATRÓN
         // ============================================
+        if (!formTraspaso.fecha_poliza) {
+            notify.error('La fecha de la póliza es obligatoria.', 'Fecha requerida');
+            return;
+        }
+
+        if (!formTraspaso.monto_directo || formTraspaso.monto_directo <= 0) {
+            notify.error('Captura un monto mayor a $0.', 'Monto requerido');
+            return;
+        }
+
         if (ivasSeleccionadosTraspaso.value.length > 0 && totalConIvaTraspasoCalculado.value > formTraspaso.monto_directo) {
             notify.error(`La suma del desglose ($${formatNumber(totalConIvaTraspasoCalculado.value)}) excede el monto ($${formatNumber(formTraspaso.monto_directo)}).`, 'Error en desglose de IVA');
             return;
         }
 
-        if (formTraspaso.fecha_poliza && formTraspaso.fecha_poliza > fechaActual.value) {
+        if (formTraspaso.fecha_poliza > fechaActual.value) {
             notify.error('La fecha de la poliza no puede ser futura.', 'Fecha invalida');
             return;
         }
@@ -1575,8 +1650,8 @@ const submit = () => {
         }
 
         const montoTotalTraspaso = ivasSeleccionadosTraspaso.value.length > 0 ? totalConIvaTraspasoCalculado.value : formTraspaso.monto_directo;
-        if (montoTotalTraspaso > saldoCuentaOrigen.value) {
-            notify.error(`El monto a transferir ($${formatNumber(montoTotalTraspaso)}) excede el saldo de la cuenta de origen ($${formatNumber(saldoCuentaOrigen.value)}).`, 'Saldo insuficiente en origen');
+        if (montoTotalTraspaso > saldoOrigenTraspasoEfectivo.value) {
+            notify.error(`El monto a transferir ($${formatNumber(montoTotalTraspaso)}) excede el saldo de la cuenta de origen ($${formatNumber(saldoOrigenTraspasoEfectivo.value)}).`, 'Saldo insuficiente en origen');
             return;
         }
 

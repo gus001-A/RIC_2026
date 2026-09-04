@@ -9,6 +9,7 @@ use App\Models\MovimientoPoliza;
 use App\Models\AbonoPoliza;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Gate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -21,11 +22,16 @@ class ReporteController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        
+
         if (!$user) {
             return redirect()->route('login');
         }
-        
+
+        if (!Gate::allows('ver-reportes')) {
+            return redirect()->route('dashboard')
+                ->with('error', 'No tienes permiso para ver reportes');
+        }
+
         $userId = $user->id_usuario;
         
         $empresaIds = DB::table('empresas_usuarios')
@@ -80,6 +86,10 @@ class ReporteController extends Controller
 
     public function getMovimientos(Request $request)
     {
+        if (!Gate::allows('ver-reportes')) {
+            return response()->json(['success' => false, 'message' => 'Sin permiso para ver reportes'], 403);
+        }
+
         $empresaId = $request->input('empresa_id');
         $vista = $request->input('vista', 'por_cuenta');
         $fechaDesde = $request->input('fecha_desde');
@@ -113,18 +123,27 @@ class ReporteController extends Controller
             $polizaIds = $polizaQuery->pluck('id')->toArray();
 
             if (empty($polizaIds)) {
+                // Sin movimientos en el periodo/filtro no hay tabla de "movimientos",
+                // pero el catálogo de cuentas de resultados (con $0.00) SÍ debe verse
+                // — antes se devolvía vacío y el modal de Resultados quedaba en blanco.
+                $cuentasResultadosVacio = $this->getCuentasResultadosOptimizado(
+                    $empresaId, $fechaDesde, $fechaHasta, $tipoFiltro, collect()
+                );
+
                 return response()->json([
                     'success' => true,
                     'data' => [],
                     'fondeadoras' => $this->getCuentasFondeadorasConSaldo($empresaId),
-                    'cuentas_resultados' => [],
+                    'cuentas_resultados' => $cuentasResultadosVacio['cuentas'] ?? [],
                     'resultado_utilidad' => 0,
                     'totales_ingresos' => 0,
                     'totales_egresos' => 0,
                     'total_iva' => 0,
                     'total_iva_ingresos' => 0,
                     'total_iva_egresos' => 0,
-                    'balance_iva' => 0
+                    'balance_iva' => 0,
+                    'totales_iva_resultados' => $cuentasResultadosVacio['totales_iva'] ?? 0,
+                    'tipo_filtro' => $tipoFiltro,
                 ]);
             }
 
@@ -352,15 +371,13 @@ class ReporteController extends Controller
     // ============================================
     private function getCuentasResultadosOptimizado($empresaId, $fechaDesde = null, $fechaHasta = null, $tipoFiltro = 'todas', $movimientos = null)
     {
-        // 🔥 PRIMERO: OBTENER IDs DE PÓLIZAS QUE CUMPLEN EL FILTRO
+        // ============================================================
+        // 1) PÓLIZAS QUE CUMPLEN EL FILTRO (fecha + fiscal / no fiscal)
+        // ============================================================
         $polizaQuery = Poliza::where('id_empresa', $empresaId)
             ->where('es_por_pagar', false)
-            ->when($fechaDesde, function($q) use ($fechaDesde) {
-                return $q->whereDate('fecha_poliza', '>=', $fechaDesde);
-            })
-            ->when($fechaHasta, function($q) use ($fechaHasta) {
-                return $q->whereDate('fecha_poliza', '<=', $fechaHasta);
-            });
+            ->when($fechaDesde, fn($q) => $q->whereDate('fecha_poliza', '>=', $fechaDesde))
+            ->when($fechaHasta, fn($q) => $q->whereDate('fecha_poliza', '<=', $fechaHasta));
 
         if ($tipoFiltro === 'fiscales') {
             $polizaQuery->where('categoria', 'FISCAL');
@@ -370,254 +387,239 @@ class ReporteController extends Controller
 
         $polizaIds = $polizaQuery->pluck('id')->toArray();
 
-        if (empty($polizaIds)) {
-            return [
-                'cuentas' => [],
-                'totales_iva' => 0
-            ];
-        }
-
-        // 🔥 OBTENER TODAS LAS CUENTAS DE RESULTADOS
-        $cuentasResultados = Cuenta::where('id_empresa', $empresaId)
+        // ============================================================
+        // 2) TODAS LAS CUENTAS DE RESULTADOS DE LA EMPRESA
+        //    Se EXCLUYEN explícitamente las cuentas FONDEADORAS (`fondeo_c=1`
+        //    o `tipo_cuenta='FONDEADORA'`, p. ej. cajas/bancos) aunque además
+        //    estén marcadas `es_cuenta_resultados=1` — no son cuentas de
+        //    ingreso/egreso, son cuentas de flujo de efectivo y no deben
+        //    aparecer en el Estado de Resultados.
+        // ============================================================
+        $cuentas = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
             ->where('es_cuenta_resultados', 1)
+            ->where(function ($q) {
+                $q->where('fondeo_c', '!=', 1)->orWhereNull('fondeo_c');
+            })
+            ->where('tipo_cuenta', '!=', 'FONDEADORA')
             ->orderBy('codigo_cuenta')
-            ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'nivel', 'id_cuenta_madre']);
+            ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'nivel', 'id_cuenta_madre', 'cuenta_resultados'])
+            ->keyBy('id_cuenta');
 
-        if ($cuentasResultados->isEmpty()) {
-            return [
-                'cuentas' => [],
-                'totales_iva' => 0
-            ];
+        if ($cuentas->isEmpty()) {
+            return ['cuentas' => [], 'totales_iva' => 0];
         }
 
-        // 🔥 OBTENER LAS CUENTAS HIJAS USANDO EL CAMPO cuenta_resultados
-        $idsCuentasResultados = $cuentasResultados->pluck('id_cuenta')->toArray();
+        $idsCuentas = $cuentas->keys()->all();
 
-        $cuentasHijas = Cuenta::where('id_empresa', $empresaId)
-            ->where('en_uso', true)
-            ->whereIn('cuenta_resultados', $idsCuentasResultados)
-            ->whereNotNull('cuenta_resultados')
-            ->where('cuenta_resultados', '>', 0)
-            ->orderBy('codigo_cuenta')
-            ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'nivel', 'id_cuenta_madre', 'cuenta_resultados']);
-
-        // 🔥 SI NO HAY CUENTAS HIJAS, BUSCAR DIRECTAMENTE LAS CUENTAS DE RESULTADOS
-        if ($cuentasHijas->isEmpty()) {
-            $movimientosQuery = DB::table('movimientos_poliza as mp')
-                ->whereIn('mp.id_cuenta', $idsCuentasResultados)
+        // ============================================================
+        // 3) MOVIMIENTOS DE CADA CUENTA DE RESULTADOS
+        //    (antes sólo se consultaban las "hijas" y una cuenta de
+        //     resultados con movimientos propios no aparecía)
+        //    OJO: una cuenta de resultados puede además ser FONDEADORA
+        //    (p. ej. una caja marcada como "cuenta de resultados" a la vez
+        //    que `fondeo_c=1`). El monto de un movimiento se aplica tanto
+        //    a `id_cuenta` como a `id_caja_fondo` (son el mismo registro),
+        //    así que había que sumar POR AMBOS ROLES — antes sólo se leía
+        //    `id_cuenta`, y como casi toda la actividad de esas cuentas pasa
+        //    por el rol de fondeadora (sobre todo los INGRESOS que reciben
+        //    dinero), esas cuentas aparecían casi siempre en negativo
+        //    (sólo se veían sus egresos directos) o en $0.
+        // ============================================================
+        $movsPorCuenta = [];
+        if (!empty($polizaIds)) {
+            $filasMov = DB::table('movimientos_poliza as mp')
+                ->where(function ($q) use ($idsCuentas) {
+                    $q->whereIn('mp.id_cuenta', $idsCuentas)
+                      ->orWhereIn('mp.id_caja_fondo', $idsCuentas);
+                })
                 ->whereIn('mp.id_poliza', $polizaIds)
-                ->select(
-                    'mp.id_cuenta',
-                    DB::raw('SUM(mp.monto) as total'),
-                    DB::raw('SUM(mp.monto_iva) as total_iva'),
-                    DB::raw('SUM(mp.iva_dieciseis) as total_iva_calculado'),
-                    DB::raw('SUM(mp.monto_base) as total_base')
-                )
-                ->groupBy('mp.id_cuenta');
+                ->select('mp.id_cuenta', 'mp.id_caja_fondo', 'mp.monto', 'mp.monto_iva', 'mp.iva_dieciseis', 'mp.monto_base')
+                ->get();
 
-            $movimientosPorCuenta = $movimientosQuery->get()->keyBy('id_cuenta');
-            
-            $resultado = [];
-            $totalIvaGeneral = 0;
+            $idsCuentasSet = array_flip($idsCuentas);
+            $acumular = function ($idCuenta, $fila) use (&$movsPorCuenta) {
+                if (!isset($movsPorCuenta[$idCuenta])) {
+                    $movsPorCuenta[$idCuenta] = (object) ['total' => 0.0, 'total_iva' => 0.0, 'total_iva_calculado' => 0.0, 'total_base' => 0.0];
+                }
+                $acc = $movsPorCuenta[$idCuenta];
+                $acc->total += (float) $fila->monto;
+                $acc->total_iva += (float) $fila->monto_iva;
+                $acc->total_iva_calculado += (float) $fila->iva_dieciseis;
+                $acc->total_base += (float) $fila->monto_base;
+            };
 
-            foreach ($cuentasResultados as $cuenta) {
-                $movData = $movimientosPorCuenta[$cuenta->id_cuenta] ?? null;
-                $saldo = $movData ? (float) $movData->total : 0;
-                
-                $iva = 0;
-                if ($movData) {
-                    $iva = (float) $movData->total_iva;
-                    if ($iva == 0) {
-                        $iva = (float) $movData->total_iva_calculado;
-                    }
+            foreach ($filasMov as $fila) {
+                if (isset($idsCuentasSet[$fila->id_cuenta])) {
+                    $acumular($fila->id_cuenta, $fila);
                 }
-                
-                if ($iva == 0 && $tipoFiltro === 'fiscales') {
-                    $iva = abs($saldo) * 0.16;
-                }
-                
-                if ($saldo != 0 || $iva != 0) {
-                    $totalIvaGeneral += abs($iva);
-                    $resultado[] = [
-                        'id_cuenta' => $cuenta->id_cuenta,
-                        'codigo_cuenta' => $cuenta->codigo_cuenta,
-                        'nombre_cuenta' => $cuenta->nombre_cuenta,
-                        'nivel' => (int) ($cuenta->nivel ?? 2),
-                        'id_cuenta_madre' => $cuenta->id_cuenta_madre,
-                        'saldo' => $saldo,
-                        'iva' => abs($iva),
-                        'es_madre' => true,
-                        'subtotal' => $saldo,
-                        'hijas' => [],
-                        'es_fiscal' => ($tipoFiltro === 'fiscales')
-                    ];
+                if ($fila->id_caja_fondo && isset($idsCuentasSet[$fila->id_caja_fondo])) {
+                    $acumular($fila->id_caja_fondo, $fila);
                 }
             }
+        }
+        $movsPorCuenta = collect($movsPorCuenta);
 
-            // 🔥 ORDENAR: INGRESOS (saldo >= 0) ARRIBA, EGRESOS (saldo < 0) ABAJO
-            usort($resultado, function($a, $b) {
-                $aEsIngreso = ($a['subtotal'] ?? 0) >= 0;
-                $bEsIngreso = ($b['subtotal'] ?? 0) >= 0;
-                
-                if ($aEsIngreso && !$bEsIngreso) return -1;
-                if (!$aEsIngreso && $bEsIngreso) return 1;
+        $esFiscal = ($tipoFiltro === 'fiscales');
+
+        // saldo + IVA directo de una cuenta
+        $calcular = function ($idCuenta) use ($movsPorCuenta, $esFiscal) {
+            $mov = $movsPorCuenta[$idCuenta] ?? null;
+            $saldo = $mov ? (float) $mov->total : 0.0;
+            $iva = 0.0;
+            if ($mov) {
+                $iva = (float) $mov->total_iva;
+                if ($iva == 0) {
+                    $iva = (float) $mov->total_iva_calculado;
+                }
+            }
+            if ($iva == 0 && $esFiscal && $saldo != 0) {
+                $iva = abs($saldo) * 0.16;
+            }
+            return ['saldo' => $saldo, 'iva' => abs($iva)];
+        };
+
+        // ============================================================
+        // 4) DETERMINAR PADRE DE CADA CUENTA
+        //    Una cuenta es "hija" si su cuenta madre (id_cuenta_madre) — o,
+        //    para setups viejos, `cuenta_resultados` — apunta a OTRA cuenta
+        //    de resultados de la empresa. Si no, es raíz.
+        //    OJO: `cuenta_resultados` suele valer 1 (bandera "es de resultados"),
+        //    no un id de padre; por eso se prioriza `id_cuenta_madre`.
+        // ============================================================
+        $padreDe = [];
+        foreach ($cuentas as $id => $c) {
+            $padreId = null;
+            foreach ([$c->id_cuenta_madre, $c->cuenta_resultados] as $ref) {
+                $ref = (int) ($ref ?? 0);
+                if ($ref > 0 && $ref !== (int) $id && $cuentas->has($ref)) {
+                    $padreId = $ref;
+                    break;
+                }
+            }
+            $padreDe[$id] = $padreId;
+        }
+
+        $hijasDirectasDe = [];
+        foreach ($padreDe as $id => $padreId) {
+            if ($padreId !== null) {
+                $hijasDirectasDe[$padreId][] = $id;
+            }
+        }
+
+        // Aplanar: todas las descendientes (hijas, nietas, ...) de una raíz se
+        // muestran como hijas directas para no perder ningún nivel del árbol.
+        $descendientesDe = function ($rootId) use (&$hijasDirectasDe) {
+            $acc = [];
+            $pila = $hijasDirectasDe[$rootId] ?? [];
+            while ($pila) {
+                $cur = array_pop($pila);
+                if (isset($acc[$cur])) {
+                    continue;
+                }
+                $acc[$cur] = true;
+                foreach ($hijasDirectasDe[$cur] ?? [] as $sub) {
+                    $pila[] = $sub;
+                }
+            }
+            return array_keys($acc);
+        };
+
+        $ordenarPorSaldoYcodigo = function (&$lista) {
+            usort($lista, function ($a, $b) {
+                $aIng = ($a['subtotal'] ?? 0) >= 0;
+                $bIng = ($b['subtotal'] ?? 0) >= 0;
+                if ($aIng && !$bIng) return -1;
+                if (!$aIng && $bIng) return 1;
                 return strcmp($a['codigo_cuenta'] ?? '', $b['codigo_cuenta'] ?? '');
             });
+        };
 
-            return [
-                'cuentas' => $resultado,
-                'totales_iva' => $totalIvaGeneral
-            ];
-        }
-
-        // 🔥 SI HAY CUENTAS HIJAS, PROCESAR NORMALMENTE
-        $idsHijas = $cuentasHijas->pluck('id_cuenta')->toArray();
-
-        $movimientosQuery = DB::table('movimientos_poliza as mp')
-            ->whereIn('mp.id_cuenta', $idsHijas)
-            ->whereIn('mp.id_poliza', $polizaIds)
-            ->select(
-                'mp.id_cuenta',
-                DB::raw('SUM(mp.monto) as total'),
-                DB::raw('SUM(mp.monto_iva) as total_iva'),
-                DB::raw('SUM(mp.iva_dieciseis) as total_iva_calculado'),
-                DB::raw('SUM(mp.monto_base) as total_base')
-            )
-            ->groupBy('mp.id_cuenta');
-
-        $movimientosPorCuenta = $movimientosQuery->get()->keyBy('id_cuenta');
-
-        $cuentasConMovimientos = $movimientosPorCuenta->keys()->toArray();
-
-        $hijasConMovimientos = $cuentasHijas->filter(function($hija) use ($cuentasConMovimientos) {
-            return in_array($hija->id_cuenta, $cuentasConMovimientos);
-        });
-
+        // ============================================================
+        // 5) CONSTRUIR EL ÁRBOL (raíces + hijas)
+        // ============================================================
         $resultado = [];
-        $cuentasHijasPorPadre = $hijasConMovimientos->groupBy('cuenta_resultados');
+        $totalIvaGeneral = 0.0;
 
-        $totalIvaGeneral = 0;
-
-        foreach ($cuentasResultados as $padre) {
-            $hijas = $cuentasHijasPorPadre->get($padre->id_cuenta, collect());
-
-            if ($hijas->isEmpty()) {
-                $movData = $movimientosPorCuenta[$padre->id_cuenta] ?? null;
-                if ($movData) {
-                    $saldo = (float) $movData->total;
-                    $iva = (float) $movData->total_iva;
-                    if ($iva == 0) {
-                        $iva = (float) $movData->total_iva_calculado;
-                    }
-                    
-                    if ($iva == 0 && $tipoFiltro === 'fiscales') {
-                        $iva = abs($saldo) * 0.16;
-                    }
-                    
-                    if ($saldo != 0 || $iva != 0) {
-                        $totalIvaGeneral += abs($iva);
-                        $resultado[] = [
-                            'id_cuenta' => $padre->id_cuenta,
-                            'codigo_cuenta' => $padre->codigo_cuenta,
-                            'nombre_cuenta' => $padre->nombre_cuenta,
-                            'nivel' => (int) ($padre->nivel ?? 2),
-                            'id_cuenta_madre' => $padre->id_cuenta_madre,
-                            'saldo' => $saldo,
-                            'iva' => abs($iva),
-                            'es_madre' => true,
-                            'subtotal' => $saldo,
-                            'hijas' => [],
-                            'es_fiscal' => ($tipoFiltro === 'fiscales')
-                        ];
-                    }
-                }
-                continue;
+        foreach ($cuentas as $id => $c) {
+            if ($padreDe[$id] !== null) {
+                continue; // se procesa dentro de su padre
             }
 
+            $propio = $calcular($id);
             $hijasData = [];
-            $subtotal = 0;
-            $subtotalIva = 0;
+            $subtotal = $propio['saldo'];
+            $subtotalIva = $propio['iva'];
 
-            foreach ($hijas as $hija) {
-                $movData = $movimientosPorCuenta[$hija->id_cuenta] ?? null;
-                $saldoHija = $movData ? (float) $movData->total : 0;
-                
-                $ivaHija = 0;
-                if ($movData) {
-                    $ivaHija = (float) $movData->total_iva;
-                    if ($ivaHija == 0) {
-                        $ivaHija = (float) $movData->total_iva_calculado;
-                    }
+            foreach ($descendientesDe($id) as $hijaId) {
+                $h = $cuentas[$hijaId] ?? null;
+                if (!$h) {
+                    continue;
                 }
-                
-                if ($ivaHija == 0 && $tipoFiltro === 'fiscales') {
-                    $ivaHija = abs($saldoHija) * 0.16;
+                $hv = $calcular($hijaId);
+                $subtotal += $hv['saldo'];
+                $subtotalIva += $hv['iva'];
+                // Sólo se listan las hijas que SÍ tuvieron movimiento en el
+                // periodo — a pedido: "si es 0 no las muestres".
+                if ($hv['saldo'] == 0 && $hv['iva'] == 0) {
+                    continue;
                 }
-                
-                $subtotal += $saldoHija;
-                $subtotalIva += abs($ivaHija);
-                
                 $hijasData[] = [
-                    'id_cuenta' => $hija->id_cuenta,
-                    'codigo_cuenta' => $hija->codigo_cuenta,
-                    'nombre_cuenta' => $hija->nombre_cuenta,
-                    'nivel' => (int) ($hija->nivel ?? 3),
-                    'id_cuenta_madre' => $hija->id_cuenta_madre,
-                    'saldo' => $saldoHija,
-                    'iva' => abs($ivaHija),
+                    'id_cuenta' => $hijaId,
+                    'codigo_cuenta' => $h->codigo_cuenta,
+                    'nombre_cuenta' => $h->nombre_cuenta,
+                    'nivel' => (int) ($h->nivel ?? 3),
+                    'id_cuenta_madre' => $h->id_cuenta_madre,
+                    'saldo' => $hv['saldo'],
+                    'iva' => $hv['iva'],
                     'es_madre' => false,
-                    'subtotal' => $saldoHija,
+                    'subtotal' => $hv['saldo'],
                     'hijas' => [],
-                    'es_fiscal' => ($tipoFiltro === 'fiscales')
+                    // El badge "FISCAL" sólo se marca si la cuenta realmente
+                    // tuvo movimiento fiscal en el periodo (no en filas en $0).
+                    'es_fiscal' => $esFiscal && ($hv['saldo'] != 0 || $hv['iva'] != 0),
                 ];
             }
 
-            // 🔥 ORDENAR HIJAS: INGRESOS ARRIBA, EGRESOS ABAJO
-            usort($hijasData, function($a, $b) {
-                $aEsIngreso = ($a['subtotal'] ?? 0) >= 0;
-                $bEsIngreso = ($b['subtotal'] ?? 0) >= 0;
-                
-                if ($aEsIngreso && !$bEsIngreso) return -1;
-                if (!$aEsIngreso && $bEsIngreso) return 1;
-                return strcmp($a['codigo_cuenta'] ?? '', $b['codigo_cuenta'] ?? '');
-            });
+            // Sólo se incluye la cuenta raíz si ella o alguna hija tuvo
+            // movimiento en el periodo — a pedido: "si es 0 no las muestres".
+            $tieneMovimiento = ($propio['saldo'] != 0 || $propio['iva'] != 0 || !empty($hijasData));
+            if (!$tieneMovimiento) {
+                continue;
+            }
 
+            $ordenarPorSaldoYcodigo($hijasData);
             $totalIvaGeneral += $subtotalIva;
 
             $resultado[] = [
-                'id_cuenta' => $padre->id_cuenta,
-                'codigo_cuenta' => $padre->codigo_cuenta,
-                'nombre_cuenta' => $padre->nombre_cuenta,
-                'nivel' => (int) ($padre->nivel ?? 2),
-                'id_cuenta_madre' => $padre->id_cuenta_madre,
+                'id_cuenta' => $id,
+                'codigo_cuenta' => $c->codigo_cuenta,
+                'nombre_cuenta' => $c->nombre_cuenta,
+                'nivel' => (int) ($c->nivel ?? 2),
+                'id_cuenta_madre' => $c->id_cuenta_madre,
                 'saldo' => $subtotal,
                 'iva' => $subtotalIva,
                 'es_madre' => true,
                 'subtotal' => $subtotal,
                 'hijas' => $hijasData,
-                'es_fiscal' => ($tipoFiltro === 'fiscales')
+                'es_fiscal' => $esFiscal && ($subtotal != 0 || $subtotalIva != 0),
             ];
         }
 
-        // 🔥 ORDENAR CUENTAS PADRE: INGRESOS ARRIBA, EGRESOS ABAJO
-        usort($resultado, function($a, $b) {
-            $aEsIngreso = ($a['subtotal'] ?? 0) >= 0;
-            $bEsIngreso = ($b['subtotal'] ?? 0) >= 0;
-            
-            if ($aEsIngreso && !$bEsIngreso) return -1;
-            if (!$aEsIngreso && $bEsIngreso) return 1;
-            return strcmp($a['codigo_cuenta'] ?? '', $b['codigo_cuenta'] ?? '');
-        });
+        $ordenarPorSaldoYcodigo($resultado);
 
         return [
             'cuentas' => $resultado,
-            'totales_iva' => $totalIvaGeneral
+            'totales_iva' => $totalIvaGeneral,
         ];
     }
 
     public function getMovimientosCuenta(Request $request)
     {
+        if (!Gate::allows('ver-reportes')) {
+            return response()->json(['success' => false, 'message' => 'Sin permiso para ver reportes'], 403);
+        }
+
         $empresaId = $request->input('empresa_id');
         $idCuenta = $request->input('id_cuenta');
         $fechaDesde = $request->input('fecha_desde');
@@ -646,24 +648,45 @@ class ReporteController extends Controller
 
             // 🔥 DETECTAR SI ES CUENTA DE RESULTADOS
             $esCuentaResultados = ($cuenta->es_cuenta_resultados == 1);
-            $idsCuentas = [];
+            $idsCuentas = [(int) $idCuenta];
 
             if ($esCuentaResultados) {
-                $idsHijas = Cuenta::where('id_empresa', $empresaId)
+                // Si es una cuenta MADRE (p. ej. "RESULTADOS"), hay que incluir
+                // TODAS sus hijas (y nietas) para que al hacer clic en ella
+                // aparezcan las pólizas de sus hijas, no sólo las propias.
+                // OJO: `cuenta_resultados` normalmente es una bandera (=1), NO
+                // un id de padre — el parentesco real va por `id_cuenta_madre`.
+                $todasResultados = Cuenta::where('id_empresa', $empresaId)
                     ->where('en_uso', true)
-                    ->where('cuenta_resultados', $idCuenta)
-                    ->whereNotNull('cuenta_resultados')
-                    ->where('cuenta_resultados', '>', 0)
-                    ->pluck('id_cuenta')
-                    ->toArray();
-                
-                if (empty($idsHijas)) {
-                    $idsCuentas = [$idCuenta];
-                } else {
-                    $idsCuentas = $idsHijas;
+                    ->where('es_cuenta_resultados', 1)
+                    ->get(['id_cuenta', 'id_cuenta_madre', 'cuenta_resultados']);
+
+                $hijasDirectasDe = [];
+                foreach ($todasResultados as $c) {
+                    $padreId = null;
+                    foreach ([$c->id_cuenta_madre, $c->cuenta_resultados] as $ref) {
+                        $ref = (int) ($ref ?? 0);
+                        if ($ref > 0 && $ref !== (int) $c->id_cuenta && $todasResultados->contains('id_cuenta', $ref)) {
+                            $padreId = $ref;
+                            break;
+                        }
+                    }
+                    if ($padreId !== null) {
+                        $hijasDirectasDe[$padreId][] = $c->id_cuenta;
+                    }
                 }
-            } else {
-                $idsCuentas = [$idCuenta];
+
+                $pila = $hijasDirectasDe[(int) $idCuenta] ?? [];
+                while ($pila) {
+                    $cur = array_pop($pila);
+                    if (in_array($cur, $idsCuentas, true)) {
+                        continue;
+                    }
+                    $idsCuentas[] = $cur;
+                    foreach ($hijasDirectasDe[$cur] ?? [] as $sub) {
+                        $pila[] = $sub;
+                    }
+                }
             }
 
             // 🔥 PRIMERO: OBTENER IDs DE PÓLIZAS QUE CUMPLEN EL FILTRO
@@ -834,6 +857,10 @@ class ReporteController extends Controller
     // ============================================
     public function exportExcel(Request $request)
     {
+        if (!Gate::allows('ver-reportes')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes permiso para exportar reportes');
+        }
+
         $empresaId = $request->input('empresa_id');
         $vista = $request->input('vista', 'por_cuenta');
         $fechaDesde = $request->input('fecha_desde');
@@ -1203,6 +1230,10 @@ class ReporteController extends Controller
     // ============================================
     public function exportPdfResultados(Request $request)
     {
+        if (!Gate::allows('ver-reportes')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes permiso para exportar reportes');
+        }
+
         $empresaId = $request->input('empresa_id');
         $vista = $request->input('vista', 'por_cuenta');
         $fechaDesde = $request->input('fecha_desde');
