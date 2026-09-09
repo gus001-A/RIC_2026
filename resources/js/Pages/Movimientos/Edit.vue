@@ -1587,9 +1587,11 @@ const submit = () => {
             processing.value = false;
             
             notify.success('La póliza se ha actualizado correctamente.', 'Éxito');
-            
+
             setTimeout(() => {
-                router.visit(route('movimientos.index'), { method: 'get', replace: true });
+                const fp = form.fecha_poliza ? String(form.fecha_poliza).slice(0, 10) : null;
+                const params = fp ? { fecha_desde: fp, fecha_hasta: fp } : { sin_fecha: 1 };
+                router.visit(route('movimientos.index', params), { method: 'get', replace: true });
             }, 1500);
         })
         .catch(error => {
@@ -1709,7 +1711,9 @@ const submit = () => {
             processing.value = false;
             notify.success('El traspaso se ha actualizado correctamente.', 'Éxito');
             setTimeout(() => {
-                router.visit(route('movimientos.index'), { method: 'get', replace: true });
+                const fp = formTraspaso.fecha_poliza ? String(formTraspaso.fecha_poliza).slice(0, 10) : null;
+                const params = { vista: 'traspasos', ...(fp ? { fecha_desde: fp, fecha_hasta: fp } : { sin_fecha: 1 }) };
+                router.visit(route('movimientos.index', params), { method: 'get', replace: true });
             }, 1500);
         })
         .catch(error => {

@@ -185,10 +185,10 @@
                         </div>
                     </div>
 
-                    <!-- TABLA UNIFICADA -->
-                    <div v-if="movimientos.data && movimientos.data.length > 0" class="table-scroll-container">
+                    <!-- TABLA UNIFICADA (siempre visible, aunque no haya resultados) -->
+                    <div class="table-scroll-container">
                         <DataTable
-                            :value="movimientos.data"
+                            :value="movimientos.data || []"
                             :loading="loading"
                             data-key="id_movimiento"
                             lazy
@@ -416,18 +416,19 @@
                                 </template>
                                 </template>
                             </Column>
+
+                            <template #empty>
+                                <div class="tabla-vacia-inline">
+                                    <i class="pi pi-inbox"></i>
+                                    <span v-if="filtrosActivos">No se encontraron movimientos con los filtros aplicados.</span>
+                                    <span v-else>No hay movimientos para mostrar.</span>
+                                </div>
+                            </template>
                         </DataTable>
                     </div>
 
-                    <!-- Mensaje si no hay movimientos -->
-                    <div v-if="(!movimientos.data || movimientos.data.length === 0) && !loading" class="text-center py-12">
-                        <i class="pi pi-inbox empty-state-icon"></i>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay movimientos</h3>
-                        <p class="text-gray-500">Comienza creando tu primera poliza.</p>
-                    </div>
-
                     <!-- FILTROS INFERIOR - OCULTOS EN DIFERIDAS -->
-                    <div v-if="movimientos.data && movimientos.data.length > 0 && vistaActual !== 'diferidas'" class="filtros-inferior-tabla">
+                    <div v-if="vistaActual !== 'diferidas'" class="filtros-inferior-tabla">
                         <div class="filtros-inferior-grid">
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Referencia</label>
@@ -516,65 +517,7 @@
                         </div>
                     </div>
 
-                    <!-- RESUMEN DE TOTALES -->
-                    <div v-if="movimientos.data && movimientos.data.length > 0" class="resumen-totales-wrapper">
-                        <div class="resumen-totales-container-grande">
-                            <div class="resumen-totales-header-grande">
-                                <span class="resumen-totales-title-grande">Resumen de Totales</span>
-                            </div>
-                            <div class="resumen-totales-items-grande">
-                                <div class="total-item-grande total-ingresos">
-                                    <div class="total-icon-grande">
-                                        <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                                        </svg>
-                                    </div>
-                                    <div class="total-info-grande">
-                                        <span class="total-label-grande">Ingresos</span>
-                                        <span class="total-value-grande ingresos-value">${{ formatNumber(totalIngresos) }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="total-item-grande total-egresos">
-                                    <div class="total-icon-grande">
-                                        <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
-                                        </svg>
-                                    </div>
-                                    <div class="total-info-grande">
-                                        <span class="total-label-grande">Egresos</span>
-                                        <span class="total-value-grande egresos-value">-${{ formatNumber(totalEgresos) }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="total-item-grande total-traspasos" v-if="vistaActual === 'traspasos'">
-                                    <div class="total-icon-grande traspaso-icon">
-                                        <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                        </svg>
-                                    </div>
-                                    <div class="total-info-grande">
-                                        <span class="total-label-grande">Traspasos</span>
-                                        <span class="total-value-grande traspaso-value">${{ formatNumber(totalTraspasos) }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="total-item-grande total-saldo-neto">
-                                    <div class="total-icon-grande saldo-icon">
-                                        <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-                                        </svg>
-                                    </div>
-                                    <div class="total-info-grande">
-                                        <span class="total-label-grande">Saldo Neto</span>
-                                        <span class="total-value-grande saldo-net-value">${{ formatNumber(saldoNeto) }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Paginacion -->
+                    <!-- Paginacion (debajo de los filtros de busqueda) -->
                     <div v-if="movimientos.data && movimientos.data.length > 0" class="pagination-ultra">
                         <span class="pagination-info-ultra">Mostrando <span class="pagination-highlight-ultra">{{ movimientos.from || 0 }}</span> a 
                             <span class="pagination-highlight-ultra">{{ movimientos.to || 0 }}</span> de 
@@ -590,6 +533,67 @@
                         <i class="pi pi-building empty-state-icon"></i>
                         <h3 class="text-xl font-semibold text-gray-700 mb-2">No tienes empresas asignadas</h3>
                         <p class="text-gray-500">Contacta al administrador para que te asigne una empresa.</p>
+                    </div>
+                </div>
+
+                <!-- RESUMEN DE TOTALES (fuera de la tabla) -->
+                <div
+                    v-if="empresas.length > 0 && movimientos.data && movimientos.data.length > 0"
+                    class="resumen-totales-wrapper resumen-totales-externo"
+                >
+                    <div class="resumen-totales-container-grande">
+                        <div class="resumen-totales-header-grande">
+                            <span class="resumen-totales-title-grande">Resumen de Totales</span>
+                        </div>
+                        <div class="resumen-totales-items-grande">
+                            <div class="total-item-grande total-ingresos">
+                                <div class="total-icon-grande">
+                                    <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                    </svg>
+                                </div>
+                                <div class="total-info-grande">
+                                    <span class="total-label-grande">Ingresos</span>
+                                    <span class="total-value-grande ingresos-value">${{ formatNumber(totalIngresos) }}</span>
+                                </div>
+                            </div>
+
+                            <div class="total-item-grande total-egresos">
+                                <div class="total-icon-grande">
+                                    <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+                                    </svg>
+                                </div>
+                                <div class="total-info-grande">
+                                    <span class="total-label-grande">Egresos</span>
+                                    <span class="total-value-grande egresos-value">-${{ formatNumber(totalEgresos) }}</span>
+                                </div>
+                            </div>
+
+                            <div class="total-item-grande total-traspasos" v-if="vistaActual === 'traspasos'">
+                                <div class="total-icon-grande traspaso-icon">
+                                    <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                    </svg>
+                                </div>
+                                <div class="total-info-grande">
+                                    <span class="total-label-grande">Traspasos</span>
+                                    <span class="total-value-grande traspaso-value">${{ formatNumber(totalTraspasos) }}</span>
+                                </div>
+                            </div>
+
+                            <div class="total-item-grande total-saldo-neto">
+                                <div class="total-icon-grande saldo-icon">
+                                    <svg class="total-icon-svg-grande" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                                    </svg>
+                                </div>
+                                <div class="total-info-grande">
+                                    <span class="total-label-grande">Saldo Neto</span>
+                                    <span class="total-value-grande saldo-net-value">${{ formatNumber(saldoNeto) }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -609,18 +613,48 @@
             modal
             :header="modalRecursoTitulo"
             class="modal-recurso-premium"
+            :class="{ 'modal-recurso-premium-ver': modalRecursoModo === 'ver' }"
             :style="{ width: '90vw', maxWidth: '900px' }"
         >
             <div class="modal-recurso-content" :class="{ 'modal-recurso-content-ver': modalRecursoModo === 'ver' }">
                 <!-- Si es para ver -->
                 <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
                     <div class="recurso-toolbar-top">
-                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
+                        <button type="button" class="btn-modal-submit" @click="abrirRecursoEnPestana">
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Ver documento/imagen
+                        </button>
+                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit btn-modal-submit-outline" download>
                             <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
                             Descargar
                         </a>
+                        <button
+                            v-if="permisos.puede_editar"
+                            type="button"
+                            class="btn-modal-submit btn-modal-submit-outline"
+                            @click="modoReemplazarRecurso"
+                        >
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Reemplazar
+                        </button>
+                        <button
+                            v-if="permisos.puede_editar"
+                            type="button"
+                            class="btn-modal-cancel btn-modal-cancel-danger"
+                            @click="eliminarRecurso"
+                        >
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Eliminar
+                        </button>
                     </div>
                     <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
                         <iframe :src="modalRecursoUrl" class="recurso-pdf" frameborder="0"></iframe>
@@ -639,14 +673,15 @@
                     </div>
                 </div>
 
-                <!-- Si es para subir -->
-                <div v-if="modalRecursoModo === 'subir'" class="recurso-upload-wrapper">
+                <!-- Si es para subir o reemplazar -->
+                <div v-if="modalRecursoModo === 'subir' || modalRecursoModo === 'reemplazar'" class="recurso-upload-wrapper">
                     <div class="recurso-upload-info">
-                        <p>Sube un <strong>PDF</strong> o una <strong>imagen</strong> (JPG, PNG, GIF) para esta póliza.</p>
+                        <p v-if="modalRecursoModo === 'reemplazar'">Selecciona el nuevo <strong>PDF</strong> o <strong>imagen</strong>. El archivo actual se reemplazará.</p>
+                        <p v-else>Sube un <strong>PDF</strong> o una <strong>imagen</strong> (JPG, PNG, GIF) para esta póliza.</p>
                         <p class="recurso-upload-hint">Solo se permite un archivo por póliza.</p>
                     </div>
 
-                    <form @submit.prevent="subirRecurso">
+                    <form @submit.prevent="guardarRecurso">
                         <div class="recurso-drop-zone" 
                              :class="{ 'recurso-drop-zone-dragover': dragging }"
                              @dragover.prevent="dragging = true"
@@ -689,7 +724,7 @@
                             <button type="button" class="btn-modal-cancel" @click="cerrarModalRecurso">Cancelar</button>
                             <button type="submit" class="btn-modal-submit" :disabled="!archivoSeleccionado || subiendoRecurso">
                                 <span v-if="subiendoRecurso" class="spinner-border-sm"></span>
-                                <span v-else>Subir archivo</span>
+                                <span v-else>{{ modalRecursoModo === 'reemplazar' ? 'Reemplazar archivo' : 'Subir archivo' }}</span>
                             </button>
                         </div>
                     </form>
@@ -772,6 +807,7 @@ const modalRecursoModo = ref('ver');
 const modalRecursoTitulo = ref('');
 const modalRecursoUrl = ref('');
 const modalRecursoTipo = ref('');
+const modalRecursoId = ref(null);
 const modalRecursoMovimiento = ref(null);
 
 // Archivos
@@ -951,8 +987,8 @@ const filtros = ref({
     cuenta_fondeadora: props.filtros?.cuenta_fondeadora || '',
     nota: props.filtros?.nota || '',
     usuario: props.filtros?.usuario || '',
-    sort_by: props.filtros?.sort_by || 'referencia',
-    sort_order: props.filtros?.sort_order || 'asc',
+    sort_by: props.filtros?.sort_by || (vistaActual.value === 'diferidas' ? 'fecha_vencimiento' : 'referencia'),
+    sort_order: props.filtros?.sort_order || (vistaActual.value === 'diferidas' ? 'asc' : 'desc'),
     vista: vistaActual.value,
     mostrar_todos: false,
     solo_fiscales: false
@@ -999,13 +1035,18 @@ const aplicarFiltros = () => {
             if (filtros.value.sort_order) params.sort_order = filtros.value.sort_order;
         } else {
             for (const [key, value] of Object.entries(filtros.value)) {
-                if (value !== '' && value !== null && value !== undefined && 
+                if (value !== '' && value !== null && value !== undefined &&
                     key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
                     params[key] = value;
                 }
             }
+            // Si el usuario dejó las fechas vacías a propósito, marcarlo para que
+            // al recargar/paginar NO se vuelva a poner "hoy" automáticamente.
+            if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
+                params.sin_fecha = 1;
+            }
         }
-        
+
         router.get(route('movimientos.index'), params, {
             preserveState: true,
             replace: true,
@@ -1026,7 +1067,7 @@ const limpiarFiltros = () => {
         nota: '',
         usuario: '',
         sort_by: vistaActual.value === 'diferidas' ? 'fecha_vencimiento' : 'referencia',
-        sort_order: 'asc',
+        sort_order: vistaActual.value === 'diferidas' ? 'asc' : 'desc',
         vista: vistaActual.value,
         mostrar_todos: false,
         solo_fiscales: false
@@ -1054,7 +1095,7 @@ const cambiarVista = (vista) => {
     vistaActual.value = vista;
     filtros.value.vista = vista;
     filtros.value.sort_by = vista === 'diferidas' ? 'fecha_vencimiento' : 'referencia';
-    filtros.value.sort_order = 'asc';
+    filtros.value.sort_order = vista === 'diferidas' ? 'asc' : 'desc';
     soloFiscales.value = false;
     filtros.value.solo_fiscales = false;
     aplicarFiltros();
@@ -1088,13 +1129,18 @@ const cambiarEmpresa = () => {
             if (filtros.value.sort_order) params.sort_order = filtros.value.sort_order;
         } else {
             for (const [key, value] of Object.entries(filtros.value)) {
-                if (value !== '' && value !== null && value !== undefined && 
+                if (value !== '' && value !== null && value !== undefined &&
                     key !== 'vista' && key !== 'mostrar_todos' && key !== 'solo_fiscales') {
                     params[key] = value;
                 }
             }
+            // Si el usuario dejó las fechas vacías a propósito, marcarlo para que
+            // al recargar/paginar NO se vuelva a poner "hoy" automáticamente.
+            if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
+                params.sin_fecha = 1;
+            }
         }
-        
+
         router.get(route('movimientos.index'), params, {
             preserveState: true,
             replace: true,
@@ -1218,7 +1264,8 @@ const verRecurso = (record) => {
     modalRecursoModo.value = 'ver';
     modalRecursoTitulo.value = `Póliza - ${record.referencia || 'Póliza'}`;
     modalRecursoUrl.value = record.recurso_url || '';
-    
+    modalRecursoId.value = record.recurso_id || null;
+
     if (record.recurso_tipo) {
         modalRecursoTipo.value = record.recurso_tipo;
     } else {
@@ -1239,9 +1286,49 @@ const cerrarModalRecurso = () => {
     modalRecursoVisible.value = false;
     modalRecursoModo.value = 'ver';
     modalRecursoMovimiento.value = null;
+    modalRecursoId.value = null;
     archivoSeleccionado.value = null;
     errorRecurso.value = '';
     dragging.value = false;
+};
+
+// Abre el documento/imagen en una pestaña nueva (sin forzar descarga)
+const abrirRecursoEnPestana = () => {
+    if (modalRecursoUrl.value) {
+        window.open(modalRecursoUrl.value, '_blank', 'noopener');
+    }
+};
+
+// Cambia el modal a modo "reemplazar" reutilizando el formulario de carga
+const modoReemplazarRecurso = () => {
+    modalRecursoModo.value = 'reemplazar';
+    modalRecursoTitulo.value = `Reemplazar recurso - ${modalRecursoMovimiento.value?.referencia || 'Póliza'}`;
+    archivoSeleccionado.value = null;
+    errorRecurso.value = '';
+};
+
+// Elimina el recurso adjunto de la póliza
+const eliminarRecurso = () => {
+    const idArchivo = modalRecursoId.value;
+    if (!idArchivo) return;
+
+    notify.confirmDelete({
+        message: '¿Eliminar el recurso adjunto de esta póliza? Esta acción no se puede deshacer.',
+        accept: async () => {
+            try {
+                const response = await axios.delete(route('movimientos.archivos.eliminar', idArchivo));
+                if (response.data.success) {
+                    mostrarModal('success', 'Éxito', 'Recurso eliminado correctamente');
+                    cerrarModalRecurso();
+                    router.reload({ only: ['movimientos'] });
+                } else {
+                    throw new Error(response.data.message || 'Error al eliminar el recurso');
+                }
+            } catch (error) {
+                mostrarModal('error', 'Error', error.response?.data?.message || error.message || 'Error al eliminar el recurso');
+            }
+        },
+    });
 };
 
 // === DROP ZONE ===
@@ -1283,33 +1370,39 @@ const procesarArchivo = (file) => {
     archivoSeleccionado.value = file;
 };
 
-// === SUBIR RECURSO ===
-const subirRecurso = async () => {
+// === SUBIR / REEMPLAZAR RECURSO ===
+const guardarRecurso = async () => {
     if (!archivoSeleccionado.value || !modalRecursoMovimiento.value) return;
-    
+
+    const esReemplazo = modalRecursoModo.value === 'reemplazar';
+    if (esReemplazo && !modalRecursoId.value) return;
+
     subiendoRecurso.value = true;
     errorRecurso.value = '';
-    
+
+    const idPoliza = modalRecursoMovimiento.value.id_poliza || modalRecursoMovimiento.value.id_movimiento;
     const formData = new FormData();
     formData.append('archivo', archivoSeleccionado.value);
-    formData.append('id_poliza', modalRecursoMovimiento.value.id_poliza || modalRecursoMovimiento.value.id_movimiento);
-    
+    formData.append('id_poliza', idPoliza);
+
+    const url = esReemplazo
+        ? route('movimientos.archivos.reemplazar', modalRecursoId.value)
+        : route('movimientos.archivos.subir', idPoliza);
+
     try {
-        const response = await axios.post(
-            route('movimientos.archivos.subir', modalRecursoMovimiento.value.id_poliza || modalRecursoMovimiento.value.id_movimiento),
-            formData,
-            { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        
+        const response = await axios.post(url, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
         if (response.data.success) {
-            mostrarModal('success', 'Éxito', 'Recurso subido correctamente');
+            mostrarModal('success', 'Éxito', esReemplazo ? 'Recurso reemplazado correctamente' : 'Recurso subido correctamente');
             cerrarModalRecurso();
             router.reload({ only: ['movimientos'] });
         } else {
-            throw new Error(response.data.message || 'Error al subir el recurso');
+            throw new Error(response.data.message || 'Error al guardar el recurso');
         }
     } catch (error) {
-        errorRecurso.value = error.response?.data?.message || error.message || 'Error al subir el recurso';
+        errorRecurso.value = error.response?.data?.message || error.message || 'Error al guardar el recurso';
         mostrarModal('error', 'Error', errorRecurso.value);
     } finally {
         subiendoRecurso.value = false;
@@ -1443,23 +1536,44 @@ onMounted(() => {
     }
     
     const empresaGuardada = cargarEmpresaGuardada();
-    
+    const empresaDelServidor = props.empresa_seleccionada ? parseInt(props.empresa_seleccionada) : null;
+    let empresaObjetivo = null;
+
     if (empresaGuardada && props.empresas.some(e => e.id === empresaGuardada)) {
-        empresaSeleccionada.value = empresaGuardada;
-    } else if (props.empresa_seleccionada) {
-        empresaSeleccionada.value = parseInt(props.empresa_seleccionada);
-        guardarEmpresa(props.empresa_seleccionada);
+        empresaObjetivo = empresaGuardada;
+    } else if (empresaDelServidor) {
+        empresaObjetivo = empresaDelServidor;
     } else if (props.empresas && props.empresas.length > 0) {
-        empresaSeleccionada.value = props.empresas[0].id;
-        guardarEmpresa(props.empresas[0].id);
+        empresaObjetivo = props.empresas[0].id;
     }
-    
-    if (empresaSeleccionada.value) {
+
+    empresaSeleccionada.value = empresaObjetivo;
+    if (empresaObjetivo) {
+        guardarEmpresa(empresaObjetivo);
+    }
+
+    if (!empresaObjetivo) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hayPagina = urlParams.has('page');
+    const servidorTraeFecha = !!(props.filtros?.fecha_desde || props.filtros?.fecha_hasta);
+    const fechaQuitadaAdrede = urlParams.get('sin_fecha') === '1';
+    const cambioDeEmpresa = empresaObjetivo !== empresaDelServidor;
+
+    // Primera entrada real a Movimientos (sin ?page, sin fecha en la URL y sin
+    // haberlas quitado a propósito): arrancar con la fecha de HOY.
+    if (!hayPagina && !servidorTraeFecha && !fechaQuitadaAdrede && vistaActual.value !== 'diferidas') {
         const hoy = obtenerFechaLocal();
-        if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta && vistaActual.value !== 'diferidas') {
-            filtros.value.fecha_desde = hoy;
-            filtros.value.fecha_hasta = hoy;
-        }
+        filtros.value.fecha_desde = hoy;
+        filtros.value.fecha_hasta = hoy;
+        aplicarFiltros();
+        return;
+    }
+
+    // Cambio de empresa desde otra pantalla: recargar respetando los filtros
+    // actuales (incluida la ausencia de fecha). En navegación normal / paginación
+    // NO se vuelve a llamar aplicarFiltros() para no perder la página.
+    if (cambioDeEmpresa) {
         aplicarFiltros();
     }
 
@@ -1835,6 +1949,26 @@ onMounted(() => {
     overflow: hidden;
     border-radius: 8px;
     border: 1px solid #f1f5f9;
+}
+
+/* Fila "sin resultados" dentro de la tabla (conserva encabezados) */
+.tabla-vacia-inline {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 40px 16px;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+    position: sticky;
+    left: 0;
+    width: 100%;
+}
+
+.tabla-vacia-inline .pi {
+    font-size: 20px;
+    color: #94a3b8;
 }
 
 .table-scroll-container :deep(.p-datatable-table-container) {
@@ -2446,6 +2580,12 @@ onMounted(() => {
     justify-content: flex-end;
 }
 
+/* Resumen movido fuera de la tarjeta de la tabla */
+.resumen-totales-externo {
+    margin-top: 16px;
+    justify-content: stretch;
+}
+
 .resumen-totales-container-grande {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 16px;
@@ -2628,52 +2768,64 @@ onMounted(() => {
     border-radius: 4px;
 }
 
-/* --- MODAL RECURSO --- */
-.modal-recurso-premium :deep(.p-dialog-header) {
-    background: linear-gradient(135deg, #1a3a5c, #2c5282);
-    border-radius: 8px 8px 0 0;
-    padding: 16px 24px;
-}
-
-.modal-recurso-premium :deep(.p-dialog-title) {
-    color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.modal-recurso-premium :deep(.p-dialog-close-button) {
-    color: white;
-}
-
-.modal-recurso-premium :deep(.p-dialog-close-button:hover) {
-    color: #fca5a5;
-}
-
-.modal-recurso-premium :deep(.p-dialog-content) {
-    padding: 0;
-    overflow: hidden;
-}
-
-.modal-recurso-premium :deep(.p-dialog) {
-    max-height: 92vh;
-}
+/* --- MODAL RECURSO ---
+   Los estilos del contenedor .p-dialog van en el bloque <style> GLOBAL de abajo:
+   PrimeVue teletransporta el diálogo a <body> y no recibe el data-v del scoped,
+   por lo que `:deep(.p-dialog*)` no lo alcanza. */
 
 .modal-recurso-content {
     min-height: 300px;
     padding: 24px;
 }
 
-/* Modo "ver": sin scroll interno, el contenido se ajusta al alto disponible */
+/* Modo "ver": SIN scroll interno del modal. Se reparte el alto con flex y
+   sólo el visor de PDF/imagen scrollea por dentro. El alto lo impone el
+   .p-dialog-content (que ya está acotado a max 92vh menos el header). */
 .modal-recurso-content-ver {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
     padding: 14px 16px 16px;
     overflow: hidden;
 }
 
+.modal-recurso-content-ver > div:first-child {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .recurso-toolbar-top {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     justify-content: flex-end;
     margin-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.btn-modal-submit-outline {
+    background: #fff !important;
+    color: #1a3a5c !important;
+    border: 1px solid #1a3a5c !important;
+}
+
+.btn-modal-submit-outline:hover:not(:disabled) {
+    background: #eef2f7 !important;
+}
+
+.btn-modal-cancel-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #b91c1c !important;
+    border: 1px solid #b91c1c !important;
+}
+
+.btn-modal-cancel-danger:hover {
+    background: #fef2f2 !important;
 }
 
 .recurso-pdf-wrapper {
@@ -2682,20 +2834,31 @@ onMounted(() => {
     min-height: 400px;
 }
 
+/* En modo "ver" el visor ocupa TODO el alto restante del modal (flex:1) y es
+   lo único que scrollea (el propio iframe del PDF). */
 .modal-recurso-content-ver .recurso-pdf-wrapper {
-    height: calc(92vh - 130px);
-    min-height: 320px;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
 }
 
 .modal-recurso-content-ver .recurso-image-wrapper {
-    max-height: calc(92vh - 130px);
-    overflow: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.modal-recurso-content-ver .recurso-other {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
 }
 
 .recurso-pdf {
     width: 100%;
     height: 100%;
     border: none;
+    display: block;
 }
 
 .recurso-image-wrapper {
@@ -2707,11 +2870,19 @@ onMounted(() => {
     border-radius: 8px;
 }
 
+.modal-recurso-content-ver .recurso-image-wrapper {
+    min-height: 0;
+}
+
 .recurso-image {
     max-width: 100%;
     max-height: 70vh;
     object-fit: contain;
     border-radius: 4px;
+}
+
+.modal-recurso-content-ver .recurso-image {
+    max-height: 100%;
 }
 
 .recurso-other {
@@ -3113,5 +3284,52 @@ onMounted(() => {
     color: #cbd5e1;
     display: block;
     margin: 0 auto 1rem;
+}
+</style>
+
+<!-- Estilos del diálogo de recurso: NO scoped porque PrimeVue teletransporta
+     el .p-dialog fuera de este componente. Las clases son suficientemente
+     específicas para no colisionar. -->
+<style>
+.modal-recurso-premium.p-dialog {
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Modo "ver": altura fija -> el visor de PDF/imagen ocupa todo y NO hay
+   scroll vertical del propio modal (sólo scrollea el PDF por dentro). */
+.modal-recurso-premium-ver.p-dialog {
+    height: 90vh;
+}
+
+.modal-recurso-premium .p-dialog-header {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+    flex-shrink: 0;
+}
+
+.modal-recurso-premium .p-dialog-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.modal-recurso-premium .p-dialog-close-button {
+    color: #fff;
+}
+
+.modal-recurso-premium .p-dialog-close-button:hover {
+    color: #fca5a5;
+}
+
+.modal-recurso-premium .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 </style>

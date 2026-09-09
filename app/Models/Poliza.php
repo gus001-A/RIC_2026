@@ -77,7 +77,9 @@ class Poliza extends Model
         
         static::creating(function ($poliza) {
             if (empty($poliza->folio)) {
-                $poliza->folio = self::generarSiguienteFolio();
+                // El folio es consecutivo POR EMPRESA (cada empresa lleva su
+                // propia numeración 0001, 0002, ...).
+                $poliza->folio = self::generarSiguienteFolio($poliza->id_empresa);
             }
             // Establecer estatus inicial
             if (empty($poliza->estatus)) {
@@ -87,23 +89,29 @@ class Poliza extends Model
     }
 
     /**
-     * Genera el siguiente folio: SÓLO números, secuencial (0001, 0002, 0003...).
-     * Ignora folios antiguos que traían letras (P-..., NOM-...).
+     * Genera el siguiente folio: SÓLO números, secuencial (0001, 0002, 0003...),
+     * consecutivo POR EMPRESA. Ignora folios antiguos que traían letras.
      */
-    public static function generarSiguienteFolio()
+    public static function generarSiguienteFolio($empresaId = null)
     {
-        return self::obtenerSiguienteFolio();
+        return self::obtenerSiguienteFolio($empresaId);
     }
 
     /**
      * Obtener el siguiente folio sin guardar (para previsualización).
-     * Toma el mayor folio 100% numérico y le suma 1.
+     * Toma el mayor folio 100% numérico DE LA EMPRESA y le suma 1.
      */
-    public static function obtenerSiguienteFolio()
+    public static function obtenerSiguienteFolio($empresaId = null)
     {
-        // MAX(CAST(folio AS UNSIGNED)) sólo sobre folios formados por dígitos.
-        $maximo = (int) self::query()
-            ->whereRaw("folio REGEXP '^[0-9]+$'")
+        // MAX(CAST(folio AS UNSIGNED)) sólo sobre folios formados por dígitos,
+        // acotado a la empresa para que cada una lleve su propia secuencia.
+        $query = self::query()->whereRaw("folio REGEXP '^[0-9]+$'");
+
+        if ($empresaId) {
+            $query->where('id_empresa', $empresaId)->lockForUpdate();
+        }
+
+        $maximo = (int) $query
             ->selectRaw('MAX(CAST(folio AS UNSIGNED)) as m')
             ->value('m');
 

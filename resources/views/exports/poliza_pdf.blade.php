@@ -10,576 +10,613 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Courier New', 'Courier', monospace;
+            font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
             font-size: 10px;
-            color: #1a1a2e;
-            padding: 15px;
+            color: #1a202c;
+            padding: 18px 26px;
             background: #ffffff;
-            max-width: 380px;
-            margin: 0 auto;
-        }
-        .ticket {
-            border: 1px solid #000;
-            padding: 14px 16px;
-            position: relative;
-        }
-        .ticket::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
-        }
-        .ticket::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
         }
 
-        /* HEADER */
+        /* ===== HEADER ===== */
         .header {
+            display: table;
+            width: 100%;
+            padding-bottom: 14px;
+            margin-bottom: 16px;
+            border-bottom: 3px solid #1a3a5c;
+        }
+        .header-left {
+            display: table-cell;
+            vertical-align: middle;
+            width: 110px;
+        }
+        .header-left img {
+            max-width: 100px;
+            max-height: 60px;
+            object-fit: contain;
+        }
+        .header-center {
+            display: table-cell;
+            vertical-align: middle;
             text-align: center;
-            border-bottom: 2px dashed #000;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
+            padding: 0 10px;
         }
-        .header .logo-container {
-            margin-bottom: 6px;
-        }
-        .header .logo {
-            max-width: 80px;
-            max-height: 50px;
-            display: block;
-            margin: 0 auto;
-        }
-        .header .empresa {
+        .header-center .empresa {
             font-size: 15px;
             font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-top: 4px;
+            color: #1a3a5c;
         }
-        .header .empresa-line {
-            font-size: 8px;
-            letter-spacing: 1px;
-            margin-top: 2px;
-            color: #555;
-        }
-        .header .folio {
-            font-size: 11px;
-            font-weight: 700;
-            margin-top: 6px;
-            background: #000;
-            color: #fff;
-            padding: 2px 14px;
-            display: inline-block;
-            letter-spacing: 1px;
-        }
-        .header .tipo {
-            font-size: 10px;
-            font-weight: 700;
-            margin-top: 4px;
-            letter-spacing: 1px;
-        }
-        .header .fecha {
+        .header-center .razon-social {
             font-size: 9px;
-            color: #555;
-            margin-top: 2px;
+            color: #718096;
+            margin-top: 1px;
         }
-        .header .status {
-            font-size: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 4px;
-            padding: 2px 12px;
-            display: inline-block;
-            border: 1px solid #000;
-            letter-spacing: 1px;
-        }
-
-        /* SECCIONES */
-        .section {
-            margin-bottom: 6px;
-        }
-        .section-title {
-            font-size: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            border-bottom: 1px dotted #999;
-            padding-bottom: 2px;
-            margin-bottom: 4px;
-            color: #333;
-        }
-
-        /* FILAS */
-        .row {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-            border-bottom: 1px dotted #eee;
-        }
-        .row:last-child {
-            border-bottom: none;
-        }
-        .row .label {
+        .header-center .titulo {
+            font-size: 11px;
             font-weight: 600;
-            color: #555;
-            font-size: 8px;
+            color: #4a5568;
+            margin-top: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .row .value {
-            font-weight: 600;
+        .header-right {
+            display: table-cell;
+            vertical-align: middle;
+            width: 150px;
             text-align: right;
+        }
+        .header-right .folio-label {
+            font-size: 8px;
+            color: #a0aec0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .header-right .folio-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a3a5c;
+        }
+        .header-right .fecha {
             font-size: 9px;
+            color: #718096;
+            margin-top: 2px;
         }
 
-        /* MONTOS DESTACADOS */
-        .monto-destacado {
-            text-align: center;
-            padding: 8px 0;
-            margin: 4px 0;
-            background: #f8fafc;
-            border: 1px solid #ddd;
+        /* ===== BADGES DE ESTADO ===== */
+        .badges-row {
+            text-align: right;
+            margin-bottom: 16px;
         }
-        .monto-destacado .label {
-            font-size: 7px;
+        .badge {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 6px;
+        }
+        .badge-tipo-ingreso { background: #dbeafe; color: #1e40af; }
+        .badge-tipo-egreso { background: #fee2e2; color: #991b1b; }
+        .badge-tipo-traspaso { background: #ede9fe; color: #5b21b6; }
+        .badge-fiscal { background: #dcfce7; color: #166534; }
+        .badge-estatus-pendiente { background: #fef3c7; color: #92400e; }
+        .badge-estatus-revisado { background: #dbeafe; color: #1e40af; }
+        .badge-estatus-autorizado { background: #dcfce7; color: #166534; }
+        .badge-estatus-abonado { background: #e0e7ff; color: #3730a3; }
+        .badge-estatus-liquidado { background: #dcfce7; color: #166534; }
+        .badge-estatus-cerrado { background: #f1f5f9; color: #475569; }
+        .badge-estatus-rechazado { background: #fee2e2; color: #991b1b; }
+        .badge-vencido { background: #fecaca; color: #991b1b; }
+
+        /* ===== TARJETAS DE SECCIÓN ===== */
+        .card {
+            border: 1px solid #e8edf4;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .card-title {
+            background: #f8fafc;
+            padding: 6px 14px;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #666;
-            letter-spacing: 1px;
-            display: block;
+            letter-spacing: 0.8px;
+            color: #1a3a5c;
+            border-bottom: 1px solid #e8edf4;
         }
-        .monto-destacado .value {
+        .card-body {
+            padding: 10px 14px;
+        }
+
+        /* ===== FILAS DE DATOS (tabla 2 columnas) ===== */
+        table.datos {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.datos td {
+            padding: 4px 0;
+            font-size: 9.5px;
+            vertical-align: top;
+        }
+        table.datos td.label {
+            width: 34%;
+            color: #718096;
+            font-weight: 600;
+        }
+        table.datos td.value {
+            color: #1a202c;
+            font-weight: 600;
+        }
+
+        /* ===== CUENTAS DE TRASPASO ===== */
+        .traspaso-flujo {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .traspaso-flujo .caja {
+            display: table-cell;
+            text-align: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            width: 42%;
+        }
+        .traspaso-flujo .flecha {
+            display: table-cell;
+            text-align: center;
+            width: 16%;
             font-size: 18px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            color: #1a3a5c;
         }
-
-        /* CUENTAS TRASPASO */
-        .cuentas-box {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            background: #f8fafc;
-            border: 1px solid #ddd;
-            margin: 4px 0;
-        }
-        .cuentas-box .cuenta {
-            text-align: center;
-            padding: 2px 4px;
-            flex: 1;
-        }
-        .cuentas-box .cuenta .label {
-            font-size: 6px;
+        .traspaso-flujo .caja .label {
+            font-size: 7.5px;
             font-weight: 700;
             text-transform: uppercase;
-            color: #666;
+            color: #718096;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 3px;
+        }
+        .traspaso-flujo .caja .value {
+            font-size: 10px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        /* ===== MONTOS ===== */
+        .monto-total-box {
+            background: #1a3a5c;
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .monto-total-box .label {
+            font-size: 8.5px;
+            font-weight: 700;
+            text-transform: uppercase;
             letter-spacing: 1px;
-            display: block;
+            color: #a8c4e0;
         }
-        .cuentas-box .cuenta .value {
-            font-size: 8px;
-            font-weight: 600;
+        .monto-total-box .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
             margin-top: 2px;
         }
-        .cuentas-box .flecha {
-            font-size: 14px;
-            font-weight: 700;
-            color: #666;
-            padding: 0 6px;
-        }
-
-        /* ABONOS */
-        .abono-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-            font-size: 8px;
-            border-bottom: 1px dotted #eee;
-        }
-        .abono-row .fecha { flex: 1; }
-        .abono-row .monto { flex: 1; text-align: right; font-weight: 600; }
-        .abono-row .ref { flex: 1; text-align: center; font-size: 7px; color: #555; }
-        .abono-total {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            font-weight: 700;
-            border-top: 2px solid #000;
-            margin-top: 2px;
-        }
-        .abono-total .label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .abono-total .value { font-size: 11px; }
-
-        /* DETALLE IVA */
-        .iva-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 1px 0;
-            font-size: 7px;
-            color: #555;
-        }
-
-        /* FOOTER */
-        .footer {
-            text-align: center;
-            border-top: 2px dashed #000;
-            padding-top: 10px;
-            margin-top: 10px;
-            font-size: 8px;
-            color: #555;
-        }
-        .footer .line {
-            margin: 3px 0;
-        }
-        .footer .firma {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #000;
-            display: flex;
-            justify-content: space-between;
-        }
-        .footer .firma .firma-item {
-            text-align: center;
-            flex: 1;
-            padding: 0 4px;
-        }
-        .footer .firma .firma-item .linea {
-            display: block;
+        table.montos {
             width: 100%;
-            border-bottom: 1px solid #000;
-            margin-top: 18px;
-            padding-bottom: 2px;
+            border-collapse: collapse;
         }
-        .footer .firma .firma-item .label {
-            font-size: 6px;
+        table.montos td {
+            padding: 4px 0;
+            font-size: 9.5px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        table.montos td.label { color: #718096; font-weight: 600; }
+        table.montos td.value { text-align: right; font-weight: 600; color: #1a202c; }
+        table.montos tr.total-final td {
+            border-bottom: none;
+            border-top: 2px solid #1a3a5c;
+            padding-top: 6px;
             font-weight: 700;
-            text-transform: uppercase;
-            color: #555;
-            letter-spacing: 0.5px;
         }
-        .footer .firma .firma-item .nombre {
-            font-size: 7px;
-            font-weight: 600;
-        }
+        table.montos tr.total-final td.value { font-size: 13px; color: #1a3a5c; }
 
-        .nota-text {
-            font-size: 8px;
-            padding: 4px 8px;
+        /* ===== ABONOS ===== */
+        table.abonos {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.abonos th {
             background: #f8fafc;
-            border-left: 2px solid #666;
-            margin: 4px 0;
+            padding: 5px 8px;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+            text-align: left;
+            border-bottom: 1px solid #e8edf4;
+        }
+        table.abonos td {
+            padding: 5px 8px;
+            font-size: 9px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1a202c;
+        }
+        table.abonos td.monto { text-align: right; font-weight: 600; }
+
+        /* ===== OBSERVACIÓN ===== */
+        .nota-box {
+            background: #f8fafc;
+            border-left: 3px solid #1a3a5c;
+            padding: 8px 12px;
+            font-size: 9.5px;
+            color: #2d3748;
             font-style: italic;
-            color: #333;
+            border-radius: 0 6px 6px 0;
         }
 
         .uuid-text {
-            font-size: 6px;
-            color: #555;
+            font-size: 7.5px;
+            color: #4a5568;
             background: #f1f5f9;
-            padding: 1px 6px;
+            padding: 2px 8px;
+            border-radius: 4px;
             font-family: 'Courier New', monospace;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
 
-        .separator-dots {
+        /* ===== FOOTER / FIRMAS ===== */
+        .firmas {
+            display: table;
+            width: 100%;
+            margin-top: 30px;
+        }
+        .firmas .firma-item {
+            display: table-cell;
+            width: 50%;
             text-align: center;
-            color: #999;
+            padding: 0 20px;
+        }
+        .firmas .firma-item .linea {
+            border-top: 1px solid #1a202c;
+            margin-top: 24px;
+            padding-top: 4px;
+        }
+        .firmas .firma-item .nombre {
+            font-size: 9px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .firmas .firma-item .label {
+            font-size: 7.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+        }
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #e8edf4;
+            text-align: center;
             font-size: 8px;
-            letter-spacing: 3px;
-            margin: 4px 0;
-        }
-
-        .impreso-por {
-            font-size: 7px;
-            color: #666;
-            margin-top: 4px;
-            letter-spacing: 1px;
-        }
-
-        .folio-value {
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-
-        .tag-fiscal {
-            font-size: 6px;
-            font-weight: 700;
-            padding: 1px 6px;
-            border: 1px solid #666;
-            margin-left: 4px;
+            color: #a0aec0;
         }
 
         @media print {
-            body { padding: 8px; }
-            .ticket { border: 1px solid #000; }
-            .header .folio { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .monto-destacado { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .cuentas-box { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .nota-text { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .uuid-text { background: #f1f5f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .header .logo { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .monto-total-box { background: #1a3a5c !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .card-title { background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .badge { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .traspaso-flujo .caja { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
 <body>
-    <div class="ticket">
-        <!-- ========== HEADER ========== -->
-        <div class="header">
-            @if(file_exists(public_path('logos/logo.png')))
-            <div class="logo-container">
-                <img src="{{ public_path('logos/logo.png') }}" alt="Logo" class="logo">
-            </div>
+    @php
+        $logoPath = public_path('logos/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        $estatusClaseMap = [
+            'PENDIENTE' => 'badge-estatus-pendiente',
+            'CAPTURADO' => 'badge-estatus-pendiente',
+            'REVISADO' => 'badge-estatus-revisado',
+            'AUTORIZADO' => 'badge-estatus-autorizado',
+            'ABONADO' => 'badge-estatus-abonado',
+            'LIQUIDADO' => 'badge-estatus-liquidado',
+            'CERRADO' => 'badge-estatus-cerrado',
+            'RECHAZADO' => 'badge-estatus-rechazado',
+        ];
+        $estatusActual = $movimiento->poliza->estatus ?? 'PENDIENTE';
+        $estatusClase = $estatusClaseMap[$estatusActual] ?? 'badge-estatus-pendiente';
+
+        $tipoPolizaClase = $esTraspaso ? 'badge-tipo-traspaso' : (($movimiento->poliza->tipo_poliza ?? '') === 'EGRESO' ? 'badge-tipo-egreso' : 'badge-tipo-ingreso');
+
+        $vencido = $movimiento->poliza->es_por_pagar
+            && $movimiento->poliza->fecha_vencimiento
+            && strtotime($movimiento->poliza->fecha_vencimiento) < time();
+    @endphp
+
+    <!-- ========== HEADER ========== -->
+    <div class="header">
+        <div class="header-left">
+            @if($logoBase64)
+                <img src="{{ $logoBase64 }}" alt="Logo">
             @endif
+        </div>
+        <div class="header-center">
             <div class="empresa">{{ $empresa->nombre_empresa ?? 'EMPRESA' }}</div>
-            <div class="empresa-line">{{ $empresa->razon_social ?? '—' }}</div>
-            <div class="folio">FOLIO: {{ $movimiento->poliza->folio ?? 'SIN FOLIO' }}</div>
-            <div class="tipo">
-                {{ $esTraspaso ? 'TRASPASO' : ($movimiento->poliza->tipo_poliza ?? '—') }}
-                @if($movimiento->poliza->categoria == 'FISCAL')
-                    <span class="tag-fiscal">FISCAL</span>
-                @endif
-            </div>
+            <div class="razon-social">{{ $empresa->razon_social ?? '' }}</div>
+            <div class="titulo">{{ $esTraspaso ? 'Póliza de Traspaso' : 'Póliza de ' . ($movimiento->poliza->tipo_poliza ?? '') }}</div>
+        </div>
+        <div class="header-right">
+            <div class="folio-label">Folio</div>
+            <div class="folio-value">{{ $movimiento->poliza->folio ?? '—' }}</div>
             <div class="fecha">{{ $movimiento->poliza->fecha_poliza ? date('d/m/Y', strtotime($movimiento->poliza->fecha_poliza)) : '—' }}</div>
-            <div>
-                <span class="status">
-                    {{ $movimiento->poliza->estatus_texto ?? $movimiento->poliza->estatus ?? 'PENDIENTE' }}
-                </span>
-            </div>
         </div>
+    </div>
 
-        <!-- ========== PERSONA / CUENTAS ========== -->
-        <div class="section">
-            <div class="section-title">Datos</div>
-            
+    <!-- ========== BADGES ========== -->
+    <div class="badges-row">
+        <span class="badge {{ $tipoPolizaClase }}">{{ $esTraspaso ? 'Traspaso' : ($movimiento->poliza->tipo_poliza ?? '—') }}</span>
+        @if($movimiento->poliza->categoria == 'FISCAL')
+            <span class="badge badge-fiscal">Fiscal</span>
+        @endif
+        <span class="badge {{ $estatusClase }}">{{ $movimiento->poliza->estatus_texto ?? $estatusActual }}</span>
+        @if($vencido)
+            <span class="badge badge-vencido">Vencido</span>
+        @endif
+    </div>
+
+    <!-- ========== DATOS GENERALES ========== -->
+    <div class="card">
+        <div class="card-title">Datos Generales</div>
+        <div class="card-body">
             @if(!$esTraspaso)
-            <div class="row">
-                <span class="label">Persona</span>
-                <span class="value">{{ $movimiento->poliza->persona->nombre_completo ?? '—' }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Cuenta</span>
-                <span class="value">{{ $movimiento->cuenta->nombre_cuenta ?? '—' }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Cta. Fondeadora</span>
-                <span class="value">{{ $movimiento->cuentaFondeadora->nombre_cuenta ?? '—' }}</span>
-            </div>
-            @endif
-
-            @if($esTraspaso)
-            <div class="cuentas-box">
-                <div class="cuenta">
-                    <span class="label">Origen</span>
-                    <span class="value">{{ $movimiento->cuentaFondeadora->nombre_cuenta ?? '—' }}</span>
+            <table class="datos">
+                <tr>
+                    <td class="label">Persona</td>
+                    <td class="value">{{ $movimiento->poliza->persona->nombre_completo ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Cuenta</td>
+                    <td class="value">{{ $movimiento->cuenta->nombre_cuenta ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Cuenta Fondeadora</td>
+                    <td class="value">{{ $movimiento->cuentaFondeadora->nombre_cuenta ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Marcador</td>
+                    <td class="value">{{ $movimiento->poliza->marcador->nombre_marcador ?? '—' }}</td>
+                </tr>
+                @if($movimiento->poliza->referencia)
+                <tr>
+                    <td class="label">Referencia</td>
+                    <td class="value">{{ $movimiento->poliza->referencia }}</td>
+                </tr>
+                @endif
+                @if($movimiento->poliza->es_por_pagar)
+                <tr>
+                    <td class="label">Fecha Vencimiento</td>
+                    <td class="value">{{ $movimiento->poliza->fecha_vencimiento ? date('d/m/Y', strtotime($movimiento->poliza->fecha_vencimiento)) : '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Por Pagar</td>
+                    <td class="value">{{ $movimiento->poliza->es_por_pagar ? 'Sí' : 'No' }}</td>
+                </tr>
+                @endif
+            </table>
+            @else
+            <div class="traspaso-flujo">
+                <div class="caja">
+                    <span class="label">Cuenta Origen</span>
+                    <span class="value">{{ $cuentaOrigenNombre ?? '—' }}</span>
                 </div>
-                <div class="flecha">→</div>
-                <div class="cuenta">
-                    <span class="label">Destino</span>
-                    <span class="value">{{ $movimiento->cuenta->nombre_cuenta ?? '—' }}</span>
-                </div>
-            </div>
-            @endif
-
-            <div class="row">
-                <span class="label">Marcador</span>
-                <span class="value">{{ $movimiento->poliza->marcador->nombre_marcador ?? '—' }}</span>
-            </div>
-            @if($movimiento->poliza->referencia)
-            <div class="row">
-                <span class="label">Referencia</span>
-                <span class="value">{{ $movimiento->poliza->referencia }}</span>
-            </div>
-            @endif
-            @if($movimiento->poliza->es_por_pagar)
-            <div class="row">
-                <span class="label">Vencimiento</span>
-                <span class="value">
-                    {{ $movimiento->poliza->fecha_vencimiento ? date('d/m/Y', strtotime($movimiento->poliza->fecha_vencimiento)) : '—' }}
-                    @if($movimiento->poliza->fecha_vencimiento && strtotime($movimiento->poliza->fecha_vencimiento) < time())
-                        <span style="font-weight:700;">VENCIDO</span>
-                    @endif
-                </span>
-            </div>
-            <div class="row">
-                <span class="label">Por Pagar</span>
-                <span class="value">{{ $movimiento->poliza->es_por_pagar ? 'SÍ' : 'NO' }}</span>
-            </div>
-            @endif
-        </div>
-
-        <!-- ========== MONTOS ========== -->
-        <div class="section">
-            <div class="section-title">Montos</div>
-            
-            <div class="monto-destacado">
-                <span class="label">{{ $esTraspaso ? 'MONTO TRASPASO' : 'TOTAL' }}</span>
-                <span class="value">
-                    ${{ number_format(abs($montoMostrar), 2) }}
-                </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Base Gravable</span>
-                <span class="value">${{ number_format(abs($movimiento->monto_base ?? 0), 2) }}</span>
-            </div>
-            <div class="row">
-                <span class="label">IVA</span>
-                <span class="value">${{ number_format(abs($movimiento->monto_iva ?? 0), 2) }}</span>
-            </div>
-            <div class="row" style="border-top:1px solid #000;padding-top:4px;margin-top:2px;">
-                <span class="label" style="font-weight:700;">Total con IVA</span>
-                <span class="value" style="font-weight:700;font-size:11px;">
-                    ${{ number_format(abs($montoMostrar), 2) }}
-                </span>
-            </div>
-        </div>
-
-        <!-- ========== DETALLE IVA (DOBLE IVA) ========== -->
-        @if($movimiento->monto_iva_cero != 0 || $movimiento->monto_iva_dieciseis != 0 || $movimiento->iva_dieciseis != 0)
-        <div class="section">
-            <div class="section-title">Desglose IVA</div>
-            @if($movimiento->monto_iva_cero != 0)
-            <div class="iva-row">
-                <span>IVA 0% (Exento)</span>
-                <span>${{ number_format(abs($movimiento->monto_iva_cero), 2) }}</span>
-            </div>
-            @endif
-            @if($movimiento->monto_iva_dieciseis != 0)
-            <div class="iva-row">
-                <span>IVA 16% (Base)</span>
-                <span>${{ number_format(abs($movimiento->monto_iva_dieciseis), 2) }}</span>
-            </div>
-            <div class="iva-row">
-                <span>IVA 16% (Calculado)</span>
-                <span>${{ number_format(abs($movimiento->iva_dieciseis), 2) }}</span>
-            </div>
-            @endif
-            <div class="iva-row" style="border-top:1px solid #ccc;padding-top:2px;font-weight:700;">
-                <span>TOTAL</span>
-                <span>${{ number_format(abs(($movimiento->monto_iva_cero ?? 0) + ($movimiento->monto_iva_dieciseis ?? 0) + ($movimiento->iva_dieciseis ?? 0)), 2) }}</span>
-            </div>
-        </div>
-        @endif
-
-        <!-- ========== SALDOS (SI ES POR PAGAR) ========== -->
-        @if($movimiento->poliza->es_por_pagar)
-        <div class="section">
-            <div class="section-title">Saldos</div>
-            <div class="row">
-                <span class="label">Total Abonado</span>
-                <span class="value">${{ number_format(abs($totalAbonado), 2) }}</span>
-            </div>
-            <div class="row" style="border-top:1px solid #000;padding-top:4px;margin-top:2px;">
-                <span class="label" style="font-weight:700;">Saldo Pendiente</span>
-                <span class="value" style="font-weight:700;font-size:11px;">
-                    ${{ number_format(abs($saldoPendiente), 2) }}
-                </span>
-            </div>
-        </div>
-        @endif
-
-        <!-- ========== ABONOS ========== -->
-        @if($movimiento->poliza->es_por_pagar && $abonos->count() > 0)
-        <div class="section">
-            <div class="section-title">Abonos</div>
-            @foreach($abonos as $abono)
-            <div class="abono-row">
-                <span class="fecha">{{ $abono->fecha_abono ? date('d/m/Y', strtotime($abono->fecha_abono)) : '—' }}</span>
-                <span class="ref">{{ $abono->referencia ?? '—' }}</span>
-                <span class="monto">${{ number_format(abs($abono->monto_abonado), 2) }}</span>
-            </div>
-            @endforeach
-            <div class="abono-total">
-                <span class="label">Saldo Pendiente</span>
-                <span class="value">
-                    ${{ number_format(abs($saldoPendiente), 2) }}
-                </span>
-            </div>
-        </div>
-        @endif
-
-        <!-- ========== FACTURACIÓN ========== -->
-        @if($movimiento->poliza->categoria === 'FISCAL')
-        <div class="section">
-            <div class="section-title">Facturación</div>
-            <div class="row">
-                <span class="label">Fecha Factura</span>
-                <span class="value">{{ $movimiento->poliza->fecha_factura ? date('d/m/Y', strtotime($movimiento->poliza->fecha_factura)) : '—' }}</span>
-            </div>
-            <div class="row">
-                <span class="label">Número</span>
-                <span class="value">{{ $movimiento->poliza->numero_factura ?? '—' }}</span>
-            </div>
-            @if($movimiento->poliza->serie_factura)
-            <div class="row">
-                <span class="label">Serie</span>
-                <span class="value">{{ $movimiento->poliza->serie_factura }}</span>
-            </div>
-            @endif
-            @if($movimiento->poliza->folio_factura)
-            <div class="row">
-                <span class="label">Folio</span>
-                <span class="value">{{ $movimiento->poliza->folio_factura }}</span>
-            </div>
-            @endif
-            @if($movimiento->poliza->uuid_factura)
-            <div class="row">
-                <span class="label">UUID</span>
-                <span class="value"><span class="uuid-text">{{ $movimiento->poliza->uuid_factura }}</span></span>
-            </div>
-            @endif
-            <div class="row" style="border:none;padding:2px 0;">
-                <span class="label">PDF</span>
-                <span class="value">{{ $movimiento->poliza->ruta_pdf ? '✓ Adjunto' : '—' }}</span>
-            </div>
-            <div class="row" style="border:none;padding:2px 0;">
-                <span class="label">XML</span>
-                <span class="value">{{ $movimiento->poliza->ruta_xml ? '✓ Adjunto' : '—' }}</span>
-            </div>
-        </div>
-        @endif
-
-        <!-- ========== OBSERVACIONES ========== -->
-        @if($movimiento->poliza->nota)
-        <div class="section">
-            <div class="section-title">Observación</div>
-            <div class="nota-text">{{ $movimiento->poliza->nota }}</div>
-        </div>
-        @endif
-
-        <!-- ========== SEPARADOR ========== -->
-        <div class="separator-dots">• • • • • • • • • • • • • • • • • • • • •</div>
-
-        <!-- ========== FOOTER / FIRMAS ========== -->
-        <div class="footer">
-            <div class="impreso-por">
-                RIC | IMPRIME: {{ Auth::user()->nombre_completo ?? 'Sistema' }}
-            </div>
-            <div class="line">{{ $fecha_exportacion }}</div>
-            
-            <div class="firma">
-                <div class="firma-item">
-                    <span class="nombre">{{ Auth::user()->nombre_completo ?? '—' }}</span>
-                    <span class="linea"></span>
-                    <span class="label">NOMBRE Y FIRMA DE QUIEN ENTREGA</span>
-                </div>
-                <div class="firma-item">
-                    <span class="nombre">{{ $movimiento->poliza->persona->nombre_completo ?? '—' }}</span>
-                    <span class="linea"></span>
-                    <span class="label">NOMBRE Y FIRMA DE QUIEN RECIBE</span>
+                <div class="flecha">&raquo;</div>
+                <div class="caja">
+                    <span class="label">Cuenta Destino</span>
+                    <span class="value">{{ $cuentaDestinoNombre ?? '—' }}</span>
                 </div>
             </div>
+            <table class="datos" style="margin-top: 8px;">
+                <tr>
+                    <td class="label">Marcador</td>
+                    <td class="value">{{ $movimiento->poliza->marcador->nombre_marcador ?? '—' }}</td>
+                </tr>
+                @if($movimiento->poliza->referencia)
+                <tr>
+                    <td class="label">Referencia</td>
+                    <td class="value">{{ $movimiento->poliza->referencia }}</td>
+                </tr>
+                @endif
+            </table>
+            @endif
         </div>
+    </div>
+
+    <!-- ========== MONTOS ========== -->
+    <div class="card">
+        <div class="card-title">Montos</div>
+        <div class="card-body">
+            <div class="monto-total-box">
+                <div class="label">{{ $esTraspaso ? 'Monto del Traspaso' : 'Total' }}</div>
+                <div class="value">${{ number_format(abs($montoMostrar), 2) }}</div>
+            </div>
+            <table class="montos">
+                <tr>
+                    <td class="label">Base Gravable</td>
+                    <td class="value">${{ number_format(abs($movimiento->monto_base ?? 0), 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label">IVA</td>
+                    <td class="value">${{ number_format(abs($movimiento->monto_iva ?? 0), 2) }}</td>
+                </tr>
+                <tr class="total-final">
+                    <td class="label">Total con IVA</td>
+                    <td class="value">${{ number_format(abs($montoMostrar), 2) }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== DETALLE IVA (DOBLE IVA) ========== -->
+    @if(($movimiento->monto_iva_cero ?? 0) != 0 || ($movimiento->monto_iva_dieciseis ?? 0) != 0 || ($movimiento->iva_dieciseis ?? 0) != 0)
+    <div class="card">
+        <div class="card-title">Desglose de IVA</div>
+        <div class="card-body">
+            <table class="montos">
+                @if(($movimiento->monto_iva_cero ?? 0) != 0)
+                <tr>
+                    <td class="label">IVA 0% (Exento)</td>
+                    <td class="value">${{ number_format(abs($movimiento->monto_iva_cero), 2) }}</td>
+                </tr>
+                @endif
+                @if(($movimiento->monto_iva_dieciseis ?? 0) != 0)
+                <tr>
+                    <td class="label">IVA 16% (Base)</td>
+                    <td class="value">${{ number_format(abs($movimiento->monto_iva_dieciseis), 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label">IVA 16% (Calculado)</td>
+                    <td class="value">${{ number_format(abs($movimiento->iva_dieciseis), 2) }}</td>
+                </tr>
+                @endif
+                <tr class="total-final">
+                    <td class="label">Total IVA</td>
+                    <td class="value">${{ number_format(abs(($movimiento->monto_iva_cero ?? 0) + ($movimiento->monto_iva_dieciseis ?? 0) + ($movimiento->iva_dieciseis ?? 0)), 2) }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    <!-- ========== SALDOS Y ABONOS (SI ES POR PAGAR) ========== -->
+    @if($movimiento->poliza->es_por_pagar)
+    <div class="card">
+        <div class="card-title">Saldo</div>
+        <div class="card-body">
+            <table class="montos">
+                <tr>
+                    <td class="label">Total Abonado</td>
+                    <td class="value">${{ number_format(abs($totalAbonado), 2) }}</td>
+                </tr>
+                <tr class="total-final">
+                    <td class="label">Saldo Pendiente</td>
+                    <td class="value">${{ number_format(abs($saldoPendiente), 2) }}</td>
+                </tr>
+            </table>
+
+            @if($abonos->count() > 0)
+            <table class="abonos" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Referencia</th>
+                        <th style="text-align: right;">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($abonos as $abono)
+                    <tr>
+                        <td>{{ $abono->fecha_abono ? date('d/m/Y', strtotime($abono->fecha_abono)) : '—' }}</td>
+                        <td>{{ $abono->referencia ?? '—' }}</td>
+                        <td class="monto">${{ number_format(abs($abono->monto_abonado), 2) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    <!-- ========== FACTURACIÓN ========== -->
+    @if($movimiento->poliza->categoria === 'FISCAL')
+    <div class="card">
+        <div class="card-title">Facturación</div>
+        <div class="card-body">
+            <table class="datos">
+                <tr>
+                    <td class="label">Fecha Factura</td>
+                    <td class="value">{{ $movimiento->poliza->fecha_factura ? date('d/m/Y', strtotime($movimiento->poliza->fecha_factura)) : '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Número</td>
+                    <td class="value">{{ $movimiento->poliza->numero_factura ?? '—' }}</td>
+                </tr>
+                @if($movimiento->poliza->serie_factura)
+                <tr>
+                    <td class="label">Serie</td>
+                    <td class="value">{{ $movimiento->poliza->serie_factura }}</td>
+                </tr>
+                @endif
+                @if($movimiento->poliza->folio_factura)
+                <tr>
+                    <td class="label">Folio Fiscal</td>
+                    <td class="value">{{ $movimiento->poliza->folio_factura }}</td>
+                </tr>
+                @endif
+                @if($movimiento->poliza->uuid_factura)
+                <tr>
+                    <td class="label">UUID</td>
+                    <td class="value"><span class="uuid-text">{{ $movimiento->poliza->uuid_factura }}</span></td>
+                </tr>
+                @endif
+                <tr>
+                    <td class="label">Documentos</td>
+                    <td class="value">
+                        PDF: {{ $movimiento->poliza->ruta_pdf ? 'Adjunto' : '—' }}
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        XML: {{ $movimiento->poliza->ruta_xml ? 'Adjunto' : '—' }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    <!-- ========== OBSERVACIONES ========== -->
+    @if($movimiento->poliza->nota)
+    <div class="card">
+        <div class="card-title">Observaciones</div>
+        <div class="card-body">
+            <div class="nota-box">{{ $movimiento->poliza->nota }}</div>
+        </div>
+    </div>
+    @endif
+
+    <!-- ========== FIRMAS ========== -->
+    <div class="firmas">
+        <div class="firma-item">
+            <div class="linea">
+                <div class="nombre">{{ Auth::user()->nombre_completo ?? '—' }}</div>
+                <div class="label">Nombre y firma de quien entrega</div>
+            </div>
+        </div>
+        <div class="firma-item">
+            <div class="linea">
+                <div class="nombre">{{ $movimiento->poliza->persona->nombre_completo ?? '—' }}</div>
+                <div class="label">Nombre y firma de quien recibe</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FOOTER ========== -->
+    <div class="footer">
+        Documento generado por RIC — Red Informática Contable<br>
+        Impreso por {{ Auth::user()->nombre_completo ?? 'Sistema' }} el {{ $fecha_exportacion }}
     </div>
 </body>
 </html>

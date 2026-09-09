@@ -16,15 +16,31 @@
             background: #fff;
         }
         .header {
-            text-align: center;
-            margin-bottom: 20px;
+            display: table;
+            width: 100%;
+            margin-bottom: 18px;
             border-bottom: 3px solid #1a3a5c;
-            padding-bottom: 15px;
+            padding-bottom: 14px;
+        }
+        .header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 110px;
+        }
+        .header-logo img {
+            max-width: 100px;
+            max-height: 60px;
+            object-fit: contain;
+        }
+        .header-texto {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
         }
         .header h1 {
             font-size: 18px;
             color: #1a3a5c;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         .header .subtitle {
             font-size: 11px;
@@ -39,6 +55,10 @@
             font-size: 10px;
             color: #94a3b8;
             margin-top: 5px;
+        }
+        .header-espaciador {
+            display: table-cell;
+            width: 110px;
         }
         .filtros-info {
             background: #f8fafc;
@@ -187,15 +207,30 @@
 </head>
 <body>
     <!-- HEADER -->
+    @php
+        $logoPath = public_path('logos/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+    @endphp
     <div class="header">
-        <h1>Reporte de Movimientos</h1>
-        <div class="empresa">{{ $empresa }}</div>
-        <div class="subtitle">
-            {{ $es_diferidas ? 'Polizas Diferidas' : 'Polizas Normales' }}
+        <div class="header-logo">
+            @if($logoBase64)
+                <img src="{{ $logoBase64 }}" alt="RIC">
+            @endif
         </div>
-        <div class="fecha">
-            Generado: {{ $fecha_exportacion }} | Total de registros: {{ count($data) }}
+        <div class="header-texto">
+            <h1>Reporte de Movimientos</h1>
+            <div class="empresa">{{ $empresa }}</div>
+            <div class="subtitle">
+                {{ $es_diferidas ? 'Polizas Diferidas' : 'Polizas Normales' }}
+            </div>
+            <div class="fecha">
+                Generado: {{ $fecha_exportacion }} | Total de registros: {{ count($data) }}
+            </div>
         </div>
+        <div class="header-espaciador"></div>
     </div>
 
     <!-- FILTROS APLICADOS -->

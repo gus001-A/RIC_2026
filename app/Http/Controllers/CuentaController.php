@@ -179,7 +179,7 @@ class CuentaController extends Controller
                     $query->whereIn('id_cuenta', $idsConMadreCoincidente ?: [0]);
                 }
 
-                $cuentas = $query->paginate(100);
+                $cuentas = $query->paginate(100)->withQueryString();
 
                 $cuentasData = [
                     'data' => $cuentas->items(),

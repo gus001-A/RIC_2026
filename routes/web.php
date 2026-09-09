@@ -88,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/movimientos/cuentas-activas', [MovimientoController::class, 'obtenerCuentasActivas'])->name('movimientos.cuentas-activas');
     Route::get('/movimientos/archivos/{id}', [MovimientoController::class, 'verArchivo'])->name('movimientos.archivos.ver');
     Route::delete('/movimientos/archivos/{id}', [MovimientoController::class, 'eliminarArchivo'])->name('movimientos.archivos.eliminar');
+    Route::post('/movimientos/archivos/{id}/reemplazar', [MovimientoController::class, 'reemplazarArchivo'])->name('movimientos.archivos.reemplazar');
     
     // ============================================
     // 🟢 RESOURCE - DEBE IR AL FINAL

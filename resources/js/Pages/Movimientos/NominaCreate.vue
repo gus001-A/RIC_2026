@@ -610,9 +610,11 @@ const submit = () => {
             processing.value = false;
             notify.success('Las pólizas de nómina se han generado correctamente.', 'Exito');
             setTimeout(() => {
-                router.visit(route('movimientos.index'), { 
-                    method: 'get', 
-                    replace: true 
+                const fp = formData.fecha_pago ? String(formData.fecha_pago).slice(0, 10) : null;
+                const params = fp ? { fecha_desde: fp, fecha_hasta: fp } : { sin_fecha: 1 };
+                router.visit(route('movimientos.index', params), {
+                    method: 'get',
+                    replace: true
                 });
             }, 1500);
         })

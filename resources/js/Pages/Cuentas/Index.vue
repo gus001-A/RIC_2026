@@ -789,7 +789,12 @@ onMounted(() => {
 
 .filtros-grid-ultra-full {
     display: grid;
-    grid-template-columns: 8% 14% 24% 12% 18% 12% 12%;
+    /* Debe tener EXACTAMENTE el mismo ancho/orden que las columnas de la tabla
+       (Código 14% | Cuenta 24% | Índice 12% | Cuenta Madre 18% | Naturaleza 12%
+       | Fondeadora 12%) para que cada filtro quede alineado debajo de su
+       columna. Antes tenía una columna extra al inicio (8%) que corría todo un
+       lugar a la derecha. */
+    grid-template-columns: 14% 24% 12% 18% 12% 12%;
     gap: 4px;
     align-items: end;
     width: 100%;

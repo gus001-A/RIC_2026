@@ -171,15 +171,24 @@ public function index(Request $request)
     }
     if ($request->filled('referencia')) {
         $query->whereHas('poliza', function($q) use ($request) {
-            $q->where('folio', 'LIKE', '%' . $request->referencia . '%')
-                ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
+            $q->where(function($sub) use ($request) {
+                $sub->where('folio', 'LIKE', '%' . $request->referencia . '%')
+                    ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
+            });
         });
     }
     if ($request->filled('persona')) {
-        $query->whereHas('poliza.persona', function($q) use ($request) {
-            $q->where('Nombre', 'LIKE', '%' . $request->persona . '%')
-                ->orWhere('Paterno', 'LIKE', '%' . $request->persona . '%')
-                ->orWhere('Materno', 'LIKE', '%' . $request->persona . '%');
+        // Cada palabra debe aparecer en alguno de los campos del nombre, así
+        // "JUAN LOPEZ" encuentra a quien tiene Nombre "JUAN" y Paterno "LOPEZ".
+        $palabras = preg_split('/\s+/', trim($request->persona), -1, PREG_SPLIT_NO_EMPTY);
+        $query->whereHas('poliza.persona', function($q) use ($palabras) {
+            foreach ($palabras as $palabra) {
+                $q->where(function($sub) use ($palabra) {
+                    $sub->where('Nombre', 'LIKE', '%' . $palabra . '%')
+                        ->orWhere('Paterno', 'LIKE', '%' . $palabra . '%')
+                        ->orWhere('Materno', 'LIKE', '%' . $palabra . '%');
+                });
+            }
         });
     }
     if ($request->filled('cuenta')) {
@@ -217,16 +226,20 @@ public function index(Request $request)
     }
     if ($request->filled('usuario')) {
         $query->whereHas('poliza.usuarioCreador', function($q) use ($request) {
-            $q->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
-                ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
+            $q->where(function($sub) use ($request) {
+                $sub->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
+                    ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
+            });
         });
     }
 
     // Ordenamiento
-    // Por defecto las pólizas van por REFERENCIA (folio) ascendente: 0001, 0002, ...
+    // Por defecto las pólizas van por REFERENCIA (folio) descendente: de la más
+    // alta a la más baja (0010, 0009, ..., 0001).
     $sortBy = $request->get('sort_by', 'referencia');
-    $sortOrder = $request->get('sort_order', 'asc');
+    $sortOrder = $request->get('sort_order', 'desc');
     $sortMap = [
+        'id' => 'polizas.id',
         'fecha_poliza' => 'polizas.fecha_poliza',
         'fecha_vencimiento' => 'polizas.fecha_vencimiento',
         'referencia' => 'polizas.folio',
@@ -252,11 +265,15 @@ public function index(Request $request)
             $query->orderBy($sortMap[$sortBy], $sortOrder);
         }
     } else {
-        $query->orderBy('movimientos_poliza.created_at', 'desc');
+        $query->join('polizas', 'movimientos_poliza.id_poliza', '=', 'polizas.id')
+            ->select('movimientos_poliza.*')
+            ->orderBy('polizas.id', 'desc');
     }
 
     $perPage = $request->get('per_page', 15);
-    $movimientos = $query->paginate($perPage);
+    // withQueryString() conserva TODOS los filtros/empresa/orden en los enlaces
+    // de paginación; sin esto, al pasar a la página 2 se pierden los filtros.
+    $movimientos = $query->paginate($perPage)->withQueryString();
 
     // Transformar datos
     $movimientosData = $movimientos->through(function($movimiento) {
@@ -277,6 +294,8 @@ public function index(Request $request)
         $tieneRecurso = $recurso ? true : false;
         $recursoUrl = $recurso ? route('movimientos.archivos.ver', $recurso->id) : null;
         $recursoTipo = $recurso ? $recurso->tipo_archivo : null;
+        $recursoId = $recurso ? $recurso->id : null;
+        $recursoNombre = $recurso ? $recurso->nombre_original : null;
 
         return [
             'id_movimiento' => $movimiento->id,
@@ -302,6 +321,8 @@ public function index(Request $request)
             'tiene_recurso' => $tieneRecurso,
             'recurso_url' => $recursoUrl,
             'recurso_tipo' => $recursoTipo,
+            'recurso_id' => $recursoId,
+            'recurso_nombre' => $recursoNombre,
             'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
             'created_at' => $movimiento->created_at,
         ];
@@ -374,11 +395,12 @@ public function index(Request $request)
 private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empresas)
 {
     $sortBy = $request->get('sort_by', 'referencia');
-    $sortOrder = $request->get('sort_order', 'asc');
+    $sortOrder = $request->get('sort_order', 'desc');
     $perPage = $request->get('per_page', 15);
 
     // Mapear el sort del frontend a columnas reales de `polizas`.
     $sortColumnMap = [
+        'id' => 'id',
         'referencia' => 'folio',
         'fecha_poliza' => 'fecha_poliza',
         'fecha_vencimiento' => 'fecha_vencimiento',
@@ -406,17 +428,24 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             return $q->whereDate('fecha_poliza', '<=', $request->fecha_hasta);
         })
         ->when($request->filled('referencia'), function($q) use ($request) {
-            return $q->where('folio', 'LIKE', '%' . $request->referencia . '%')
-                ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
+            return $q->where(function($sub) use ($request) {
+                $sub->where('folio', 'LIKE', '%' . $request->referencia . '%')
+                    ->orWhere('referencia', 'LIKE', '%' . $request->referencia . '%');
+            });
         })
         ->when($request->filled('estatus'), function($q) use ($request) {
             return $q->where('estatus', $request->estatus);
         })
         ->when($request->filled('persona'), function($q) use ($request) {
-            return $q->whereHas('persona', function($sub) use ($request) {
-                $sub->where('Nombre', 'LIKE', '%' . $request->persona . '%')
-                    ->orWhere('Paterno', 'LIKE', '%' . $request->persona . '%')
-                    ->orWhere('Materno', 'LIKE', '%' . $request->persona . '%');
+            $palabras = preg_split('/\s+/', trim($request->persona), -1, PREG_SPLIT_NO_EMPTY);
+            return $q->whereHas('persona', function($sub) use ($palabras) {
+                foreach ($palabras as $palabra) {
+                    $sub->where(function($inner) use ($palabra) {
+                        $inner->where('Nombre', 'LIKE', '%' . $palabra . '%')
+                            ->orWhere('Paterno', 'LIKE', '%' . $palabra . '%')
+                            ->orWhere('Materno', 'LIKE', '%' . $palabra . '%');
+                    });
+                }
             });
         })
         ->when($request->filled('nota'), function($q) use ($request) {
@@ -424,8 +453,10 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
         })
         ->when($request->filled('usuario'), function($q) use ($request) {
             return $q->whereHas('usuarioCreador', function($sub) use ($request) {
-                $sub->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
-                    ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
+                $sub->where(function($inner) use ($request) {
+                    $inner->where('nombre_usuario', 'LIKE', '%' . $request->usuario . '%')
+                        ->orWhere('nombre_completo', 'LIKE', '%' . $request->usuario . '%');
+                });
             });
         })
         ->when($request->filled('solo_fiscales'), function($q) use ($request) {
@@ -442,7 +473,7 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             $q->orderBy($sortColumn, $sortOrder);
         });
 
-    $polizasPaginadas = $polizas->paginate($perPage);
+    $polizasPaginadas = $polizas->paginate($perPage)->withQueryString();
 
     // Transformar cada póliza en un solo registro
     $movimientosData = $polizasPaginadas->through(function($poliza) {
@@ -457,6 +488,8 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
         $tieneRecurso = $recurso ? true : false;
         $recursoUrl = $recurso ? route('movimientos.archivos.ver', $recurso->id) : null;
         $recursoTipo = $recurso ? $recurso->tipo_archivo : null;
+        $recursoId = $recurso ? $recurso->id : null;
+        $recursoNombre = $recurso ? $recurso->nombre_original : null;
 
         $pdfUrl = null;
         if ($poliza->categoria === 'FISCAL' && !empty($poliza->ruta_pdf)) {
@@ -484,6 +517,8 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             'tiene_recurso' => $tieneRecurso,
             'recurso_url' => $recursoUrl,
             'recurso_tipo' => $recursoTipo,
+            'recurso_id' => $recursoId,
+            'recurso_nombre' => $recursoNombre,
             'tiene_pdf_fiscal' => !empty($poliza->ruta_pdf),
             'pdf_url' => $pdfUrl,
             'usuario' => $poliza->usuarioCreador ? $poliza->usuarioCreador->nombre_usuario : null,
@@ -995,7 +1030,12 @@ public function store(Request $request)
             if ($nombreXml) $mensaje .= 'XML ✓';
         }
 
-        return redirect()->route('movimientos.index')
+        // Redirigir a la lista filtrada por la fecha de la póliza para que
+        // SIEMPRE se vea la póliza recién creada (aunque no sea de hoy).
+        return redirect()->route('movimientos.index', [
+                'fecha_desde' => $fechaPoliza->toDateString(),
+                'fecha_hasta' => $fechaPoliza->toDateString(),
+            ])
             ->with('success', $mensaje);
 
     } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1691,7 +1731,11 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
                 if ($rutaXml) $mensaje .= 'XML ✓';
             }
 
-            return redirect()->route('movimientos.index')
+            return redirect()->route('movimientos.index', [
+                    'vista' => 'traspasos',
+                    'fecha_desde' => $fechaPoliza->toDateString(),
+                    'fecha_hasta' => $fechaPoliza->toDateString(),
+                ])
                 ->with('success', $mensaje);
 
         } catch (\Exception $e) {
@@ -1741,6 +1785,8 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
         $tieneRecurso = $recurso ? true : false;
         $recursoUrl = $recurso ? route('movimientos.archivos.ver', $recurso->id) : null;
         $recursoTipo = $recurso ? $recurso->tipo_archivo : null;
+        $recursoId = $recurso ? $recurso->id : null;
+        $recursoNombre = $recurso ? $recurso->nombre_original : null;
 
         $abonos = $movimiento->poliza->abonos ?? collect();
         $totalAbonado = $abonos->sum('monto_abonado');
@@ -1936,6 +1982,8 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
             'tiene_recurso' => $tieneRecurso,
             'recurso_url' => $recursoUrl,
             'recurso_tipo' => $recursoTipo,
+            'recurso_id' => $recursoId,
+            'recurso_nombre' => $recursoNombre,
             'archivos_adjuntos' => $movimiento->poliza->archivos->map(function($archivo) {
                 return [
                     'id' => $archivo->id,
@@ -3883,7 +3931,10 @@ public function showAbono(string $id)
 
             DB::commit();
 
-            return redirect()->route('movimientos.index')
+            return redirect()->route('movimientos.index', [
+                    'fecha_desde' => \Carbon\Carbon::parse($fechaPago)->toDateString(),
+                    'fecha_hasta' => \Carbon\Carbon::parse($fechaPago)->toDateString(),
+                ])
                 ->with('success', "Nómina generada exitosamente. {$totalEmpleados} pólizas creadas por un total de $" . number_format($totalNomina, 2));
 
         } catch (\Exception $e) {
@@ -4806,10 +4857,30 @@ public function showAbono(string $id)
         $esTraspaso = $movimiento->poliza->tipo_poliza === 'TRASPASO';
         $abonos = $movimiento->poliza->abonos ?? collect();
         $totalAbonado = $abonos->sum('monto_abonado');
-        
+
+        // Para traspasos, `$movimiento` es sólo UNA de las dos patas (origen o
+        // destino) — antes se usaba su propio `cuenta`/`cuentaFondeadora`, que
+        // sólo tiene sentido para INGRESO/EGRESO y dejaba "Cuenta Origen" o
+        // "Cuenta Destino" vacía según qué pata se hubiera cargado. Aquí se
+        // buscan ambas patas de la póliza para resolver origen (monto < 0) y
+        // destino (monto > 0) sin importar cuál se abrió.
+        $cuentaOrigenNombre = null;
+        $cuentaDestinoNombre = null;
+
         if ($esTraspaso) {
-            $saldoPendiente = ($movimiento->monto_traspaso ?? 0) - $totalAbonado;
-            $montoMostrar = $movimiento->monto_traspaso ?? 0;
+            $movimientosTraspaso = MovimientoPoliza::with(['cuenta' => function ($q) {
+                $q->where('en_uso', true);
+            }])->where('id_poliza', $movimiento->id_poliza)->get();
+
+            $movOrigen = $movimientosTraspaso->firstWhere('monto', '<', 0);
+            $movDestino = $movimientosTraspaso->firstWhere('monto', '>', 0);
+
+            $cuentaOrigenNombre = $movOrigen?->cuenta?->nombre_cuenta;
+            $cuentaDestinoNombre = $movDestino?->cuenta?->nombre_cuenta;
+
+            $montoTraspaso = $movOrigen?->monto_traspaso ?? abs($movOrigen?->monto ?? $movimiento->monto);
+            $saldoPendiente = $montoTraspaso - $totalAbonado;
+            $montoMostrar = $montoTraspaso;
         } else {
             $saldoPendiente = abs($movimiento->monto) - $totalAbonado;
             $montoMostrar = $movimiento->monto;
@@ -4818,7 +4889,14 @@ public function showAbono(string $id)
         $data = [
             'movimiento' => $movimiento,
             'esTraspaso' => $esTraspaso,
+            'cuentaOrigenNombre' => $cuentaOrigenNombre,
+            'cuentaDestinoNombre' => $cuentaDestinoNombre,
             'montoMostrar' => $montoMostrar,
+            // 'abonos' faltaba aquí: la plantilla siempre hizo `$abonos->count()`
+            // y `@foreach($abonos as $abono)`, así que descargar el PDF de
+            // cualquier póliza diferida (por pagar) con abonos tronaba con
+            // "Call to a member function count() on null".
+            'abonos' => $abonos,
             'totalAbonado' => $totalAbonado,
             'saldoPendiente' => $saldoPendiente,
             'empresa' => $movimiento->poliza->empresa,
@@ -5704,6 +5782,99 @@ public function showAbono(string $id)
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar el archivo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================
+    // 📎 REEMPLAZAR / MODIFICAR ARCHIVO ADJUNTO
+    // ============================================
+    public function reemplazarArchivo(Request $request, $idArchivo)
+    {
+        if (!Gate::allows('editar-movimientos')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para modificar archivos'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'archivo' => 'required|file|max:10240', // 10MB max
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $archivoDB = PolizaArchivo::find($idArchivo);
+            if (!$archivoDB) {
+                throw new \Exception('Archivo no encontrado');
+            }
+
+            $rutaAnterior = $archivoDB->ruta;
+
+            $archivo = $request->file('archivo');
+            $nombreOriginal = $archivo->getClientOriginalName();
+            $mimeType = $archivo->getMimeType();
+            $tamano = $archivo->getSize();
+
+            // Determinar tipo de archivo
+            $tipoArchivo = 'other';
+            if (str_contains($mimeType, 'pdf') || $archivo->getClientOriginalExtension() === 'pdf') {
+                $tipoArchivo = 'pdf';
+            } elseif (str_contains($mimeType, 'image')) {
+                $tipoArchivo = 'image';
+            }
+
+            // Generar nombre único para el nuevo archivo
+            $nombreGuardado = 'poliza_' . $archivoDB->id_poliza . '_' . time() . '_' . uniqid() . '.' . $archivo->getClientOriginalExtension();
+
+            // Guardar el nuevo archivo
+            $ruta = $archivo->storeAs('poliza_archivos', $nombreGuardado, 'public');
+
+            // Actualizar el registro
+            $archivoDB->update([
+                'nombre_original' => $nombreOriginal,
+                'nombre_guardado' => $nombreGuardado,
+                'ruta' => $ruta,
+                'tipo_archivo' => $tipoArchivo,
+                'mime_type' => $mimeType,
+                'tamano' => $tamano,
+                'id_usuario_subio' => auth()->id(),
+            ]);
+
+            // Eliminar el archivo físico anterior
+            if ($rutaAnterior && Storage::disk('public')->exists($rutaAnterior)) {
+                Storage::disk('public')->delete($rutaAnterior);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Archivo reemplazado exitosamente',
+                'data' => [
+                    'id' => $archivoDB->id,
+                    'nombre_original' => $archivoDB->nombre_original,
+                    'url' => $archivoDB->url
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error al reemplazar archivo:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al reemplazar el archivo: ' . $e->getMessage()
             ], 500);
         }
     }

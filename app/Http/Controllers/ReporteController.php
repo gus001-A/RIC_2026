@@ -389,19 +389,34 @@ class ReporteController extends Controller
 
         // ============================================================
         // 2) TODAS LAS CUENTAS DE RESULTADOS DE LA EMPRESA
-        //    Se EXCLUYEN explícitamente las cuentas FONDEADORAS (`fondeo_c=1`
-        //    o `tipo_cuenta='FONDEADORA'`, p. ej. cajas/bancos) aunque además
-        //    estén marcadas `es_cuenta_resultados=1` — no son cuentas de
-        //    ingreso/egreso, son cuentas de flujo de efectivo y no deben
-        //    aparecer en el Estado de Resultados.
+        //    `es_cuenta_resultados` (bandera) NO es confiable por sí sola: hay
+        //    cuentas reales de gasto/ingreso con `tipo_cuenta='RESULTADO'` pero
+        //    `es_cuenta_resultados=0` (quedaban fuera del estado de resultados
+        //    aunque tuvieran movimiento real) — el campo bueno es `tipo_cuenta`.
+        //    Se EXCLUYEN explícitamente las FONDEADORAS: cualquier cuenta con
+        //    `fondeo_c = 1` (o `tipo_cuenta='FONDEADORA'`), p. ej. cajas/bancos,
+        //    aunque además tengan `es_cuenta_resultados=1` o `tipo_cuenta='RESULTADO'`
+        //    — no son cuentas de ingreso/egreso, son de flujo de efectivo.
+        //    También se excluye la cuenta RAÍZ del catálogo completo de cada
+        //    empresa (nivel 0, con `id_cuenta_madre` apuntando a sí misma, p.
+        //    ej. la cuenta "RIC2" de la empresa RIC2): por defecto queda con
+        //    tipo_cuenta='RESULTADO' aunque no es una línea de resultados real,
+        //    sino el nodo raíz de TODO el árbol de cuentas de la empresa.
         // ============================================================
         $cuentas = Cuenta::where('id_empresa', $empresaId)
             ->where('en_uso', true)
-            ->where('es_cuenta_resultados', 1)
+            ->where('tipo_cuenta', '!=', 'FONDEADORA')
             ->where(function ($q) {
                 $q->where('fondeo_c', '!=', 1)->orWhereNull('fondeo_c');
             })
-            ->where('tipo_cuenta', '!=', 'FONDEADORA')
+            ->where(function ($q) {
+                $q->whereNull('id_cuenta_madre')
+                  ->orWhereColumn('id_cuenta_madre', '!=', 'id_cuenta');
+            })
+            ->where(function ($q) {
+                $q->where('tipo_cuenta', 'RESULTADO')
+                  ->orWhere('es_cuenta_resultados', 1);
+            })
             ->orderBy('codigo_cuenta')
             ->get(['id_cuenta', 'codigo_cuenta', 'nombre_cuenta', 'nivel', 'id_cuenta_madre', 'cuenta_resultados'])
             ->keyBy('id_cuenta');
@@ -647,7 +662,15 @@ class ReporteController extends Controller
             }
 
             // 🔥 DETECTAR SI ES CUENTA DE RESULTADOS
-            $esCuentaResultados = ($cuenta->es_cuenta_resultados == 1);
+            // `tipo_cuenta='RESULTADO'` es el dato confiable; `es_cuenta_resultados`
+            // es una bandera que en producción puede venir en 0 aunque la cuenta
+            // sí sea de resultados (y con movimiento real) — se usa como refuerzo,
+            // no como único criterio, y siempre excluyendo FONDEADORAS.
+            $esRaizDelArbol = empty($cuenta->id_cuenta_madre) ? false : ((int) $cuenta->id_cuenta_madre === (int) $cuenta->id_cuenta);
+            $esCuentaResultados = !$esRaizDelArbol
+                && $cuenta->tipo_cuenta !== 'FONDEADORA'
+                && $cuenta->fondeo_c != 1
+                && ($cuenta->tipo_cuenta === 'RESULTADO' || $cuenta->es_cuenta_resultados == 1);
             $idsCuentas = [(int) $idCuenta];
 
             if ($esCuentaResultados) {
@@ -656,9 +679,22 @@ class ReporteController extends Controller
                 // aparezcan las pólizas de sus hijas, no sólo las propias.
                 // OJO: `cuenta_resultados` normalmente es una bandera (=1), NO
                 // un id de padre — el parentesco real va por `id_cuenta_madre`.
+                // Se excluye la cuenta raíz del árbol (nivel 0, madre = sí misma)
+                // y cualquier fondeadora (fondeo_c = 1).
                 $todasResultados = Cuenta::where('id_empresa', $empresaId)
                     ->where('en_uso', true)
-                    ->where('es_cuenta_resultados', 1)
+                    ->where('tipo_cuenta', '!=', 'FONDEADORA')
+                    ->where(function ($q) {
+                        $q->where('fondeo_c', '!=', 1)->orWhereNull('fondeo_c');
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('id_cuenta_madre')
+                          ->orWhereColumn('id_cuenta_madre', '!=', 'id_cuenta');
+                    })
+                    ->where(function ($q) {
+                        $q->where('tipo_cuenta', 'RESULTADO')
+                          ->orWhere('es_cuenta_resultados', 1);
+                    })
                     ->get(['id_cuenta', 'id_cuenta_madre', 'cuenta_resultados']);
 
                 $hijasDirectasDe = [];

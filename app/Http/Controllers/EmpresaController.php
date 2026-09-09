@@ -55,7 +55,8 @@ class EmpresaController extends Controller
         // 🟢 SOLO CARGAR CONTADOR DE USUARIOS (las pólizas no tienen relación directa)
         $empresas = $query->withCount(['usuarios'])
                         ->orderBy('id', 'desc')  // 🔄 Cambio: ordenar por ID (más reciente primero)
-                        ->paginate(10);
+                        ->paginate(10)
+                        ->withQueryString();
 
         $stats = [
             'total' => Empresa::count(),

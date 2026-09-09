@@ -527,6 +527,7 @@
             modal
             :header="modalRecursoTitulo"
             class="modal-recurso-premium"
+            :class="{ 'modal-recurso-premium-ver': modalRecursoModo === 'ver' }"
             :style="{ width: '90vw', maxWidth: '900px' }"
         >
             <div class="modal-recurso-content" :class="{ 'modal-recurso-content-ver': modalRecursoModo === 'ver' }">
@@ -535,12 +536,41 @@
                 <!-- ========================================================== -->
                 <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
                     <div class="recurso-toolbar-top">
-                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit" download>
+                        <button type="button" class="btn-modal-submit" @click="abrirRecursoEnPestana">
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Ver documento/imagen
+                        </button>
+                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit btn-modal-submit-outline" download>
                             <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
                             Descargar
                         </a>
+                        <button
+                            v-if="permisos?.puede_editar"
+                            type="button"
+                            class="btn-modal-submit btn-modal-submit-outline"
+                            @click="modoReemplazarRecurso"
+                        >
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Reemplazar
+                        </button>
+                        <button
+                            v-if="permisos?.puede_editar"
+                            type="button"
+                            class="btn-modal-cancel btn-modal-cancel-danger"
+                            @click="eliminarRecurso"
+                        >
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Eliminar
+                        </button>
                     </div>
                     <!-- PDF -->
                     <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
@@ -565,13 +595,14 @@
                 <!-- ========================================================== -->
                 <!-- MODO SUBIR: muestra el drop zone para subir archivo        -->
                 <!-- ========================================================== -->
-                <div v-if="modalRecursoModo === 'subir'" class="recurso-upload-wrapper">
+                <div v-if="modalRecursoModo === 'subir' || modalRecursoModo === 'reemplazar'" class="recurso-upload-wrapper">
                     <div class="recurso-upload-info">
-                        <p>Sube un <strong>PDF</strong> o una <strong>imagen</strong> (JPG, PNG, GIF, WEBP) para esta póliza.</p>
+                        <p v-if="modalRecursoModo === 'reemplazar'">Selecciona el nuevo <strong>PDF</strong> o <strong>imagen</strong>. El archivo actual se reemplazará.</p>
+                        <p v-else>Sube un <strong>PDF</strong> o una <strong>imagen</strong> (JPG, PNG, GIF, WEBP) para esta póliza.</p>
                         <p class="recurso-upload-hint">Solo se permite un archivo por póliza.</p>
                     </div>
 
-                    <form @submit.prevent="subirRecurso">
+                    <form @submit.prevent="guardarRecurso">
                         <div class="recurso-drop-zone" 
                              :class="{ 'recurso-drop-zone-dragover': dragging }"
                              @dragover.prevent="dragging = true"
@@ -614,7 +645,7 @@
                             <button type="button" class="btn-modal-cancel" @click="cerrarModalRecurso">Cancelar</button>
                             <button type="submit" class="btn-modal-submit" :disabled="!archivoSeleccionado || subiendoRecurso">
                                 <span v-if="subiendoRecurso" class="spinner-border-sm"></span>
-                                <span v-else>Subir archivo</span>
+                                <span v-else>{{ modalRecursoModo === 'reemplazar' ? 'Reemplazar archivo' : 'Subir archivo' }}</span>
                             </button>
                         </div>
                     </form>
@@ -902,6 +933,7 @@ const modalRecursoModo = ref('ver');
 const modalRecursoTitulo = ref('');
 const modalRecursoUrl = ref('');
 const modalRecursoTipo = ref('');
+const modalRecursoId = ref(null);
 
 // Archivos
 const archivoSeleccionado = ref(null);
@@ -991,7 +1023,8 @@ const abrirModalRecurso = () => {
         modalRecursoModo.value = 'ver';
         modalRecursoTitulo.value = `Recurso - ${props.movimiento.referencia || 'Póliza'}`;
         modalRecursoUrl.value = props.movimiento.recurso_url || '';
-        
+        modalRecursoId.value = props.movimiento.recurso_id || null;
+
         if (props.movimiento.recurso_tipo) {
             modalRecursoTipo.value = props.movimiento.recurso_tipo;
         } else {
@@ -1021,9 +1054,50 @@ const abrirModalRecurso = () => {
 const cerrarModalRecurso = () => {
     modalRecursoVisible.value = false;
     modalRecursoModo.value = 'ver';
+    modalRecursoId.value = null;
     archivoSeleccionado.value = null;
     errorRecurso.value = '';
     dragging.value = false;
+};
+
+// Abre el documento/imagen en una pestaña nueva (sin forzar descarga)
+const abrirRecursoEnPestana = () => {
+    if (modalRecursoUrl.value) {
+        window.open(modalRecursoUrl.value, '_blank', 'noopener');
+    }
+};
+
+// Cambia el modal a modo "reemplazar" reutilizando el formulario de carga
+const modoReemplazarRecurso = () => {
+    modalRecursoModo.value = 'reemplazar';
+    modalRecursoTitulo.value = `Reemplazar recurso - ${props.movimiento.referencia || 'Póliza'}`;
+    archivoSeleccionado.value = null;
+    errorRecurso.value = '';
+};
+
+// Elimina el recurso adjunto de la póliza
+const eliminarRecurso = () => {
+    const idArchivo = modalRecursoId.value;
+    if (!idArchivo) return;
+
+    notify.confirmDelete({
+        header: '¿Eliminar recurso?',
+        message: '¿Eliminar el recurso adjunto de esta póliza? Esta acción no se puede deshacer.',
+        accept: async () => {
+            try {
+                const response = await axios.delete(route('movimientos.archivos.eliminar', idArchivo));
+                if (response.data.success) {
+                    mostrarModal('success', 'Éxito', 'Recurso eliminado correctamente');
+                    cerrarModalRecurso();
+                    setTimeout(() => { router.reload(); }, 500);
+                } else {
+                    throw new Error(response.data.message || 'Error al eliminar el recurso');
+                }
+            } catch (error) {
+                mostrarModal('error', 'Error', error.response?.data?.message || error.message || 'Error al eliminar el recurso');
+            }
+        },
+    });
 };
 
 // === DROP ZONE ===
@@ -1065,36 +1139,42 @@ const procesarArchivo = (file) => {
     archivoSeleccionado.value = file;
 };
 
-// === SUBIR RECURSO ===
-const subirRecurso = async () => {
+// === SUBIR / REEMPLAZAR RECURSO ===
+const guardarRecurso = async () => {
     if (!archivoSeleccionado.value) return;
-    
+
+    const esReemplazo = modalRecursoModo.value === 'reemplazar';
+    if (esReemplazo && !modalRecursoId.value) return;
+
     subiendoRecurso.value = true;
     errorRecurso.value = '';
-    
+
+    const idPoliza = props.movimiento.id_poliza || props.movimiento.id;
     const formData = new FormData();
     formData.append('archivo', archivoSeleccionado.value);
-    formData.append('id_poliza', props.movimiento.id_poliza || props.movimiento.id);
-    
+    formData.append('id_poliza', idPoliza);
+
+    const url = esReemplazo
+        ? route('movimientos.archivos.reemplazar', modalRecursoId.value)
+        : route('movimientos.archivos.subir', idPoliza);
+
     try {
-        const response = await axios.post(
-            route('movimientos.archivos.subir', props.movimiento.id_poliza || props.movimiento.id),
-            formData,
-            { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        
+        const response = await axios.post(url, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
         if (response.data.success) {
-            mostrarModal('success', 'Éxito', 'Recurso subido correctamente');
+            mostrarModal('success', 'Éxito', esReemplazo ? 'Recurso reemplazado correctamente' : 'Recurso subido correctamente');
             cerrarModalRecurso();
-            
+
             setTimeout(() => {
                 router.reload();
             }, 500);
         } else {
-            throw new Error(response.data.message || 'Error al subir el recurso');
+            throw new Error(response.data.message || 'Error al guardar el recurso');
         }
     } catch (error) {
-        errorRecurso.value = error.response?.data?.message || error.message || 'Error al subir el recurso';
+        errorRecurso.value = error.response?.data?.message || error.message || 'Error al guardar el recurso';
         mostrarModal('error', 'Error', errorRecurso.value);
     } finally {
         subiendoRecurso.value = false;
@@ -1854,51 +1934,62 @@ const accionEliminar = () => {
     color: white;
 }
 
-/* MODAL RECURSO (Subir/Ver) */
-.modal-recurso-premium :deep(.p-dialog-header) {
-    background: linear-gradient(135deg, #1a3a5c, #2c5282);
-    border-radius: 8px 8px 0 0;
-    padding: 16px 24px;
-}
-
-.modal-recurso-premium :deep(.p-dialog-title) {
-    color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.modal-recurso-premium :deep(.p-dialog-close-button) {
-    color: white;
-}
-
-.modal-recurso-premium :deep(.p-dialog-close-button:hover) {
-    color: #fca5a5;
-}
-
-.modal-recurso-premium :deep(.p-dialog-content) {
-    padding: 0;
-    overflow: hidden;
-}
-
-.modal-recurso-premium :deep(.p-dialog) {
-    max-height: 92vh;
-}
+/* MODAL RECURSO (Subir/Ver)
+   Los estilos del contenedor .p-dialog van en el <style> GLOBAL del final del
+   archivo (PrimeVue teletransporta el diálogo fuera de este componente). */
 
 .modal-recurso-content {
     min-height: 300px;
     padding: 24px;
 }
 
+/* Modo "ver": SIN scroll interno del modal. Flex reparte el alto y sólo el
+   visor de PDF/imagen scrollea por dentro. El alto lo impone .p-dialog-content. */
 .modal-recurso-content-ver {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
     padding: 14px 16px 16px;
     overflow: hidden;
 }
 
+.modal-recurso-content-ver > div:first-child {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .recurso-toolbar-top {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     justify-content: flex-end;
     margin-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.btn-modal-submit-outline {
+    background: #fff !important;
+    color: #1a3a5c !important;
+    border: 1px solid #1a3a5c !important;
+}
+
+.btn-modal-submit-outline:hover {
+    background: #eef2f7 !important;
+}
+
+.btn-modal-cancel-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #b91c1c !important;
+    border: 1px solid #b91c1c !important;
+}
+
+.btn-modal-cancel-danger:hover {
+    background: #fef2f2 !important;
 }
 
 .recurso-pdf-wrapper {
@@ -1908,19 +1999,28 @@ const accionEliminar = () => {
 }
 
 .modal-recurso-content-ver .recurso-pdf-wrapper {
-    height: calc(92vh - 130px);
-    min-height: 320px;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
 }
 
 .modal-recurso-content-ver .recurso-image-wrapper {
-    max-height: calc(92vh - 130px);
-    overflow: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.modal-recurso-content-ver .recurso-other {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
 }
 
 .recurso-pdf {
     width: 100%;
     height: 100%;
     border: none;
+    display: block;
 }
 
 .recurso-image-wrapper {
@@ -1932,11 +2032,19 @@ const accionEliminar = () => {
     border-radius: 8px;
 }
 
+.modal-recurso-content-ver .recurso-image-wrapper {
+    min-height: 0;
+}
+
 .recurso-image {
     max-width: 100%;
     max-height: 70vh;
     object-fit: contain;
     border-radius: 4px;
+}
+
+.modal-recurso-content-ver .recurso-image {
+    max-height: 100%;
 }
 
 .recurso-other {
@@ -2887,5 +2995,51 @@ const accionEliminar = () => {
 
 .btn-modal-submit-success {
     background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+</style>
+
+<!-- Estilos del diálogo de recurso: NO scoped (PrimeVue teletransporta el
+     .p-dialog fuera de este componente). -->
+<style>
+.modal-recurso-premium.p-dialog {
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Modo "ver": altura fija -> el visor de PDF/imagen ocupa todo y NO hay
+   scroll vertical del propio modal. */
+.modal-recurso-premium-ver.p-dialog {
+    height: 90vh;
+}
+
+.modal-recurso-premium .p-dialog-header {
+    background: linear-gradient(135deg, #1a3a5c, #2c5282);
+    border-radius: 8px 8px 0 0;
+    padding: 16px 24px;
+    flex-shrink: 0;
+}
+
+.modal-recurso-premium .p-dialog-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.modal-recurso-premium .p-dialog-close-button {
+    color: #fff;
+}
+
+.modal-recurso-premium .p-dialog-close-button:hover {
+    color: #fca5a5;
+}
+
+.modal-recurso-premium .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 </style>

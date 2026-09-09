@@ -1003,7 +1003,13 @@ const procesarCambioEstado = (persona) => {
 
 .filtros-grid-ultra-full {
     display: grid;
-    grid-template-columns: 18% 8% 10% 12% 18% 12% 8% 10%;
+    /* 7 filtros para las 8 columnas de la tabla (Persona 18% | Tipo 8% | RFC 11%
+       | Correo 16% + Teléfono 12% | Representante 13% | Estado 8% | Acciones 10%)
+       — el filtro "Correo / Teléfono" es uno solo y ocupa el ancho combinado de
+       esas dos columnas para quedar alineado debajo de ambas. Antes tenía 8
+       valores que no correspondían ni en ancho ni en cantidad a las columnas
+       reales, así que los filtros no quedaban bajo su columna. */
+    grid-template-columns: 18% 8% 11% 28% 13% 8% 10%;
     gap: 4px;
     align-items: end;
     width: 100%;
