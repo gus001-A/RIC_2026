@@ -923,6 +923,12 @@ class PersonaController extends Controller
             }
         }
 
+        // La "ciudad" ya no se captura por separado: siempre es igual al
+        // municipio. Sólo se toca si el municipio viene en el request.
+        if (array_key_exists('municipio', $data)) {
+            $data['ciudad'] = $data['municipio'];
+        }
+
         // `sexo` / `representante_sexo`: enum con default 'NO_ESPECIFICADO'.
         foreach (['sexo', 'representante_sexo'] as $campoSexo) {
             if (array_key_exists($campoSexo, $validated) && $validated[$campoSexo] !== '') {

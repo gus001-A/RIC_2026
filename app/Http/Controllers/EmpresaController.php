@@ -180,7 +180,8 @@ class EmpresaController extends Controller
                 'numero_exterior' => $validated['numero_exterior'] ?? null,
                 'numero_interior' => $validated['numero_interior'] ?? null,
                 'colonia' => $validated['colonia'] ?? null,
-                'ciudad' => $validated['ciudad'] ?? null,
+                // La "ciudad" ya no se captura por separado: es igual al municipio.
+                'ciudad' => $validated['municipio'] ?? ($validated['ciudad'] ?? null),
                 'municipio' => $validated['municipio'] ?? null,
                 'estado' => $validated['estado'] ?? null,
                 'codigo_postal' => $validated['codigo_postal'] ?? null,
@@ -980,7 +981,8 @@ class EmpresaController extends Controller
                 'numero_exterior' => $validated['numero_exterior'] ?? null,
                 'numero_interior' => $validated['numero_interior'] ?? null,
                 'colonia' => $validated['colonia'] ?? null,
-                'ciudad' => $validated['ciudad'] ?? null,
+                // La "ciudad" ya no se captura por separado: es igual al municipio.
+                'ciudad' => $validated['municipio'] ?? ($validated['ciudad'] ?? null),
                 'municipio' => $validated['municipio'] ?? null,
                 'estado' => $validated['estado'] ?? null,
                 'codigo_postal' => $validated['codigo_postal'] ?? null,

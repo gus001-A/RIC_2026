@@ -84,7 +84,9 @@ class DireccionController extends Controller
                 'found'     => true,
                 'estado'    => $primero->estado,
                 'municipio' => $primero->municipio,
-                'ciudad'    => $primero->ciudad ?: $primero->municipio,
+                // La "ciudad" ya no se captura por separado en los formularios:
+                // siempre es igual al municipio.
+                'ciudad'    => $primero->municipio,
                 'colonias'  => $rows->map(fn ($r) => [
                     'nombre' => $r->asentamiento,
                     'tipo'   => $r->tipo_asentamiento,

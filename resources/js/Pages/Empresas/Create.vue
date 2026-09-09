@@ -346,15 +346,6 @@
                                                 :empty-text="form.codigo_postal ? 'Escribe el CP para ver colonias' : 'Escribe el código postal'"
                                             />
                                         </div>
-                                        <div class="field-premium dir-ciudad">
-                                            <label class="label-premium">Ciudad</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.ciudad"
-                                                       class="input-premium input-readonly"
-                                                       placeholder="Se toma del código postal"
-                                                       readonly>
-                                            </div>
-                                        </div>
                                         <div class="field-premium dir-calle">
                                             <label class="label-premium">Calle</label>
                                             <div class="input-wrapper-premium">
@@ -363,19 +354,8 @@
                                                        placeholder="Av. Insurgentes Sur">
                                             </div>
                                         </div>
-                                        <div class="field-premium dir-ext">
-                                            <label class="label-premium">Núm. Ext.</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.numero_exterior"
-                                                       @input="validateAlphanumeric('numero_exterior')"
-                                                       class="input-premium"
-                                                       :class="{ 'error': alphanumericErrors.numero_exterior }"
-                                                       placeholder="123">
-                                            </div>
-                                            <div v-if="alphanumericErrors.numero_exterior" class="error-premium">{{ alphanumericErrors.numero_exterior }}</div>
-                                        </div>
                                         <div class="field-premium dir-int">
-                                            <label class="label-premium">Núm. Int.</label>
+                                            <label class="label-premium">Núm. Interior</label>
                                             <div class="input-wrapper-premium">
                                                 <input type="text" v-model="form.numero_interior"
                                                        @input="validateAlphanumeric('numero_interior')"
@@ -384,6 +364,17 @@
                                                        placeholder="2B">
                                             </div>
                                             <div v-if="alphanumericErrors.numero_interior" class="error-premium">{{ alphanumericErrors.numero_interior }}</div>
+                                        </div>
+                                        <div class="field-premium dir-ext">
+                                            <label class="label-premium">Núm. Exterior</label>
+                                            <div class="input-wrapper-premium">
+                                                <input type="text" v-model="form.numero_exterior"
+                                                       @input="validateAlphanumeric('numero_exterior')"
+                                                       class="input-premium"
+                                                       :class="{ 'error': alphanumericErrors.numero_exterior }"
+                                                       placeholder="123">
+                                            </div>
+                                            <div v-if="alphanumericErrors.numero_exterior" class="error-premium">{{ alphanumericErrors.numero_exterior }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -543,6 +534,7 @@ onMounted(() => dir.cargarEstados());
 const onEstado = (estado) => {
     form.estado = estado;
     form.municipio = '';
+    form.ciudad = '';
     dir.cargarMunicipios(estado);
 };
 
@@ -550,9 +542,10 @@ const onBuscarCP = async () => {
     const datos = await dir.buscarCP(form.codigo_postal);
     if (!datos) return;
     form.estado = datos.estado;
-    form.ciudad = datos.ciudad || form.ciudad;
     await dir.cargarMunicipios(datos.estado);
     form.municipio = datos.municipio;
+    // La ciudad ya no se captura: siempre es igual al municipio.
+    form.ciudad = datos.municipio || datos.ciudad || '';
     if (dir.colonias.value.length === 1) {
         form.colonia = dir.colonias.value[0].nombre;
     }
@@ -834,6 +827,11 @@ const statusClass = computed(() => {
 // ============================================
 // WATCHERS
 // ============================================
+// El campo "Ciudad" se quitó del formulario: se mantiene igual al municipio.
+watch(() => form.municipio, (nuevo) => {
+    form.ciudad = nuevo || '';
+});
+
 watch(() => form.rfc, () => {
     if (form.rfc) validateRFC();
 }, { immediate: true });
@@ -1274,20 +1272,16 @@ const submit = () => {
     grid-column: span 2;
 }
 
-/* Fila 2: Colonia + Ciudad */
+/* Fila 2: Colonia + Calle */
 .grid-direccion .dir-colonia,
-.grid-direccion .dir-ciudad {
+.grid-direccion .dir-calle {
     grid-column: span 3;
 }
 
-/* Fila 3: Calle (ancha) + Núm Ext + Núm Int */
-.grid-direccion .dir-calle {
-    grid-column: span 4;
-}
-
+/* Fila 3: Núm. Interior + Núm. Exterior */
 .grid-direccion .dir-ext,
 .grid-direccion .dir-int {
-    grid-column: span 1;
+    grid-column: span 3;
 }
 
 .hint-premium {
