@@ -81,10 +81,13 @@ export function useDireccionMx() {
                 colonias.value = Array.isArray(data.colonias) ? data.colonias : [];
                 return data;
             }
-            cpMensaje.value = 'No encontramos ese código postal. Puedes capturar la dirección manualmente.';
+            cpMensaje.value = (data && data.message)
+                ? data.message
+                : 'No encontramos ese código postal. Puedes capturar la dirección manualmente.';
             return null;
         } catch (e) {
-            cpMensaje.value = 'No se pudo consultar el código postal en este momento.';
+            cpMensaje.value = e?.response?.data?.message
+                || 'No se pudo consultar el código postal en este momento. Puedes capturar la dirección manualmente.';
             return null;
         } finally {
             cargandoCP.value = false;

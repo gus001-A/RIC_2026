@@ -5,11 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Endpoints de apoyo para capturar direcciones en los formularios:
  *  - catalogo estados / municipios (JSON estatico INEGI)
  *  - busqueda por codigo postal (tabla `codigos_postales`, datos SEPOMEX)
+ *
+ * NOTA: la tabla `codigos_postales` se llena con
+ *   php artisan db:seed --class=CodigosPostalesSeeder
+ * o importando database/sql/codigos_postales.sql(.gz). Si NO existe / esta vacia
+ * (p. ej. deploy por FTP sin correr seeders) estos endpoints degradan sin
+ * romper el formulario: devuelven `found:false` con un mensaje claro.
  */
 class DireccionController extends Controller
 {
@@ -60,42 +67,76 @@ class DireccionController extends Controller
     /**
      * GET /direccion/cp/62577
      * -> { found, cp, estado, municipio, ciudad, colonias: [{nombre, tipo}, ...] }
+     *
+     * Nunca lanza 500: si la tabla no existe / esta vacia o hay un error de BD,
+     * responde 200 con found:false + message.
      */
     public function codigoPostal(string $cp)
     {
         $cp = preg_replace('/\D/', '', $cp);
 
         if (strlen($cp) !== 5) {
-            return response()->json(['found' => false, 'message' => 'El codigo postal debe tener 5 digitos.'], 422);
+            return response()->json([
+                'found'   => false,
+                'message' => 'El código postal debe tener 5 dígitos.',
+            ]);
         }
 
-        $data = Cache::remember("direccion.cp.{$cp}", now()->addDays(30), function () use ($cp) {
-            $rows = DB::table('codigos_postales')
-                ->where('cp', $cp)
-                ->get(['estado', 'municipio', 'ciudad', 'asentamiento', 'tipo_asentamiento']);
-
-            if ($rows->isEmpty()) {
-                return ['found' => false];
+        try {
+            if (! Schema::hasTable('codigos_postales')) {
+                return response()->json([
+                    'found'   => false,
+                    'message' => 'El catálogo de códigos postales no está instalado en este servidor. '
+                        . 'Importa database/sql/codigos_postales.sql.gz (ver database/sql/LEEME_codigos_postales.md) '
+                        . 'o corre: php artisan db:seed --class=CodigosPostalesSeeder',
+                ]);
             }
 
-            $primero = $rows->first();
+            $data = Cache::remember("direccion.cp.{$cp}", now()->addDays(30), function () use ($cp) {
+                $rows = DB::table('codigos_postales')
+                    ->where('cp', $cp)
+                    ->get(['estado', 'municipio', 'ciudad', 'asentamiento', 'tipo_asentamiento']);
 
-            return [
-                'found'     => true,
-                'estado'    => $primero->estado,
-                'municipio' => $primero->municipio,
-                // La "ciudad" ya no se captura por separado en los formularios:
-                // siempre es igual al municipio.
-                'ciudad'    => $primero->municipio,
-                'colonias'  => $rows->map(fn ($r) => [
-                    'nombre' => $r->asentamiento,
-                    'tipo'   => $r->tipo_asentamiento,
-                ])->sortBy('nombre')->values(),
-            ];
-        });
+                if ($rows->isEmpty()) {
+                    return ['found' => false];
+                }
 
-        $data['cp'] = $cp;
+                $primero = $rows->first();
 
-        return response()->json($data);
+                return [
+                    'found'     => true,
+                    'estado'    => $primero->estado,
+                    'municipio' => $primero->municipio,
+                    // La "ciudad" ya no se captura por separado en los
+                    // formularios: siempre es igual al municipio.
+                    'ciudad'    => $primero->municipio,
+                    'colonias'  => $rows->map(fn ($r) => [
+                        'nombre' => $r->asentamiento,
+                        'tipo'   => $r->tipo_asentamiento,
+                    ])->sortBy('nombre')->values(),
+                ];
+            });
+
+            if (empty($data['found'])) {
+                return response()->json([
+                    'found'   => false,
+                    'cp'      => $cp,
+                    'message' => 'No encontramos ese código postal.',
+                ]);
+            }
+
+            $data['cp'] = $cp;
+
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            \Log::warning('DireccionController@codigoPostal falló: ' . $e->getMessage());
+
+            return response()->json([
+                'found'   => false,
+                'cp'      => $cp,
+                'message' => 'No se pudo consultar el código postal en este momento. '
+                    . 'Puedes capturar la dirección manualmente.',
+            ]);
+        }
     }
 }

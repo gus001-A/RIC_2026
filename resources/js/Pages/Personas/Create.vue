@@ -428,7 +428,7 @@
                                                 <input type="text" v-model="form.codigo_postal"
                                                        @input="validateCodigoPostal()"
                                                        @blur="onBuscarCP()"
-                                                       @keyup.enter="onBuscarCP()"
+                                                       @keydown.enter.prevent="onBuscarCP()"
                                                        class="input-premium"
                                                        :class="{ 'error': codigoPostalError }"
                                                        placeholder="06600"
@@ -475,6 +475,7 @@
                                                 :empty-text="form.codigo_postal ? 'Escribe el CP para ver colonias' : 'Escribe el código postal'"
                                             />
                                             <div v-if="textErrors.colonia" class="error-premium">{{ textErrors.colonia }}</div>
+                                            <div v-else class="hint-premium">Elige una de la lista, o escríbela y haz clic fuera del recuadro.</div>
                                         </div>
                                         <div class="field-premium dir-calle">
                                             <label class="label-premium">Calle</label>
@@ -487,17 +488,6 @@
                                             </div>
                                             <div v-if="textErrors.calle" class="error-premium">{{ textErrors.calle }}</div>
                                         </div>
-                                        <div class="field-premium dir-int">
-                                            <label class="label-premium">Núm. Interior</label>
-                                            <div class="input-wrapper-premium">
-                                                <input type="text" v-model="form.numero_interior"
-                                                       @input="validateAlphanumeric('numero_interior')"
-                                                       class="input-premium"
-                                                       :class="{ 'error': alphanumericErrors.numero_interior }"
-                                                       placeholder="2B">
-                                            </div>
-                                            <div v-if="alphanumericErrors.numero_interior" class="error-premium">{{ alphanumericErrors.numero_interior }}</div>
-                                        </div>
                                         <div class="field-premium dir-ext">
                                             <label class="label-premium">Núm. Exterior</label>
                                             <div class="input-wrapper-premium">
@@ -508,6 +498,17 @@
                                                        placeholder="123">
                                             </div>
                                             <div v-if="alphanumericErrors.numero_exterior" class="error-premium">{{ alphanumericErrors.numero_exterior }}</div>
+                                        </div>
+                                        <div class="field-premium dir-int">
+                                            <label class="label-premium">Núm. Interior</label>
+                                            <div class="input-wrapper-premium">
+                                                <input type="text" v-model="form.numero_interior"
+                                                       @input="validateAlphanumeric('numero_interior')"
+                                                       class="input-premium"
+                                                       :class="{ 'error': alphanumericErrors.numero_interior }"
+                                                       placeholder="2B">
+                                            </div>
+                                            <div v-if="alphanumericErrors.numero_interior" class="error-premium">{{ alphanumericErrors.numero_interior }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1733,14 +1734,15 @@ const submit = () => {
     grid-column: span 2;
 }
 
+/* Fila 2: Colonia + Calle + Núm. Exterior + Núm. Interior (en la misma línea) */
 .grid-direccion .dir-colonia,
 .grid-direccion .dir-calle {
-    grid-column: span 3;
+    grid-column: span 2;
 }
 
 .grid-direccion .dir-ext,
 .grid-direccion .dir-int {
-    grid-column: span 3;
+    grid-column: span 1;
 }
 
 .hint-premium {
