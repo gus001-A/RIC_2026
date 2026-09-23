@@ -448,9 +448,13 @@
                                     class="filtro-inferior-select"
                                 >
                                     <option value="">Todos</option>
+                                    <option value="CAPTURADO">Capturado</option>
+                                    <option value="REVISADO">Revisado</option>
+                                    <option value="AUTORIZADO">Autorizado</option>
                                     <option value="PENDIENTE">Pendiente</option>
                                     <option value="ABONADO">Abonado</option>
                                     <option value="LIQUIDADO">Liquidado</option>
+                                    <option value="CERRADO">Cerrado</option>
                                 </select>
                             </div>
 
@@ -1158,7 +1162,15 @@ const cambiarEmpresa = () => {
 // CLASES Y ESTILOS
 // ============================================
 const getEstatusClass = (estatus) => {
-    const classes = { 'PENDIENTE': 'pendiente', 'ABONADO': 'abonado', 'LIQUIDADO': 'liquidado' };
+    const classes = {
+        'CAPTURADO': 'capturado',
+        'REVISADO': 'revisado',
+        'AUTORIZADO': 'autorizado',
+        'PENDIENTE': 'pendiente',
+        'ABONADO': 'abonado',
+        'LIQUIDADO': 'liquidado',
+        'CERRADO': 'cerrado',
+    };
     return classes[estatus] || 'pendiente';
 };
 
@@ -2238,6 +2250,26 @@ onMounted(() => {
 .estatus-badge.liquidado {
     background: #dcfce7;
     color: #166534;
+}
+
+.estatus-badge.capturado {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.estatus-badge.revisado {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.estatus-badge.autorizado {
+    background: #cffafe;
+    color: #155e75;
+}
+
+.estatus-badge.cerrado {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .persona-text-ultra {

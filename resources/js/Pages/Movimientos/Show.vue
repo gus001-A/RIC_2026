@@ -1281,6 +1281,26 @@ const mostrarModal = (type, title, message) => {
 // ACCIONES - TODAS REDIRIGEN AL INDEX
 // ============================================
 
+// Al volver al listado tras revisar/autorizar/cerrar/reabrir, se filtra por
+// la fecha de ESTA póliza (en vez de dejar que el índice caiga en "hoy" por
+// default). Así el usuario ve de inmediato la póliza que acaba de procesar,
+// en lugar de que "desaparezca" de la vista y crea que no se guardó nada.
+const irAIndexConFechaDePoliza = () => {
+    const fecha = props.movimiento?.fecha_poliza ? String(props.movimiento.fecha_poliza).slice(0, 10) : null;
+    const params = fecha ? { fecha_desde: fecha, fecha_hasta: fecha } : {};
+
+    // La vista "normal" del índice excluye diferidas y traspasos, así que si
+    // la póliza es de otro tipo hay que pedir la vista correcta o, con solo
+    // el filtro de fecha, jamás aparecería en la lista.
+    if (props.movimiento?.tipo_poliza === 'TRASPASO') {
+        params.vista = 'traspasos';
+    } else if (props.movimiento?.es_por_pagar) {
+        params.vista = 'diferidas';
+    }
+
+    router.visit(route('movimientos.index', params));
+};
+
 // ============================================
 // REVISAR - REDIRIGE AL INDEX
 // ============================================
@@ -1294,7 +1314,7 @@ const accionRevisar = () => {
                 comentario: comentario || null,
             }).then(() => {
                 mostrarModal('success', 'Póliza revisada', 'La póliza ha sido revisada exitosamente.');
-                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
+                setTimeout(irAIndexConFechaDePoliza, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al revisar la póliza.');
             });
@@ -1316,7 +1336,7 @@ const accionAutorizar = () => {
                 comentario: comentario || null,
             }).then(() => {
                 mostrarModal('success', 'Póliza autorizada', 'La póliza ha sido autorizada exitosamente.');
-                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
+                setTimeout(irAIndexConFechaDePoliza, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al autorizar la póliza.');
             });
@@ -1339,7 +1359,7 @@ const accionCerrar = () => {
                 motivo: 'Cierre manual de póliza',
             }).then(() => {
                 mostrarModal('success', 'Póliza cerrada', 'La póliza ha sido cerrada exitosamente.');
-                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
+                setTimeout(irAIndexConFechaDePoliza, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al cerrar la póliza.');
             });
@@ -1361,7 +1381,7 @@ const accionReabrir = () => {
                 motivo: motivo || 'Reapertura manual de póliza',
             }).then(() => {
                 mostrarModal('success', 'Póliza reabierta', 'La póliza ha sido reabierta exitosamente.');
-                setTimeout(() => { router.visit(route('movimientos.index')); }, 1500);
+                setTimeout(irAIndexConFechaDePoliza, 1500);
             }).catch((error) => {
                 mostrarModal('error', 'Error', error.response?.data?.message || 'Error al reabrir la póliza.');
             });

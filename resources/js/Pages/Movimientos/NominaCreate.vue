@@ -189,6 +189,49 @@
                                 </div>
                             </div>
 
+                            <!-- ============================================ -->
+                            <!-- APLICAR EN LOTE: mismo monto/cuenta a los empleados marcados -->
+                            <!-- Flujo: marca un grupo (ej. "Seleccionar Todos" o a mano),   -->
+                            <!-- pon el monto y/o cuenta, dale "Aplicar". Repite con otro     -->
+                            <!-- grupo y otro monto para pagar distintas cantidades a la vez.  -->
+                            <!-- ============================================ -->
+                            <div class="lote-bar-premium">
+                                <div class="lote-bar-titulo">
+                                    <i class="pi pi-bolt"></i> Aplicar en lote a los seleccionados
+                                </div>
+                                <div class="lote-bar-campos">
+                                    <div class="lote-campo">
+                                        <span class="lote-campo-prefix">$</span>
+                                        <input type="number"
+                                               step="0.01"
+                                               min="0"
+                                               v-model.number="loteMonto"
+                                               placeholder="Monto a aplicar"
+                                               class="form-input-premium lote-input-monto">
+                                    </div>
+                                    <select v-model="loteCuentaFondeadora" class="form-input-premium form-select-premium lote-input-cuenta">
+                                        <option value="">(no cambiar cuenta de fondo)</option>
+                                        <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
+                                            {{ c.nombre_cuenta }}
+                                        </option>
+                                    </select>
+                                    <button type="button"
+                                            @click="aplicarEnLote"
+                                            :disabled="empleadosSeleccionados === 0 || (!loteMonto && !loteCuentaFondeadora)"
+                                            class="btn-action-premium btn-aplicar-lote">
+                                        <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Aplicar a {{ empleadosSeleccionados }} seleccionados
+                                    </button>
+                                </div>
+                                <div class="lote-bar-hint">
+                                    Marca a los empleados (checkbox de la tabla o "Seleccionar Todos"), escribe el monto
+                                    y presiona "Aplicar". Para pagar otra cantidad a otro grupo, deselecciona, marca al
+                                    siguiente grupo, cambia el monto y aplica de nuevo.
+                                </div>
+                            </div>
+
                             <!-- Tabla de empleados -->
                             <div class="table-container-premium">
                                 <table class="table-premium">
@@ -398,6 +441,12 @@ const formData = reactive({
 const errors = reactive({});
 
 // ============================================
+// APLICAR EN LOTE (mismo monto/cuenta a un grupo de empleados)
+// ============================================
+const loteMonto = ref(null);
+const loteCuentaFondeadora = ref('');
+
+// ============================================
 // COMPUTED
 // ============================================
 const empleadosSeleccionados = computed(() => {
@@ -477,6 +526,33 @@ const deseleccionarTodos = () => {
 const toggleSeleccionarTodos = (event) => {
     const checked = event.target.checked;
     empleados.value.forEach(e => e.seleccionado = checked);
+};
+
+// Aplica el monto y/o la cuenta de fondo del "lote" a los empleados marcados.
+// Permite pagar cantidades distintas a distintos grupos: marca al grupo A,
+// pon su monto y aplica; deselecciona, marca al grupo B, cambia el monto y
+// vuelve a aplicar.
+const aplicarEnLote = () => {
+    const seleccionados = empleados.value.filter(e => e.seleccionado);
+    if (seleccionados.length === 0) {
+        notify.error('Selecciona primero a los empleados a los que quieres aplicar el monto/cuenta.', 'Nada seleccionado');
+        return;
+    }
+    if (!loteMonto.value && !loteCuentaFondeadora.value) {
+        notify.error('Escribe un monto o elige una cuenta de fondo para aplicar.', 'Nada que aplicar');
+        return;
+    }
+
+    seleccionados.forEach(e => {
+        if (loteMonto.value) {
+            e.monto = loteMonto.value;
+        }
+        if (loteCuentaFondeadora.value) {
+            e.id_cuenta_fondeadora = loteCuentaFondeadora.value;
+        }
+    });
+
+    notify.success(`Se aplicó a ${seleccionados.length} empleado(s) seleccionado(s).`, 'Aplicado');
 };
 
 // ============================================
@@ -1111,6 +1187,86 @@ onMounted(() => {
     background: linear-gradient(135deg, #ecfdf5, #d1fae5);
     border-radius: 8px;
     border: 1px solid #a7f3d0;
+}
+
+/* ========== APLICAR EN LOTE ========== */
+.lote-bar-premium {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+}
+
+.lote-bar-titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.lote-bar-campos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.lote-campo {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.lote-campo-prefix {
+    color: #64748b;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.lote-input-monto {
+    border: none !important;
+    padding: 8px 0 !important;
+    width: 140px;
+}
+
+.lote-input-monto:focus {
+    outline: none;
+    box-shadow: none !important;
+}
+
+.lote-input-cuenta {
+    min-width: 220px;
+}
+
+.btn-aplicar-lote {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-aplicar-lote:hover:not(:disabled) {
+    filter: brightness(1.05);
+}
+
+.btn-aplicar-lote:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.lote-bar-hint {
+    font-size: 0.75rem;
+    color: #92400e;
+    opacity: 0.85;
 }
 
 .table-container-premium {

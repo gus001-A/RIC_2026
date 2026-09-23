@@ -3750,8 +3750,15 @@ public function showAbono(string $id)
                 ->with('error', 'No tienes permiso para crear movimientos');
         }
 
-        $empresaId = session('empresa_movimientos');
-        
+        // 🔥 Antes solo miraba `empresa_movimientos` (que solo se guarda al pasar
+        // por /movimientos/create). Si el usuario entraba a Nómina sin haber
+        // visitado esa pantalla, esto caía siempre a "su primera empresa" en
+        // vez de la empresa que tenía seleccionada en el índice de Movimientos
+        // (`empresa_seleccionada`) — generando pólizas para la empresa
+        // equivocada o mostrando el formulario sin cajas fondo si la primera
+        // empresa no tenía ninguna configurada.
+        $empresaId = session('empresa_movimientos') ?? session('empresa_seleccionada');
+
         if (!$empresaId) {
             $empresa = auth()->user()->empresas()->first();
             $empresaId = $empresa ? $empresa->id : null;
@@ -3761,6 +3768,10 @@ public function showAbono(string $id)
             return redirect()->route('movimientos.index')
                 ->with('error', 'No tienes una empresa seleccionada.');
         }
+
+        // Sincronizar ambas claves para que storeNomina() (y cualquier otra
+        // pantalla) use exactamente esta misma empresa.
+        session(['empresa_movimientos' => $empresaId, 'empresa_seleccionada' => $empresaId]);
 
         $empleados = Persona::where('activo', true)
             ->where('empleado', 1)
@@ -3830,18 +3841,27 @@ public function showAbono(string $id)
     // ============================================
     public function storeNomina(Request $request)
     {
+        // 🔥 Este endpoint SOLO se llama vía axios (ver NominaCreate.vue), nunca
+        // por navegación normal. Todas las respuestas deben ser JSON: un
+        // redirect() aquí lo sigue el navegador de forma transparente y el
+        // frontend termina mostrando "éxito" aunque nada se haya guardado
+        // (fue exactamente el bug reportado: "no registra nada, no hay logs").
         if (!Gate::allows('crear-movimientos')) {
-            return redirect()->route('movimientos.index')
-                ->with('error', 'No tienes permiso para crear movimientos');
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para crear movimientos'
+            ], 403);
         }
 
         $validator = Validator::make($request->all(), [
-            'quincena' => 'required|in:1,2',
             'fecha_pago' => 'required|date',
             'id_cuenta_fondeadora' => 'required|exists:cuentas,id_cuenta',
             'tipo_poliza' => 'required|in:EGRESO',
             'id_marcador' => 'nullable|exists:marcadores,id',
-            'descripcion' => 'nullable|string|max:255',
+            // El formulario envía "observacion_general" (antes se validaba
+            // "descripcion", un campo que la vista nunca llegó a enviar, por
+            // lo que la validación fallaba SIEMPRE).
+            'observacion_general' => 'nullable|string|max:255',
             'id_cuenta' => 'required|exists:cuentas,id_cuenta',
             'empleados' => 'required|array|min:1',
             'empleados.*.id_persona' => 'required|exists:personas,id_persona',
@@ -3851,14 +3871,18 @@ public function showAbono(string $id)
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         try {
             DB::beginTransaction();
 
             $empresaId = session('empresa_movimientos');
-            
+
             if (!$empresaId) {
                 $empresa = auth()->user()->empresas()->first();
                 $empresaId = $empresa ? $empresa->id : null;
@@ -3869,7 +3893,7 @@ public function showAbono(string $id)
             }
 
             $fechaPago = $request->fecha_pago;
-            $descripcion = $request->descripcion ?? 'Pago de nómina quincenal';
+            $descripcion = $request->observacion_general ?? 'Pago de nómina quincenal';
             $idMarcador = $request->id_marcador;
             $idCuenta = $request->id_cuenta;
 
@@ -3888,6 +3912,16 @@ public function showAbono(string $id)
 
                 $folio = 'NOM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 
+                // Evitar la nota duplicada "X - X" cuando la observación del
+                // empleado es igual a la observación general (caso normal,
+                // ya que se replica automáticamente en el formulario).
+                $observacionEmpleado = trim($empleadoData['observacion'] ?? '');
+                if ($observacionEmpleado === '' || $observacionEmpleado === trim($descripcion)) {
+                    $nota = $descripcion;
+                } else {
+                    $nota = $descripcion . ' - ' . $observacionEmpleado;
+                }
+
                 $poliza = Poliza::create([
                     'id_empresa' => $empresaId,
                     'tipo_poliza' => 'EGRESO',
@@ -3897,7 +3931,7 @@ public function showAbono(string $id)
                     'estatus' => 'CAPTURADO',
                     'es_por_pagar' => false,
                     'referencia' => $folio,
-                    'nota' => $descripcion . ' - ' . ($empleadoData['observacion'] ?? 'Sueldo quincenal'),
+                    'nota' => $nota,
                     'id_persona' => $empleadoData['id_persona'],
                     'id_usuario_creador' => auth()->id(),
                     'id_usuario_autorizador' => null,
@@ -3931,15 +3965,34 @@ public function showAbono(string $id)
 
             DB::commit();
 
-            return redirect()->route('movimientos.index', [
-                    'fecha_desde' => \Carbon\Carbon::parse($fechaPago)->toDateString(),
-                    'fecha_hasta' => \Carbon\Carbon::parse($fechaPago)->toDateString(),
-                ])
-                ->with('success', "Nómina generada exitosamente. {$totalEmpleados} pólizas creadas por un total de $" . number_format($totalNomina, 2));
+            \Log::info('✅ Nómina generada:', [
+                'empresa_id' => $empresaId,
+                'total_empleados' => $totalEmpleados,
+                'total_nomina' => $totalNomina,
+                'fecha_pago' => $fechaPago,
+                'usuario' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Nómina generada exitosamente. {$totalEmpleados} pólizas creadas por un total de $" . number_format($totalNomina, 2),
+                'data' => [
+                    'total_empleados' => $totalEmpleados,
+                    'total_nomina' => $totalNomina,
+                    'fecha_pago' => \Carbon\Carbon::parse($fechaPago)->toDateString(),
+                ]
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Error al generar las pólizas de nómina: ' . $e->getMessage())->withInput();
+            \Log::error('❌ Error al generar pólizas de nómina:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar las pólizas de nómina: ' . $e->getMessage()
+            ], 500);
         }
     }
 
