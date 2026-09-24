@@ -115,6 +115,31 @@
                                     </div>
                                 </div>
 
+                                <!-- Cuenta contable donde se registra la nómina (distinta de la Caja Fondo,
+                                     que es de donde SALE el dinero). Antes se fijaba sola sin poder cambiarla. -->
+                                <div class="form-group-premium">
+                                    <label class="form-label-premium">Cuenta <span class="required-star">*</span>
+                                    </label>
+                                    <div class="input-wrapper-premium">
+                                        <select v-model="formData.id_cuenta"
+                                                @change="clearError('id_cuenta')"
+                                                class="form-input-premium form-select-premium"
+                                                :class="{ 'error': errors.id_cuenta }">
+                                            <option value="">Selecciona una cuenta</option>
+                                            <option v-for="c in cuentasNomina" :key="c.id_cuenta" :value="c.id_cuenta">
+                                                {{ c.nombre_cuenta }}
+                                            </option>
+                                        </select>
+                                        <div class="input-icon-premium">
+                                            <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="field-hint-premium">Cuenta contable donde se registra el gasto de nómina</div>
+                                    <div v-if="errors.id_cuenta" class="error-message-premium">{{ errors.id_cuenta }}</div>
+                                </div>
+
                                 <!-- Marcador -->
                                 <div class="form-group-premium">
                                     <label class="form-label-premium">Marcador</label>
@@ -196,17 +221,17 @@
                             <!-- grupo y otro monto para pagar distintas cantidades a la vez.  -->
                             <!-- ============================================ -->
                             <div class="lote-bar-premium">
-                                <div class="lote-bar-titulo">
-                                    <i class="pi pi-bolt"></i> Aplicar en lote a los seleccionados
-                                </div>
-                                <div class="lote-bar-campos">
+                                <div class="lote-bar-fila">
+                                    <span class="lote-bar-titulo">
+                                        <i class="pi pi-bolt"></i> Aplicar en lote:
+                                    </span>
                                     <div class="lote-campo">
                                         <span class="lote-campo-prefix">$</span>
                                         <input type="number"
                                                step="0.01"
                                                min="0"
                                                v-model.number="loteMonto"
-                                               placeholder="Monto a aplicar"
+                                               placeholder="Monto"
                                                class="form-input-premium lote-input-monto">
                                     </div>
                                     <select v-model="loteCuentaFondeadora" class="form-input-premium form-select-premium lote-input-cuenta">
@@ -792,10 +817,10 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.8);
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #6b7280;
     transition: all 0.3s ease;
@@ -804,8 +829,8 @@ onMounted(() => {
 .btn-back:hover {
     background: white;
     color: #1f2937;
-    transform: translateX(-3px) scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateX(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .header-content {
@@ -814,9 +839,9 @@ onMounted(() => {
 }
 
 .header-title {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #111827;
+    color: #0f172a;
     margin: 0;
     line-height: 1.3;
 }
@@ -899,12 +924,13 @@ onMounted(() => {
 }
 
 /* ========== PAGE CONTENT ========== */
+/* Mismas medidas que el resto de Movimientos (Create.vue). */
 .page-content {
-    padding: 1.5rem 0;
+    padding: 0.5rem 0;
 }
 
 .container-custom {
-    max-width: 72rem;
+    max-width: 80rem;
     margin: 0 auto;
     padding: 0 1.5rem;
 }
@@ -912,23 +938,17 @@ onMounted(() => {
 /* ========== FORM CARD ========== */
 .form-card {
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    border: 1px solid #f3f4f6;
-    padding: 2rem;
-    transition: all 0.3s ease;
-}
-
-.form-card:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    padding: 1.25rem 1.5rem;
 }
 
 /* ========== SECTIONS ========== */
 .section-block-premium {
-    margin-bottom: 2.5rem;
-    padding-bottom: 2.5rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.75rem;
     border-bottom: 2px solid #f1f5f9;
-    transition: all 0.3s ease;
 }
 
 .section-block-premium:last-of-type {
@@ -940,20 +960,19 @@ onMounted(() => {
 .section-header-premium {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .section-icon-premium {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     color: white;
     flex-shrink: 0;
-    transition: all 0.3s ease;
     box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 
@@ -961,8 +980,8 @@ onMounted(() => {
 .section-icon-premium.green { background: linear-gradient(135deg, #10b981, #059669); }
 
 .icon-svg-premium {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
 }
 
 .section-title-text {
@@ -997,7 +1016,7 @@ onMounted(() => {
 }
 
 .form-label-premium {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: #1e293b;
     display: flex;
@@ -1011,27 +1030,28 @@ onMounted(() => {
 }
 
 /* ========== INPUTS ========== */
+/* Mismos valores que el resto de los formularios de Movimientos (Create.vue):
+   borde 2px #e5e7eb, radio 8px, alto 40px, foco azul marino #1a3a5c. */
 .input-wrapper-premium {
     position: relative;
 }
 
 .form-input-premium {
     width: 100%;
-    padding: 10px 14px;
-    font-size: 0.9rem;
+    padding: 8px 14px;
+    font-size: 0.85rem;
     border: 2px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 8px;
     background: white;
     color: #1f2937;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     outline: none;
-    height: 44px;
+    height: 40px;
 }
 
 .form-input-premium:focus {
     border-color: #1a3a5c;
     box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
-    transform: translateY(-1px);
 }
 
 .form-input-premium.error {
@@ -1193,12 +1213,20 @@ onMounted(() => {
 .lote-bar-premium {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 16px;
-    padding: 14px 16px;
+    padding: 12px 16px;
     background: linear-gradient(135deg, #fffbeb, #fef3c7);
     border: 1px solid #fde68a;
     border-radius: 10px;
+}
+
+/* Todo en una sola línea (título, monto, cuenta y botón) */
+.lote-bar-fila {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: center;
 }
 
 .lote-bar-titulo {
@@ -1208,22 +1236,24 @@ onMounted(() => {
     font-size: 0.85rem;
     font-weight: 700;
     color: #92400e;
-}
-
-.lote-bar-campos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .lote-campo {
     display: flex;
     align-items: center;
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 2px solid #e5e7eb;
     border-radius: 8px;
     padding: 0 10px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.lote-campo:focus-within {
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
 }
 
 .lote-campo-prefix {
@@ -1234,8 +1264,9 @@ onMounted(() => {
 
 .lote-input-monto {
     border: none !important;
-    padding: 8px 0 !important;
-    width: 140px;
+    padding: 0 !important;
+    height: 36px !important;
+    width: 110px;
 }
 
 .lote-input-monto:focus {
@@ -1244,13 +1275,16 @@ onMounted(() => {
 }
 
 .lote-input-cuenta {
-    min-width: 220px;
+    flex: 1;
+    min-width: 160px;
 }
 
 .btn-aplicar-lote {
     background: linear-gradient(135deg, #f59e0b, #d97706) !important;
     color: white !important;
     border: none !important;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-aplicar-lote:hover:not(:disabled) {
@@ -1264,9 +1298,25 @@ onMounted(() => {
 }
 
 .lote-bar-hint {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: #92400e;
     opacity: 0.85;
+}
+
+/* En pantallas angostas sí se permite que la fila baje de línea */
+@media (max-width: 720px) {
+    .lote-bar-fila {
+        flex-wrap: wrap;
+    }
+
+    .lote-input-cuenta {
+        min-width: 100%;
+    }
+
+    .btn-aplicar-lote {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .table-container-premium {
@@ -1344,19 +1394,20 @@ onMounted(() => {
 }
 
 /* ========== BUTTONS ========== */
+/* Mismas medidas que el resto de Movimientos (Create.vue: radio 8px, alto 40px). */
 .btn-premium {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 28px;
+    padding: 8px 24px;
     font-weight: 700;
     border: none;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
     cursor: pointer;
     text-decoration: none;
-    height: 44px;
+    height: 40px;
 }
 
 .btn-icon-premium {
@@ -1373,18 +1424,18 @@ onMounted(() => {
 .btn-cancel-premium:hover {
     background: #fecaca;
     color: #dc2626;
-    transform: translateY(-2px);
+    border-color: #fca5a5;
 }
 
 .btn-submit-premium {
     background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
     color: white;
-    box-shadow: 0 4px 20px rgba(26, 58, 92, 0.3);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.25);
 }
 
 .btn-submit-premium:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(26, 58, 92, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(26, 58, 92, 0.35);
 }
 
 .btn-submit-premium:disabled {
@@ -1397,10 +1448,10 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border: 2px dashed #d1d5db;
-    border-radius: 10px;
+    border-radius: 8px;
     background: white;
     color: #1a3a5c;
     cursor: pointer;
@@ -1595,8 +1646,8 @@ onMounted(() => {
     .btn-premium {
         width: 100%;
         justify-content: center;
-        padding: 10px 20px;
-        height: 44px;
+        padding: 8px 20px;
+        height: 40px;
     }
 
     .container-custom {
