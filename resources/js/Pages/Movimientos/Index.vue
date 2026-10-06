@@ -628,11 +628,41 @@
         <Dialog
             v-model:visible="modalRecursoVisible"
             modal
-            :header="modalRecursoTitulo"
             class="modal-recurso-premium"
             :class="{ 'modal-recurso-premium-ver': modalRecursoModo === 'ver' }"
             :style="{ width: '90vw', maxWidth: '900px' }"
         >
+            <template #header>
+                <div class="recurso-header">
+                    <span class="recurso-header-titulo">{{ modalRecursoTitulo }}</span>
+                    <!-- Quién subió el comprobante, cuándo, y si tardó más de 20 min desde que se registró la póliza.
+                         Va en el título para no quitarle espacio a la vista del recurso. -->
+                    <div
+                        v-if="modalRecursoModo === 'ver' && modalRecursoMovimiento && (modalRecursoMovimiento.recurso_subido_en || modalRecursoMovimiento.recurso_subido_por)"
+                        class="recurso-subida-info"
+                        :class="modalRecursoMovimiento.recurso_tarde ? 'recurso-subida-tarde' : 'recurso-subida-ok'"
+                    >
+                        <span class="recurso-subida-dato">
+                            <i class="pi pi-user"></i>
+                            <strong>{{ modalRecursoMovimiento.recurso_subido_por || '—' }}</strong>
+                        </span>
+                        <span class="recurso-subida-dato">
+                            <i class="pi pi-calendar"></i>
+                            <strong>{{ modalRecursoMovimiento.recurso_subido_en || '—' }}</strong>
+                        </span>
+                        <span v-if="modalRecursoMovimiento.recurso_retraso_texto" class="recurso-subida-dato">
+                            <i :class="modalRecursoMovimiento.recurso_tarde ? 'pi pi-exclamation-triangle' : 'pi pi-clock'"></i>
+                            <template v-if="modalRecursoMovimiento.recurso_tarde">
+                                Subido <strong>{{ modalRecursoMovimiento.recurso_retraso_texto }}</strong> después de registrar la póliza (más de 20 min)
+                            </template>
+                            <template v-else>
+                                Subido <strong>{{ modalRecursoMovimiento.recurso_retraso_texto }}</strong> después de registrar la póliza
+                            </template>
+                        </span>
+                    </div>
+                </div>
+            </template>
+
             <div class="modal-recurso-content" :class="{ 'modal-recurso-content-ver': modalRecursoModo === 'ver' }">
                 <!-- Si es para ver -->
                 <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
@@ -2910,6 +2940,60 @@ onMounted(() => {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+}
+
+/* Encabezado del modal: título + leyenda de quién/cuándo subió el comprobante.
+   Negro si fue a tiempo (≤ 20 min después de registrar la póliza), rojo si se
+   pasó de los 20 minutos. */
+.recurso-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    flex: 1;
+    min-width: 0;
+}
+
+.recurso-header-titulo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.recurso-subida-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 400;
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+
+.recurso-subida-dato {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.recurso-subida-ok,
+.recurso-subida-ok .recurso-subida-dato {
+    color: #0f172a;
+}
+
+.recurso-subida-tarde {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+
+.recurso-subida-tarde,
+.recurso-subida-tarde .recurso-subida-dato,
+.recurso-subida-tarde strong {
+    color: #dc2626;
 }
 
 .recurso-toolbar-top {

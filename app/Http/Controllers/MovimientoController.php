@@ -99,7 +99,7 @@ public function index(Request $request)
         'poliza.usuarioCreador',
         'poliza.usuarioRevisor',
         'poliza.usuarioAutorizador',
-        'poliza.archivos',
+        'poliza.archivos.usuario',
         'cuenta' => function($q) {
             $q->where('en_uso', true);
         },
@@ -353,6 +353,7 @@ public function index(Request $request)
             'recurso_tipo' => $recursoTipo,
             'recurso_id' => $recursoId,
             'recurso_nombre' => $recursoNombre,
+            ...$this->datosSubidaRecurso($recurso, $movimiento->poliza),
             'usuario' => $movimiento->poliza->usuarioCreador ? $movimiento->poliza->usuarioCreador->nombre_usuario : null,
             'created_at' => $movimiento->created_at,
         ];
@@ -445,7 +446,7 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             'movimientos.cuentaFondeadora',
             'persona',
             'usuarioCreador',
-            'archivos'
+            'archivos.usuario'
         ])
         // Filtros
         ->when($request->filled('fecha_desde'), function($q) use ($request) {
@@ -553,6 +554,7 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             'recurso_tipo' => $recursoTipo,
             'recurso_id' => $recursoId,
             'recurso_nombre' => $recursoNombre,
+            ...$this->datosSubidaRecurso($recurso, $poliza),
             'tiene_pdf_fiscal' => !empty($poliza->ruta_pdf),
             'pdf_url' => $pdfUrl,
             'usuario' => $poliza->usuarioCreador ? $poliza->usuarioCreador->nombre_usuario : null,
@@ -5742,6 +5744,60 @@ public function showAbono(string $id)
 
         return view('exports.poliza_ticket', $data);
     }
+    /**
+     * Datos de "quién y cuándo subió" el recurso (comprobante) de una póliza y
+     * si se subió tarde: más de 20 minutos después de que se registró la póliza.
+     * Se calcula aquí (hora del servidor) para no depender de la zona horaria
+     * del navegador.
+     */
+    private function datosSubidaRecurso($recurso, $poliza): array
+    {
+        $vacio = [
+            'recurso_subido_por' => null,
+            'recurso_subido_en' => null,
+            'recurso_retraso_texto' => null,
+            'recurso_tarde' => false,
+        ];
+
+        if (!$recurso) {
+            return $vacio;
+        }
+
+        // updated_at = última carga (subida original o reemplazo), que va de
+        // la mano con id_usuario_subio (el reemplazo actualiza a ambos).
+        $subidoEn = $recurso->updated_at ?? $recurso->created_at;
+        $registrada = $poliza->created_at ?? $poliza->fecha_creacion;
+
+        $segundos = ($subidoEn && $registrada)
+            ? max(0, \Carbon\Carbon::parse($subidoEn)->getTimestamp() - \Carbon\Carbon::parse($registrada)->getTimestamp())
+            : null;
+
+        $texto = null;
+        if ($segundos !== null) {
+            $minutos = intdiv($segundos, 60);
+            if ($minutos < 1) {
+                $texto = 'menos de 1 minuto';
+            } elseif ($minutos < 60) {
+                $texto = $minutos . ' min';
+            } elseif ($minutos < 1440) {
+                $texto = intdiv($minutos, 60) . ' h ' . ($minutos % 60) . ' min';
+            } else {
+                $texto = intdiv($minutos, 1440) . ' d ' . intdiv($minutos % 1440, 60) . ' h';
+            }
+        }
+
+        return [
+            'recurso_subido_por' => $recurso->usuario
+                ? ($recurso->usuario->nombre_usuario ?: $recurso->usuario->nombre_completo)
+                : null,
+            'recurso_subido_en' => $subidoEn
+                ? \Carbon\Carbon::parse($subidoEn)->timezone(config('app.timezone'))->format('d/m/Y h:i A')
+                : null,
+            'recurso_retraso_texto' => $texto,
+            'recurso_tarde' => $segundos !== null && $segundos > 20 * 60,
+        ];
+    }
+
     // ============================================
     // 📎 SUBIR ARCHIVO ADJUNTO A PÓLIZA
     // ============================================
