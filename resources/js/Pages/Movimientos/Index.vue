@@ -198,7 +198,9 @@
                             scroll-height="500px"
                             row-hover
                             :row-class="getRowClassName"
-                            table-style="min-width: max-content"
+                            resizable-columns
+                            column-resize-mode="fit"
+                            table-style="width: 100%; min-width: 1100px; table-layout: fixed"
                             class="movimiento-table-ultra"
                             @sort="handleTableChange"
                         >
@@ -208,27 +210,38 @@
                                 :header="col.title"
                                 :sort-field="col.sorter ? col.key : undefined"
                                 :sortable="!!col.sorter"
-                                :frozen="col.fixed === 'left' || col.fixed === 'right'"
-                                :align-frozen="col.fixed === 'right' ? 'right' : 'left'"
-                                :style="{ minWidth: col.width, textAlign: col.align || 'left' }"
+                                :style="{ width: col.width, textAlign: col.align || 'left' }"
                             >
                                 <template #body="{ data: record }">
                                 <!-- REFERENCIA -->
                                 <template v-if="col.key === 'referencia'">
-                                    <Link
-                                        :href="route('movimientos.show', record.id_movimiento)"
-                                        class="referencia-link"
-                                    >
-                                        <span class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
-                                        <span v-if="record.es_fiscal" class="fiscal-icon" title="Poliza Fiscal">
-                                            <i class="pi pi-file-pdf" style="font-size: 12px; color: #10b981;"></i>
-                                        </span>
-                                        <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
-                                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #1a3a5c;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                            </svg>
-                                        </span>
-                                    </Link>
+                                    <div class="referencia-cell">
+                                        <Link
+                                            :href="route('movimientos.show', record.id_movimiento)"
+                                            class="referencia-link"
+                                        >
+                                            <span class="referencia-text-ultra">{{ record.referencia || '—' }}</span>
+                                            <span v-if="record.es_fiscal && !pdfJuntoAReferencia" class="fiscal-icon" title="Poliza Fiscal">
+                                                <i class="pi pi-file-pdf" style="font-size: 12px; color: #10b981;"></i>
+                                            </span>
+                                            <span v-if="record.es_traspaso" class="traspaso-icon" title="Traspaso">
+                                                <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #1a3a5c;">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                </svg>
+                                            </span>
+                                        </Link>
+                                        <!-- En pólizas normales el PDF va junto a la referencia (ya no hay columna PDF) -->
+                                        <button
+                                            v-if="pdfJuntoAReferencia"
+                                            type="button"
+                                            @click="verPdf(record)"
+                                            :disabled="!record.tiene_pdf_fiscal"
+                                            class="btn-pdf btn-pdf-inline"
+                                            :title="record.tiene_pdf_fiscal ? 'Abrir Comprobante Fiscal PDF' : (record.es_fiscal ? 'Sin PDF Fiscal' : 'Póliza no fiscal')"
+                                        >
+                                            <i class="pi pi-file-pdf" :style="{ color: getPdfColor(record), fontSize: '16px' }"></i>
+                                        </button>
+                                    </div>
                                 </template>
 
                                 <!-- TIPO POLIZA -->
@@ -279,7 +292,7 @@
 
                                 <!-- NOTA -->
                                 <template v-else-if="col.key === 'nota'">
-                                    <span class="nota-text-ultra">{{ record.nota || '—' }}</span>
+                                    <span class="nota-text-ultra" :title="record.nota || ''">{{ record.nota || '—' }}</span>
                                 </template>
 
                                 <!-- MONTO -->
@@ -785,6 +798,10 @@ const props = defineProps({
         type: [Number, null],
         default: null
     },
+    resumen_totales: {
+        type: Object,
+        default: null
+    },
     vista: {
         type: String,
         default: 'normal'
@@ -857,6 +874,7 @@ const getColumnasDisponibles = () => {
             { key: 'saldo_pendiente', title: 'Saldo Pendiente', required: true, visibleByDefault: true },
             { key: 'usuario', title: 'Usuario', required: false, visibleByDefault: true },
             { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
+            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
             { key: 'acciones', title: 'Acciones', required: true, visibleByDefault: true },
         ];
     } else if (vistaActual.value === 'traspasos') {
@@ -884,51 +902,56 @@ const getColumnasDisponibles = () => {
             { key: 'nota', title: 'Nota', required: false, visibleByDefault: true },
             { key: 'monto', title: 'Monto', required: true, visibleByDefault: true },
             { key: 'recurso', title: 'Recurso', required: false, visibleByDefault: true },
-            { key: 'pdf', title: 'PDF', required: false, visibleByDefault: true },
         ];
     }
 };
 
 const columnasDisponibles = computed(() => getColumnasDisponibles());
 
+// Anchos en % para que, por defecto, TODAS las columnas quepan en pantalla sin
+// scroll horizontal. El usuario puede arrastrar el borde de cada encabezado
+// para agrandar/achicar una columna (como en Excel).
 const columnasNormal = [
-    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left', sorter: true },
-    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
-    { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
-    { title: 'Persona', key: 'persona', width: '180px' },
-    { title: 'Cuenta', key: 'cuenta', width: '180px' },
-    { title: 'Cta. Fondeo', key: 'cuenta_fondeadora', width: '180px' },
-    { title: 'Nota', key: 'nota', width: '200px' },
-    { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
-    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' },
-    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
+    { title: 'Referencia', key: 'referencia', width: '10%', sorter: true },
+    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '12%', align: 'center', sorter: true },
+    { title: 'Estatus', key: 'estatus', width: '9%', align: 'center' },
+    { title: 'Persona', key: 'persona', width: '12%' },
+    { title: 'Cuenta', key: 'cuenta', width: '13%' },
+    { title: 'Cta. Fondeo', key: 'cuenta_fondeadora', width: '8%' },
+    { title: 'Nota', key: 'nota', width: '23%' },
+    { title: 'Monto', key: 'monto', width: '8%', align: 'right' },
+    { title: 'Recurso', key: 'recurso', width: '7%', align: 'center' }
 ];
 
 const columnasTraspasos = [
-    { title: 'Referencia', key: 'referencia', width: '120px', fixed: 'left', sorter: true },
-    { title: 'Tipo', key: 'tipo_poliza', width: '100px', align: 'center' },
-    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '160px', align: 'center', sorter: true },
-    { title: 'Estatus', key: 'estatus', width: '120px', align: 'center' },
-    { title: 'Persona', key: 'persona', width: '180px' },
-    { title: 'Cuenta Origen', key: 'cuenta', width: '180px' },
-    { title: 'Cuenta Destino', key: 'cuenta_destino', width: '180px' },
-    { title: 'Nota', key: 'nota', width: '200px' },
-    { title: 'Monto', key: 'monto', width: '150px', align: 'right' },
-    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' },
-    { title: 'PDF', key: 'pdf', width: '85px', align: 'center', fixed: 'right' }
+    { title: 'Referencia', key: 'referencia', width: '8%', sorter: true },
+    { title: 'Tipo', key: 'tipo_poliza', width: '6%', align: 'center' },
+    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '10%', align: 'center', sorter: true },
+    { title: 'Estatus', key: 'estatus', width: '8%', align: 'center' },
+    { title: 'Persona', key: 'persona', width: '11%' },
+    { title: 'Cuenta Origen', key: 'cuenta', width: '12%' },
+    { title: 'Cuenta Destino', key: 'cuenta_destino', width: '12%' },
+    { title: 'Nota', key: 'nota', width: '15%' },
+    { title: 'Monto', key: 'monto', width: '8%', align: 'right' },
+    { title: 'Recurso', key: 'recurso', width: '6%', align: 'center' },
+    { title: 'PDF', key: 'pdf', width: '4%', align: 'center' }
 ];
 
 const columnasDiferidas = [
-    { title: 'Vencimiento', key: 'vencimiento', width: '130px', align: 'center', sorter: true },
-    { title: 'Persona', key: 'persona', width: '180px' },
-    { title: 'Nota', key: 'nota', width: '200px' },
-    { title: 'Monto', key: 'monto', width: '130px', align: 'right' },
-    { title: 'Abonado', key: 'abonado', width: '130px', align: 'right' },
-    { title: 'Saldo Pendiente', key: 'saldo_pendiente', width: '150px', align: 'right' },
-    { title: 'Usuario', key: 'usuario', width: '180px' },
-    { title: 'Recurso', key: 'recurso', width: '100px', align: 'center', fixed: 'right' },
-    { title: 'Acciones', key: 'acciones', width: '280px', align: 'center', fixed: 'right' }
+    { title: 'Vencimiento', key: 'vencimiento', width: '9%', align: 'center', sorter: true },
+    { title: 'Persona', key: 'persona', width: '12%' },
+    { title: 'Nota', key: 'nota', width: '17%' },
+    { title: 'Monto', key: 'monto', width: '8%', align: 'right' },
+    { title: 'Abonado', key: 'abonado', width: '8%', align: 'right' },
+    { title: 'Saldo Pendiente', key: 'saldo_pendiente', width: '11%', align: 'right' },
+    { title: 'Usuario', key: 'usuario', width: '9%' },
+    { title: 'Recurso', key: 'recurso', width: '7%', align: 'center' },
+    { title: 'PDF', key: 'pdf', width: '5%', align: 'center' },
+    { title: 'Acciones', key: 'acciones', width: '14%', align: 'center' }
 ];
+
+// En pólizas normales/pendientes/autorizadas el PDF va junto a la referencia.
+const pdfJuntoAReferencia = computed(() => vistaActual.value !== 'diferidas' && vistaActual.value !== 'traspasos');
 
 const columnasActuales = computed(() => {
     let todasLasColumnas = [];
@@ -949,11 +972,19 @@ const columnasActuales = computed(() => {
 // TOTALES
 // ============================================
 const totalPendiente = computed(() => {
-    if (vistaActual.value !== 'diferidas' || !props.movimientos.data) return 0;
+    if (vistaActual.value !== 'diferidas') return 0;
+    // Viene del servidor, sobre TODAS las diferidas filtradas (no solo la página).
+    if (props.resumen_totales && props.resumen_totales.pendiente !== undefined) {
+        return Number(props.resumen_totales.pendiente) || 0;
+    }
+    if (!props.movimientos.data) return 0;
     return props.movimientos.data.reduce((sum, item) => sum + (item.saldo_pendiente || 0), 0);
 });
 
+// El resumen viene calculado por el servidor sobre TODO lo filtrado (rango de
+// fechas, estatus, etc.), no solo sobre las filas de la página visible.
 const totalIngresos = computed(() => {
+    if (props.resumen_totales) return Number(props.resumen_totales.ingresos) || 0;
     if (!props.movimientos.data || props.movimientos.data.length === 0) return 0;
     const ingresos = props.movimientos.data.filter(item => item.monto > 0);
     if (ingresos.length === 0) return 0;
@@ -961,6 +992,7 @@ const totalIngresos = computed(() => {
 });
 
 const totalEgresos = computed(() => {
+    if (props.resumen_totales) return Number(props.resumen_totales.egresos) || 0;
     if (!props.movimientos.data || props.movimientos.data.length === 0) return 0;
     const egresos = props.movimientos.data.filter(item => item.monto < 0);
     if (egresos.length === 0) return 0;
@@ -968,7 +1000,9 @@ const totalEgresos = computed(() => {
 });
 
 const totalTraspasos = computed(() => {
-    if (vistaActual.value !== 'traspasos' || !props.movimientos.data) return 0;
+    if (vistaActual.value !== 'traspasos') return 0;
+    if (props.resumen_totales) return Number(props.resumen_totales.traspasos) || 0;
+    if (!props.movimientos.data) return 0;
     return props.movimientos.data.reduce((sum, item) => sum + Math.abs(item.monto || 0), 0);
 });
 
@@ -2276,17 +2310,33 @@ onMounted(() => {
     font-size: 13px;
     color: #0f172a;
     font-weight: 500;
+    /* Nombres largos se envuelven en 2 líneas en vez de empujar la columna
+       (no se recortan con "…": en un nombre sí importa verlo completo). */
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
 }
 
 .cuenta-text-ultra {
     font-size: 13px;
     color: #475569;
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
 }
 
 .nota-text-ultra {
     font-size: 13px;
     color: #64748b;
     font-style: italic;
+    /* La nota se muestra COMPLETA (sin recortar con "…"); si es larga se parte
+       en 2-3 renglones dentro de su columna. */
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
 }
 
 .monto-text-ultra {
@@ -2428,6 +2478,39 @@ onMounted(() => {
 .btn-pdf:hover:not(:disabled) {
     transform: scale(1.15);
     background: rgba(16, 185, 129, 0.05) !important;
+}
+
+.referencia-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-pdf-inline {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* Celdas de ancho fijo (el usuario redimensiona con el mouse): el texto largo
+   se parte en lugar de salirse de su columna. */
+.movimiento-table-ultra :deep(.p-datatable-tbody > tr > td) {
+    overflow-wrap: anywhere;
+}
+
+.movimiento-table-ultra :deep(.p-datatable-column-resizer) {
+    width: 6px;
+    right: -3px;
+    cursor: col-resize;
+    z-index: 11;
+}
+
+.movimiento-table-ultra :deep(.p-datatable-column-resizer:hover),
+.movimiento-table-ultra :deep(.p-datatable-resizable-column:hover .p-datatable-column-resizer) {
+    background: rgba(255, 255, 255, 0.45);
 }
 
 .btn-pdf:disabled {

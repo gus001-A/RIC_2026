@@ -1,7 +1,5 @@
 <template>
     <AppLayout :title="'Generar Pólizas de Nómina'">
-        <!-- Los flash messages se muestran de forma global (AppLayout useFlashMessages) -->
-
         <template #header>
             <div class="header-wrapper">
                 <div class="header-left">
@@ -21,7 +19,7 @@
         <div class="page-content">
             <div class="container-custom">
                 <div class="form-card">
-                    <!-- Aviso: no hay empleados. El formulario se muestra igual. -->
+                    <!-- Aviso: no hay empleados -->
                     <div v-if="empleados.length === 0" class="nomina-aviso">
                         <div class="nomina-aviso-icon"><i class="pi pi-exclamation-triangle"></i></div>
                         <div class="nomina-aviso-text">
@@ -53,58 +51,30 @@
                             </div>
 
                             <div class="form-grid-premium">
-                                <!-- Fecha de Pago (automatica - fecha del sistema) -->
+                                <!-- Fecha de Pago -->
                                 <div class="form-group-premium">
-                                    <label class="form-label-premium">Fecha de Pago <span class="required-star">*</span>
-                                    </label>
+                                    <label class="form-label-premium">Fecha de Pago <span class="required-star">*</span></label>
                                     <div class="input-wrapper-premium">
                                         <input type="date" v-model="formData.fecha_pago"
                                                class="form-input-premium"
-                                               disabled
-                                               style="background: #f3f4f6; cursor: not-allowed;">
+                                               disabled>
                                         <div class="input-icon-premium">
                                             <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                             </svg>
                                         </div>
                                     </div>
-                                    <div class="field-hint-premium">La fecha se autocompleta con la fecha del sistema</div>
+                                    <div class="field-hint-premium">Fecha del sistema</div>
                                     <div v-if="errors.fecha_pago" class="error-message-premium">{{ errors.fecha_pago }}</div>
                                 </div>
 
-
-                                <!-- Caja Fondo -->
+                                <!-- Tipo de Poliza -->
                                 <div class="form-group-premium">
-                                    <label class="form-label-premium">Caja Fondo <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium">
-                                        <select v-model="formData.id_cuenta_fondeadora"
-                                                @change="clearError('id_cuenta_fondeadora')"
-                                                class="form-input-premium form-select-premium"
-                                                :class="{ 'error': errors.id_cuenta_fondeadora }">
-                                            <option value="">Selecciona una caja fondo</option>
-                                            <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
-                                                {{ c.nombre_cuenta }}
-                                            </option>
-                                        </select>
-                                        <div class="input-icon-premium">
-                                            <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div v-if="errors.id_cuenta_fondeadora" class="error-message-premium">{{ errors.id_cuenta_fondeadora }}</div>
-                                </div>
-
-                                <!-- Tipo de Poliza (Egreso por defecto) -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">Tipo de Póliza <span class="required-star">*</span>
-                                    </label>
+                                    <label class="form-label-premium">Tipo de Póliza <span class="required-star">*</span></label>
                                     <div class="input-wrapper-premium">
                                         <select v-model="formData.tipo_poliza"
                                                 class="form-input-premium form-select-premium"
-                                                disabled
-                                                style="background: #f3f4f6; cursor: not-allowed;">
+                                                disabled>
                                             <option value="EGRESO">Egreso</option>
                                         </select>
                                         <div class="input-icon-premium">
@@ -113,31 +83,6 @@
                                             </svg>
                                         </div>
                                     </div>
-                                </div>
-
-                                <!-- Cuenta contable donde se registra la nómina (distinta de la Caja Fondo,
-                                     que es de donde SALE el dinero). Antes se fijaba sola sin poder cambiarla. -->
-                                <div class="form-group-premium">
-                                    <label class="form-label-premium">Cuenta <span class="required-star">*</span>
-                                    </label>
-                                    <div class="input-wrapper-premium">
-                                        <select v-model="formData.id_cuenta"
-                                                @change="clearError('id_cuenta')"
-                                                class="form-input-premium form-select-premium"
-                                                :class="{ 'error': errors.id_cuenta }">
-                                            <option value="">Selecciona una cuenta</option>
-                                            <option v-for="c in cuentasNomina" :key="c.id_cuenta" :value="c.id_cuenta">
-                                                {{ c.nombre_cuenta }}
-                                            </option>
-                                        </select>
-                                        <div class="input-icon-premium">
-                                            <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div class="field-hint-premium">Cuenta contable donde se registra el gasto de nómina</div>
-                                    <div v-if="errors.id_cuenta" class="error-message-premium">{{ errors.id_cuenta }}</div>
                                 </div>
 
                                 <!-- Marcador -->
@@ -160,10 +105,31 @@
                                     </div>
                                 </div>
 
-                                <!-- Observación General (se replica en todos los empleados) -->
+                                <!-- Cuenta contable -->
+                                <div class="form-group-premium">
+                                    <label class="form-label-premium">Cuenta <span class="required-star">*</span></label>
+                                    <div class="input-wrapper-premium">
+                                        <select v-model="formData.id_cuenta"
+                                                @change="clearError('id_cuenta')"
+                                                class="form-input-premium form-select-premium"
+                                                :class="{ 'error': errors.id_cuenta }">
+                                            <option value="">Selecciona una cuenta</option>
+                                            <option v-for="c in cuentasNomina" :key="c.id_cuenta" :value="c.id_cuenta">
+                                                {{ c.nombre_cuenta }}
+                                            </option>
+                                        </select>
+                                        <div class="input-icon-premium">
+                                            <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div v-if="errors.id_cuenta" class="error-message-premium">{{ errors.id_cuenta }}</div>
+                                </div>
+
+                                <!-- Observación General -->
                                 <div class="form-group-premium full-width-premium">
-                                    <label class="form-label-premium">Observación General <span class="required-star">*</span>
-                                    </label>
+                                    <label class="form-label-premium">Observación General <span class="required-star">*</span></label>
                                     <div class="input-wrapper-premium">
                                         <input type="text" v-model="formData.observacion_general"
                                                class="form-input-premium"
@@ -179,7 +145,7 @@
                         <!-- ============================================ -->
                         <!-- SECCION 2: LISTA DE EMPLEADOS -->
                         <!-- ============================================ -->
-                        <div class="section-block-premium">
+                        <div class="section-block-premium empleados-section">
                             <div class="section-header-premium">
                                 <div class="section-icon-premium green">
                                     <svg class="icon-svg-premium" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -214,12 +180,7 @@
                                 </div>
                             </div>
 
-                            <!-- ============================================ -->
-                            <!-- APLICAR EN LOTE: mismo monto/cuenta a los empleados marcados -->
-                            <!-- Flujo: marca un grupo (ej. "Seleccionar Todos" o a mano),   -->
-                            <!-- pon el monto y/o cuenta, dale "Aplicar". Repite con otro     -->
-                            <!-- grupo y otro monto para pagar distintas cantidades a la vez.  -->
-                            <!-- ============================================ -->
+                            <!-- Aplicar en lote -->
                             <div class="lote-bar-premium">
                                 <div class="lote-bar-fila">
                                     <span class="lote-bar-titulo">
@@ -227,12 +188,8 @@
                                     </span>
                                     <div class="lote-campo">
                                         <span class="lote-campo-prefix">$</span>
-                                        <input type="number"
-                                               step="0.01"
-                                               min="0"
-                                               v-model.number="loteMonto"
-                                               placeholder="Monto"
-                                               class="form-input-premium lote-input-monto">
+                                        <input type="number" step="0.01" min="0" v-model.number="loteMonto"
+                                               placeholder="Monto" class="form-input-premium lote-input-monto">
                                     </div>
                                     <select v-model="loteCuentaFondeadora" class="form-input-premium form-select-premium lote-input-cuenta">
                                         <option value="">(no cambiar cuenta de fondo)</option>
@@ -240,8 +197,7 @@
                                             {{ c.nombre_cuenta }}
                                         </option>
                                     </select>
-                                    <button type="button"
-                                            @click="aplicarEnLote"
+                                    <button type="button" @click="aplicarEnLote"
                                             :disabled="empleadosSeleccionados === 0 || (!loteMonto && !loteCuentaFondeadora)"
                                             class="btn-action-premium btn-aplicar-lote">
                                         <svg class="icon-svg-sm-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,35 +207,29 @@
                                     </button>
                                 </div>
                                 <div class="lote-bar-hint">
-                                    Marca a los empleados (checkbox de la tabla o "Seleccionar Todos"), escribe el monto
-                                    y presiona "Aplicar". Para pagar otra cantidad a otro grupo, deselecciona, marca al
-                                    siguiente grupo, cambia el monto y aplica de nuevo.
+                                    Marca a los empleados, escribe el monto y presiona "Aplicar".
                                 </div>
                             </div>
 
-                            <!-- Tabla de empleados -->
+                            <!-- Tabla de empleados con scroll interno -->
                             <div class="table-container-premium">
                                 <table class="table-premium">
                                     <thead>
                                         <tr>
                                             <th style="width: 50px;">
-                                                <input type="checkbox" 
-                                                       :checked="todosSeleccionados"
-                                                       @change="toggleSeleccionarTodos"
-                                                       class="checkbox-input-premium">
+                                                <input type="checkbox" :checked="todosSeleccionados"
+                                                       @change="toggleSeleccionarTodos" class="checkbox-input-premium">
                                             </th>
                                             <th>Empleado</th>
-                                            <th style="width: 180px;">Monto a Pagar</th>
-                                            <th style="width: 200px;">Cuenta de Fondo</th>
+                                            <th style="width: 160px;">Monto a Pagar</th>
+                                            <th style="width: 180px;">Cuenta de Fondo</th>
                                             <th>Observación</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="(empleado, index) in empleados" :key="empleado.id_persona">
+                                        <tr v-for="empleado in empleadosPaginados" :key="empleado.id_persona">
                                             <td>
-                                                <input type="checkbox" 
-                                                       v-model="empleado.seleccionado"
-                                                       class="checkbox-input-premium">
+                                                <input type="checkbox" v-model="empleado.seleccionado" class="checkbox-input-premium">
                                             </td>
                                             <td>
                                                 <span class="empleado-nombre">{{ empleado.nombre_completo }}</span>
@@ -287,19 +237,14 @@
                                             <td>
                                                 <div class="input-wrapper-premium" style="width: 100%;">
                                                     <span class="input-prefix-premium">$</span>
-                                                    <input type="number" 
-                                                           step="0.01" 
-                                                           v-model.number="empleado.monto"
-                                                           class="form-input-premium monto-input"
-                                                           placeholder="0.00"
-                                                           min="0">
+                                                    <input type="number" step="0.01" v-model.number="empleado.monto"
+                                                           class="form-input-premium monto-input" placeholder="0.00" min="0">
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="input-wrapper-premium" style="width: 100%;">
                                                     <select v-model="empleado.id_cuenta_fondeadora"
-                                                            class="form-input-premium form-select-premium"
-                                                            style="width: 100%;">
+                                                            class="form-input-premium form-select-premium" style="width: 100%;">
                                                         <option value="">Seleccionar</option>
                                                         <option v-for="c in cuentasFondeadoras" :key="c.id_cuenta" :value="c.id_cuenta">
                                                             {{ c.nombre_cuenta }}
@@ -309,34 +254,65 @@
                                             </td>
                                             <td>
                                                 <div class="input-wrapper-premium" style="width: 100%;">
-                                                    <input type="text" 
-                                                           v-model="empleado.observacion"
-                                                           class="form-input-premium"
-                                                           placeholder="Observación">
+                                                    <input type="text" v-model="empleado.observacion"
+                                                           class="form-input-premium" placeholder="Observación">
                                                 </div>
                                             </td>
                                         </tr>
-                                        <tr v-if="empleados.length === 0">
+                                        <tr v-if="empleadosFiltrados.length === 0">
                                             <td colspan="5" class="empty-state-premium">
                                                 <i class="pi pi-users empty-icon"></i>
-                                                <span>No hay empleados disponibles</span>
+                                                <span>{{ filtroEmpleado ? 'No hay coincidencias con el filtro aplicado' : 'No hay empleados disponibles' }}</span>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
+
+                            <!-- Filtro y paginación en la parte inferior -->
+                            <div class="table-footer-premium">
+                                <div class="footer-filtro-col">
+                                    <input type="text" v-model="filtroEmpleado"
+                                           placeholder="Buscar empleado..."
+                                           class="footer-filtro-input">
+                                </div>
+                                <div class="footer-paginacion-col">
+                                    <div v-if="empleadosFiltrados.length > 0" class="footer-paginacion">
+                                        <span class="pagination-info">
+                                            Mostrando {{ inicioPagina + 1 }} - {{ finPagina }} de {{ empleadosFiltrados.length }}
+                                        </span>
+                                        <div class="pagination-controls">
+                                            <button type="button" @click="paginaActual = 1" :disabled="paginaActual === 1"
+                                                    class="pagination-btn" title="Primera página">
+                                                <i class="pi pi-angle-double-left"></i>
+                                            </button>
+                                            <button type="button" @click="paginaActual--" :disabled="paginaActual === 1"
+                                                    class="pagination-btn" title="Anterior">
+                                                <i class="pi pi-angle-left"></i>
+                                            </button>
+                                            <span class="pagination-page">{{ paginaActual }} / {{ totalPaginas }}</span>
+                                            <button type="button" @click="paginaActual++" :disabled="paginaActual === totalPaginas"
+                                                    class="pagination-btn" title="Siguiente">
+                                                <i class="pi pi-angle-right"></i>
+                                            </button>
+                                            <button type="button" @click="paginaActual = totalPaginas" :disabled="paginaActual === totalPaginas"
+                                                    class="pagination-btn" title="Última página">
+                                                <i class="pi pi-angle-double-right"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- ============================================ -->
-                        <!-- BOTONES -->
-                        <!-- ============================================ -->
+                        <!-- Info box -->
                         <div class="info-box-premium">
                             <svg class="info-icon-premium" fill="none" stroke="#1a3a5c" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <span>Los campos con <strong class="text-danger-premium">*</strong> son obligatorios</span>
-                            <span style="margin-left: 16px;">Total a pagar: <strong>${{ formatNumber(totalNomina) }}</strong></span>
-                            <span style="margin-left: 16px;">Empleados: <strong>{{ empleadosSeleccionados }}</strong></span>
+                            <span>Total a pagar: <strong>${{ formatNumber(totalNomina) }}</strong></span>
+                            <span>Empleados: <strong>{{ empleadosSeleccionados }}</strong></span>
                         </div>
 
                         <div class="form-actions-premium">
@@ -349,8 +325,7 @@
                                 </Link>
                             </div>
                             <div class="actions-right-premium">
-                                <button type="submit" 
-                                        :disabled="processing || !isFormValid"
+                                <button type="submit" :disabled="processing || !isFormValid"
                                         class="btn-premium btn-submit-premium">
                                     <span v-if="processing" class="spinner-border-premium"></span>
                                     <svg v-else class="btn-icon-premium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,18 +358,15 @@
                         <div class="form-group-premium">
                             <label class="form-label-premium">Nombre <span class="required-star">*</span></label>
                             <div class="input-wrapper-premium">
-                                <input type="text" v-model="nuevoMarcador.nombre"
-                                       class="form-input-premium"
+                                <input type="text" v-model="nuevoMarcador.nombre" class="form-input-premium"
                                        placeholder="Ej: Urgente, Importante">
                             </div>
                         </div>
                         <div class="form-group-premium" style="margin-top: 16px;">
                             <label class="form-label-premium">Descripción</label>
                             <div class="input-wrapper-premium">
-                                <textarea v-model="nuevoMarcador.descripcion"
-                                          class="form-textarea-premium"
-                                          rows="2"
-                                          placeholder="Breve descripción..."></textarea>
+                                <textarea v-model="nuevoMarcador.descripcion" class="form-textarea-premium"
+                                          rows="2" placeholder="Breve descripción..."></textarea>
                             </div>
                         </div>
                         <div class="modal-actions-premium">
@@ -441,35 +413,77 @@ const guardandoMarcador = ref(false);
 const nuevoMarcador = ref({ nombre: '', descripcion: '' });
 const processing = ref(false);
 
+// Paginación
+const paginaActual = ref(1);
+const porPagina = 10;
+const filtroEmpleado = ref('');
+
 // ============================================
 // DATOS REACTIVOS
 // ============================================
 const cuentasFondeadoras = ref(props.cuentas_fondeadoras || []);
 const cuentasNomina = ref(props.cuentas_nomina || []);
 const marcadores = ref(props.marcadores || []);
-
-// Inicializar empleados con datos de props
 const empleados = ref([]);
 
 // ============================================
 // FORMULARIO
 // ============================================
 const formData = reactive({
-    fecha_pago: '', // Se autocompleta con la fecha del sistema
+    fecha_pago: '',
     id_cuenta: props.cuentas_nomina?.length > 0 ? props.cuentas_nomina[0].id_cuenta : null,
     id_cuenta_fondeadora: props.cuentas_fondeadoras?.length > 0 ? props.cuentas_fondeadoras[0].id_cuenta : null,
     tipo_poliza: 'EGRESO',
     id_marcador: null,
-    observacion_general: '', // Nueva: observación que se replica
+    observacion_general: '',
 });
 
 const errors = reactive({});
 
 // ============================================
-// APLICAR EN LOTE (mismo monto/cuenta a un grupo de empleados)
+// APLICAR EN LOTE
 // ============================================
 const loteMonto = ref(null);
 const loteCuentaFondeadora = ref('');
+
+// ============================================
+// COMPUTED - FILTRO Y PAGINACIÓN
+// ============================================
+const empleadosFiltrados = computed(() => {
+    const filtro = filtroEmpleado.value.toLowerCase().trim();
+    if (!filtro) return empleados.value;
+    return empleados.value.filter(e =>
+        (e.nombre_completo || '').toLowerCase().includes(filtro)
+    );
+});
+
+const totalPaginas = computed(() => {
+    return Math.max(1, Math.ceil(empleadosFiltrados.value.length / porPagina));
+});
+
+const inicioPagina = computed(() => {
+    return (paginaActual.value - 1) * porPagina;
+});
+
+const finPagina = computed(() => {
+    return Math.min(inicioPagina.value + porPagina, empleadosFiltrados.value.length);
+});
+
+const empleadosPaginados = computed(() => {
+    return empleadosFiltrados.value.slice(inicioPagina.value, finPagina.value);
+});
+
+// Resetear página cuando cambia el filtro
+watch(filtroEmpleado, () => {
+    paginaActual.value = 1;
+});
+
+// Ajustar página si queda fuera de rango
+watch(totalPaginas, (nuevoTotal) => {
+    if (paginaActual.value > nuevoTotal) {
+        paginaActual.value = nuevoTotal;
+    }
+});
 
 // ============================================
 // COMPUTED
@@ -486,8 +500,7 @@ const totalNomina = computed(() => {
 
 const todosSeleccionados = computed({
     get: () => {
-        const disponibles = empleados.value.length;
-        if (disponibles === 0) return false;
+        if (empleados.value.length === 0) return false;
         return empleados.value.every(e => e.seleccionado);
     },
     set: (value) => {
@@ -496,35 +509,22 @@ const todosSeleccionados = computed({
 });
 
 const isFormValid = computed(() => {
-    // Validar fecha de pago
     if (!formData.fecha_pago) return false;
-    
-    // Validar cuenta
     if (!formData.id_cuenta) return false;
-    
-    // Validar cuenta fondeadora
     if (!formData.id_cuenta_fondeadora) return false;
-    
-    // Validar observación general
     if (!formData.observacion_general || formData.observacion_general.trim() === '') return false;
-    
-    // Validar que haya al menos un empleado seleccionado
     if (empleadosSeleccionados.value === 0) return false;
-    
-    // Validar que todos los empleados seleccionados tengan monto > 0
+
     const empleadosConMonto = empleados.value
         .filter(e => e.seleccionado)
         .every(e => e.monto > 0);
-    
     if (!empleadosConMonto) return false;
-    
-    // Validar que todos los empleados seleccionados tengan cuenta de fondo
+
     const empleadosConCuenta = empleados.value
         .filter(e => e.seleccionado)
         .every(e => e.id_cuenta_fondeadora);
-    
     if (!empleadosConCuenta) return false;
-    
+
     return true;
 });
 
@@ -553,10 +553,6 @@ const toggleSeleccionarTodos = (event) => {
     empleados.value.forEach(e => e.seleccionado = checked);
 };
 
-// Aplica el monto y/o la cuenta de fondo del "lote" a los empleados marcados.
-// Permite pagar cantidades distintas a distintos grupos: marca al grupo A,
-// pon su monto y aplica; deselecciona, marca al grupo B, cambia el monto y
-// vuelve a aplicar.
 const aplicarEnLote = () => {
     const seleccionados = empleados.value.filter(e => e.seleccionado);
     if (seleccionados.length === 0) {
@@ -580,9 +576,6 @@ const aplicarEnLote = () => {
     notify.success(`Se aplicó a ${seleccionados.length} empleado(s) seleccionado(s).`, 'Aplicado');
 };
 
-// ============================================
-// REPLICAR OBSERVACIÓN
-// ============================================
 const replicarObservacion = () => {
     const observacion = formData.observacion_general;
     empleados.value.forEach(e => {
@@ -612,7 +605,7 @@ const guardarMarcador = async () => {
             nombre_marcador: nuevoMarcador.value.nombre,
             descripcion: nuevoMarcador.value.descripcion
         });
-        
+
         if (res.data.success) {
             marcadores.value.push(res.data.data);
             formData.id_marcador = res.data.data.id;
@@ -621,8 +614,8 @@ const guardarMarcador = async () => {
         }
     } catch (error) {
         notify.error(error.response?.data?.message || 'Error al crear el marcador', 'Error');
-    } finally { 
-        guardandoMarcador.value = false; 
+    } finally {
+        guardandoMarcador.value = false;
     }
 };
 
@@ -631,39 +624,32 @@ const guardarMarcador = async () => {
 // ============================================
 const submit = () => {
     processing.value = true;
-    
-    // Limpiar errores
     Object.keys(errors).forEach(key => delete errors[key]);
 
-    // Validar fecha de pago
     if (!formData.fecha_pago) {
         errors.fecha_pago = 'La fecha de pago no se ha calculado correctamente';
         processing.value = false;
         return;
     }
 
-    // Validar cuenta
     if (!formData.id_cuenta) {
         errors.id_cuenta = 'Selecciona una cuenta para la nómina';
         processing.value = false;
         return;
     }
 
-    // Validar cuenta fondeadora
     if (!formData.id_cuenta_fondeadora) {
         errors.id_cuenta_fondeadora = 'Selecciona una caja fondo';
         processing.value = false;
         return;
     }
 
-    // Validar observación general
     if (!formData.observacion_general || formData.observacion_general.trim() === '') {
         errors.observacion_general = 'Ingresa una observación general para la nómina';
         processing.value = false;
         return;
     }
 
-    // Validar empleados seleccionados
     const empleadosSeleccionados = empleados.value.filter(e => e.seleccionado);
     if (empleadosSeleccionados.length === 0) {
         notify.error('Selecciona al menos un empleado para generar la póliza', 'Error');
@@ -671,7 +657,6 @@ const submit = () => {
         return;
     }
 
-    // Validar montos
     const empleadosSinMonto = empleadosSeleccionados.filter(e => e.monto <= 0);
     if (empleadosSinMonto.length > 0) {
         const nombres = empleadosSinMonto.map(e => e.nombre_completo).join(', ');
@@ -680,7 +665,6 @@ const submit = () => {
         return;
     }
 
-    // Validar cuentas de fondo
     const empleadosSinCuenta = empleadosSeleccionados.filter(e => !e.id_cuenta_fondeadora);
     if (empleadosSinCuenta.length > 0) {
         const nombres = empleadosSinCuenta.map(e => e.nombre_completo).join(', ');
@@ -689,7 +673,6 @@ const submit = () => {
         return;
     }
 
-    // Preparar datos para enviar
     const data = {
         fecha_pago: formData.fecha_pago,
         id_cuenta: formData.id_cuenta,
@@ -705,7 +688,6 @@ const submit = () => {
         }))
     };
 
-    // Enviar al servidor
     axios.post(route('movimientos.nomina.store'), data)
         .then(() => {
             processing.value = false;
@@ -722,7 +704,7 @@ const submit = () => {
         .catch(error => {
             processing.value = false;
             console.error('Error:', error);
-            
+
             if (error.response?.data?.errors) {
                 const err = error.response.data.errors;
                 Object.keys(err).forEach(key => {
@@ -739,7 +721,6 @@ const submit = () => {
 // ============================================
 // WATCHERS
 // ============================================
-// Cuando cambia la selección de empleados, replicar observación a los seleccionados
 watch(
     () => empleados.value.map(e => e.seleccionado),
     () => {
@@ -757,32 +738,26 @@ watch(
 // MOUNTED
 // ============================================
 onMounted(() => {
-    
-    // Fecha del sistema autocompletada
     const hoy = new Date();
     const year = hoy.getFullYear();
     const month = String(hoy.getMonth() + 1).padStart(2, '0');
     const day = String(hoy.getDate()).padStart(2, '0');
     formData.fecha_pago = `${year}-${month}-${day}`;
-    
-    // Inicializar cuentas de nómina
+
     if (props.cuentas_nomina && props.cuentas_nomina.length > 0) {
         cuentasNomina.value = props.cuentas_nomina;
         formData.id_cuenta = props.cuentas_nomina[0].id_cuenta;
     }
 
-    // Inicializar cuentas fondeadoras
     if (props.cuentas_fondeadoras && props.cuentas_fondeadoras.length > 0) {
         cuentasFondeadoras.value = props.cuentas_fondeadoras;
         formData.id_cuenta_fondeadora = props.cuentas_fondeadoras[0].id_cuenta;
     }
 
-    // Inicializar marcadores
     if (props.marcadores && props.marcadores.length > 0) {
         marcadores.value = props.marcadores;
     }
 
-    // Inicializar empleados
     if (props.empleados && props.empleados.length > 0) {
         empleados.value = props.empleados.map(e => ({
             ...e,
@@ -798,6 +773,46 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ========== FIJAR PANTALLA SIN SCROLL GLOBAL ========== */
+.page-content {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+}
+
+.container-custom {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.form-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    padding: 1rem 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#nominaForm {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 0.75rem;
+}
+
 /* ========== HEADER ========== */
 .header-wrapper {
     display: flex;
@@ -852,102 +867,10 @@ onMounted(() => {
     margin: 0;
 }
 
-/* ========== FLASH MESSAGES ========== */
-.flash-container {
-    margin: 0 0 16px 0;
-    padding: 0 1.5rem;
-}
-
-.flash-message {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    border-radius: 12px;
-    animation: slideDown 0.5s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    margin-bottom: 8px;
-}
-
-.flash-success {
-    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-    border-left: 4px solid #10b981;
-}
-
-.flash-error {
-    background: linear-gradient(135deg, #fef2f2, #fecaca);
-    border-left: 4px solid #dc2626;
-}
-
-.flash-info {
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
-    border-left: 4px solid #3b82f6;
-}
-
-.flash-icon {
-    font-size: 1.2rem;
-    margin-right: 12px;
-}
-
-.flash-text {
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #1f2937;
-    flex: 1;
-}
-
-.flash-close {
-    background: none;
-    border: none;
-    color: #6b7280;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-}
-
-.flash-close:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #dc2626;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ========== PAGE CONTENT ========== */
-/* Mismas medidas que el resto de Movimientos (Create.vue). */
-.page-content {
-    padding: 0.5rem 0;
-}
-
-.container-custom {
-    max-width: 80rem;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-}
-
-/* ========== FORM CARD ========== */
-.form-card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f1f5f9;
-    padding: 1.25rem 1.5rem;
-}
-
 /* ========== SECTIONS ========== */
 .section-block-premium {
-    margin-bottom: 1.75rem;
-    padding-bottom: 1.75rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
     border-bottom: 2px solid #f1f5f9;
 }
 
@@ -957,11 +880,20 @@ onMounted(() => {
     padding-bottom: 0;
 }
 
+.empleados-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
 .section-header-premium {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
 }
 
 .section-icon-premium {
@@ -997,26 +929,25 @@ onMounted(() => {
     margin: 0;
 }
 
-/* ========== FORM GRID ========== */
+/* ========== FORM GRID (4 columnas en una línea) ========== */
 .form-grid-premium {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
 }
 
 .full-width-premium {
     grid-column: 1 / -1;
 }
 
-/* ========== FORM GROUP ========== */
 .form-group-premium {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .form-label-premium {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: #1e293b;
     display: flex;
@@ -1030,8 +961,6 @@ onMounted(() => {
 }
 
 /* ========== INPUTS ========== */
-/* Mismos valores que el resto de los formularios de Movimientos (Create.vue):
-   borde 2px #e5e7eb, radio 8px, alto 40px, foco azul marino #1a3a5c. */
 .input-wrapper-premium {
     position: relative;
 }
@@ -1046,7 +975,7 @@ onMounted(() => {
     color: #1f2937;
     transition: all 0.3s ease;
     outline: none;
-    height: 40px;
+    height: 38px;
 }
 
 .form-input-premium:focus {
@@ -1106,18 +1035,18 @@ onMounted(() => {
 }
 
 .field-hint-premium {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: #94a3b8;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .error-message-premium {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: #ef4444;
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-top: 4px;
+    margin-top: 2px;
     animation: slideDown 0.3s ease;
 }
 
@@ -1133,12 +1062,13 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 16px;
-    padding: 12px 16px;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
     background: #f8fafc;
     border-radius: 10px;
     border: 1px solid #e5e7eb;
+    flex-shrink: 0;
 }
 
 .table-actions-left {
@@ -1151,10 +1081,10 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 16px;
+    padding: 5px 14px;
     border: none;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1168,23 +1098,11 @@ onMounted(() => {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.btn-select-all {
-    color: #2563eb;
-}
+.btn-select-all { color: #2563eb; }
+.btn-select-all:hover { background: #eff6ff; border-color: #2563eb; }
 
-.btn-select-all:hover {
-    background: #eff6ff;
-    border-color: #2563eb;
-}
-
-.btn-deselect-all {
-    color: #dc2626;
-}
-
-.btn-deselect-all:hover {
-    background: #fef2f2;
-    border-color: #dc2626;
-}
+.btn-deselect-all { color: #dc2626; }
+.btn-deselect-all:hover { background: #fef2f2; border-color: #dc2626; }
 
 .table-actions-right {
     display: flex;
@@ -1194,16 +1112,16 @@ onMounted(() => {
 }
 
 .selected-count-premium {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: #475569;
 }
 
 .total-payroll-premium {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #0f172a;
-    padding: 4px 14px;
+    padding: 3px 12px;
     background: linear-gradient(135deg, #ecfdf5, #d1fae5);
     border-radius: 8px;
     border: 1px solid #a7f3d0;
@@ -1213,15 +1131,15 @@ onMounted(() => {
 .lote-bar-premium {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 16px;
-    padding: 12px 16px;
+    gap: 4px;
+    margin-bottom: 8px;
+    padding: 8px 14px;
     background: linear-gradient(135deg, #fffbeb, #fef3c7);
     border: 1px solid #fde68a;
     border-radius: 10px;
+    flex-shrink: 0;
 }
 
-/* Todo en una sola línea (título, monto, cuenta y botón) */
 .lote-bar-fila {
     display: flex;
     flex-wrap: nowrap;
@@ -1233,7 +1151,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: #92400e;
     white-space: nowrap;
@@ -1247,7 +1165,7 @@ onMounted(() => {
     border: 2px solid #e5e7eb;
     border-radius: 8px;
     padding: 0 10px;
-    height: 40px;
+    height: 36px;
     flex-shrink: 0;
 }
 
@@ -1265,8 +1183,8 @@ onMounted(() => {
 .lote-input-monto {
     border: none !important;
     padding: 0 !important;
-    height: 36px !important;
-    width: 110px;
+    height: 32px !important;
+    width: 100px;
 }
 
 .lote-input-monto:focus {
@@ -1276,7 +1194,7 @@ onMounted(() => {
 
 .lote-input-cuenta {
     flex: 1;
-    min-width: 160px;
+    min-width: 140px;
 }
 
 .btn-aplicar-lote {
@@ -1285,6 +1203,7 @@ onMounted(() => {
     border: none !important;
     white-space: nowrap;
     flex-shrink: 0;
+    font-size: 0.75rem;
 }
 
 .btn-aplicar-lote:hover:not(:disabled) {
@@ -1298,49 +1217,46 @@ onMounted(() => {
 }
 
 .lote-bar-hint {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: #92400e;
     opacity: 0.85;
 }
 
-/* En pantallas angostas sí se permite que la fila baje de línea */
 @media (max-width: 720px) {
-    .lote-bar-fila {
-        flex-wrap: wrap;
-    }
-
-    .lote-input-cuenta {
-        min-width: 100%;
-    }
-
-    .btn-aplicar-lote {
-        width: 100%;
-        justify-content: center;
-    }
+    .lote-bar-fila { flex-wrap: wrap; }
+    .lote-input-cuenta { min-width: 100%; }
+    .btn-aplicar-lote { width: 100%; justify-content: center; }
 }
 
+/* ========== TABLA CON SCROLL INTERNO ========== */
 .table-container-premium {
+    overflow-y: auto;
     overflow-x: auto;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
+    flex: 1;
+    min-height: 0;
 }
 
 .table-premium {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .table-premium thead {
     background: linear-gradient(135deg, #f8fafc, #eef2ff);
     border-bottom: 2px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .table-premium th {
-    padding: 12px 14px;
+    padding: 8px 12px;
     text-align: left;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: #475569;
@@ -1348,7 +1264,7 @@ onMounted(() => {
 }
 
 .table-premium td {
-    padding: 10px 14px;
+    padding: 6px 12px;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
 }
@@ -1364,17 +1280,18 @@ onMounted(() => {
 .empleado-nombre {
     font-weight: 600;
     color: #0f172a;
+    font-size: 0.82rem;
 }
 
 .monto-input {
-    height: 38px;
-    font-size: 0.85rem;
-    padding: 6px 10px 6px 28px;
+    height: 34px;
+    font-size: 0.82rem;
+    padding: 4px 10px 4px 28px;
 }
 
 .checkbox-input-premium {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     accent-color: #1a3a5c;
     cursor: pointer;
     border-radius: 4px;
@@ -1382,19 +1299,125 @@ onMounted(() => {
 
 .empty-state-premium {
     text-align: center;
-    padding: 40px 20px;
+    padding: 30px 20px;
     color: #94a3b8;
     font-weight: 500;
 }
 
 .empty-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     display: block;
     margin-bottom: 8px;
 }
 
-/* ========== BUTTONS ========== */
-/* Mismas medidas que el resto de Movimientos (Create.vue: radio 8px, alto 40px). */
+/* ========== FOOTER DE TABLA: FILTRO ALINEADO CON COLUMNA EMPLEADO ========== */
+.table-footer-premium {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0 2px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+/* La columna del filtro replica el ancho de la columna "Empleado".
+   La columna Empleado empieza tras: 50px (checkbox) + 12px padding de la celda.
+   El input va justo debajo del título "Empleado". */
+.footer-filtro-col {
+    display: flex;
+    align-items: center;
+    padding-left: 62px; /* 50px checkbox + 12px padding-left de la celda */
+    flex: 0 0 auto;
+    min-width: 380px;
+}
+
+.footer-filtro-input {
+    width: 380px;
+    max-width: 100%;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    color: #1f2937;
+    outline: none;
+    transition: all 0.2s ease;
+    height: 34px;
+}
+
+.footer-filtro-input:focus {
+    border-color: #1a3a5c;
+    box-shadow: 0 0 0 4px rgba(26, 58, 92, 0.1);
+}
+
+.footer-filtro-input::placeholder {
+    color: #9ca3af;
+}
+
+/* La paginación ocupa el resto a la derecha */
+.footer-paginacion-col {
+    display: flex;
+    justify-content: flex-end;
+    flex: 1;
+    min-width: 0;
+}
+
+.footer-paginacion {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.pagination-info {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #1a3a5c;
+    color: #1a3a5c;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination-page {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1e293b;
+    padding: 0 10px;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* ========== BOTONES ========== */
 .btn-premium {
     display: inline-flex;
     align-items: center;
@@ -1407,7 +1430,7 @@ onMounted(() => {
     transition: all 0.3s ease;
     cursor: pointer;
     text-decoration: none;
-    height: 40px;
+    height: 38px;
 }
 
 .btn-icon-premium {
@@ -1448,8 +1471,8 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border: 2px dashed #d1d5db;
     border-radius: 8px;
     background: white;
@@ -1471,9 +1494,9 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    margin-top: 24px;
-    padding-top: 24px;
+    padding-top: 10px;
     border-top: 2px solid #f1f5f9;
+    flex-shrink: 0;
 }
 
 .actions-left-premium,
@@ -1488,19 +1511,19 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 20px;
+    padding: 8px 16px;
     background: linear-gradient(135deg, rgba(26, 58, 92, 0.06), rgba(118, 75, 162, 0.06));
-    border-radius: 12px;
+    border-radius: 10px;
     border-left: 4px solid #1a3a5c;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     color: #4b5563;
-    margin-top: 4px;
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
 .info-icon-premium {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
 }
 
@@ -1612,13 +1635,9 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-    .form-card {
-        padding: 1.25rem;
-    }
-
     .form-grid-premium {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 10px;
     }
 
     .full-width-premium {
@@ -1682,29 +1701,48 @@ onMounted(() => {
     }
 
     .table-premium {
-        font-size: 0.8rem;
+        font-size: 0.78rem;
     }
 
     .table-premium th,
     .table-premium td {
-        padding: 8px 10px;
+        padding: 6px 8px;
     }
 
     .info-box-premium {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 6px;
     }
 
     .modal-container-premium {
         margin: 16px;
         max-height: 80vh;
     }
+
+    .table-footer-premium {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .footer-filtro-col {
+        padding-left: 0;
+        min-width: 0;
+    }
+
+    .footer-filtro-input {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .footer-paginacion-col {
+        justify-content: space-between;
+    }
 }
 
 @media (max-width: 480px) {
     .form-card {
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         border-radius: 16px;
     }
 
@@ -1728,26 +1766,36 @@ onMounted(() => {
 
     .table-premium th,
     .table-premium td {
-        padding: 6px 8px;
-        font-size: 0.75rem;
+        padding: 4px 6px;
+        font-size: 0.72rem;
     }
 
     .table-actions-premium {
-        padding: 10px 12px;
+        padding: 8px 10px;
     }
 
     .btn-action-premium {
-        font-size: 0.7rem;
-        padding: 4px 12px;
-    }
-
-    .total-payroll-premium {
-        font-size: 0.8rem;
+        font-size: 0.68rem;
         padding: 4px 10px;
     }
 
+    .total-payroll-premium {
+        font-size: 0.78rem;
+        padding: 3px 8px;
+    }
+
     .selected-count-premium {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
+    }
+
+    .footer-paginacion {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .pagination-controls {
+        justify-content: center;
     }
 }
 
@@ -1756,8 +1804,8 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 18px;
-    margin-bottom: 20px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
     background: linear-gradient(135deg, #fffbeb, #fef3c7);
     border: 1px solid #fcd34d;
     border-left: 4px solid #d97706;
@@ -1804,84 +1852,5 @@ onMounted(() => {
 
 @media (max-width: 640px) {
     .nomina-aviso { flex-direction: column; align-items: flex-start; }
-}
-
-.nomina-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 48px 24px 40px;
-    max-width: 460px;
-    margin: 0 auto;
-}
-
-.nomina-empty-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
-    background: rgba(26, 58, 92, 0.09);
-    color: #1a3a5c;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    margin-bottom: 18px;
-}
-
-.nomina-empty h3 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #0f2136;
-    margin: 0 0 8px;
-}
-
-.nomina-empty p {
-    font-size: 0.88rem;
-    color: #64748b;
-    line-height: 1.55;
-    margin: 0 0 22px;
-}
-
-.nomina-empty p strong {
-    color: #1a3a5c;
-}
-
-.nomina-empty-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.nomina-empty-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.18s ease;
-}
-
-.nomina-empty-btn.primary {
-    background: #1a3a5c;
-    color: #fff;
-}
-
-.nomina-empty-btn.primary:hover {
-    background: #14304c;
-    transform: translateY(-1px);
-}
-
-.nomina-empty-btn.ghost {
-    background: #f1f5f9;
-    color: #475569;
-}
-
-.nomina-empty-btn.ghost:hover {
-    background: #e2e8f0;
 }
 </style>

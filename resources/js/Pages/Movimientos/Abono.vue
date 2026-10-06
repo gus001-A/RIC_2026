@@ -236,14 +236,17 @@
                             <div class="iva-detail">
                                 <div class="iva-detail-grid">
                                     <div v-for="ivaId in ivasSeleccionados" :key="ivaId" class="iva-detail-item">
-                                        <span class="iva-detail-badge" :class="getIvaPorcentaje(ivaId) === 0 ? 'badge-cero' : 'badge-dieciseis'">
-                                            {{ getIvaPorcentaje(ivaId) }}%
-                                        </span>
+                                        <div class="iva-detail-item-top">
+                                            <span class="iva-detail-badge" :class="getIvaPorcentaje(ivaId) === 0 ? 'badge-cero' : 'badge-dieciseis'">
+                                                IVA {{ getIvaPorcentaje(ivaId) }}%
+                                            </span>
+                                            <span class="iva-detail-disponible">Disponible: ${{ formatNumber(obtenerMontoDisponibleIva(ivaId)) }}</span>
+                                        </div>
                                         <div class="input-wrapper input-with-prefix iva-input-wrap">
                                             <span class="input-prefix">$</span>
-                                            <input 
-                                                type="number" 
-                                                step="0.01" 
+                                            <input
+                                                type="number"
+                                                step="0.01"
                                                 v-model.number="abonoForm.ivas[ivaId].monto"
                                                 @input="calcularTotalAbono; clearError('ivas')"
                                                 class="form-input iva-input"
@@ -252,12 +255,12 @@
                                                 :max="obtenerMontoDisponibleIva(ivaId)"
                                             >
                                         </div>
-                                        <span class="iva-detail-disponible">Disponible: ${{ formatNumber(obtenerMontoDisponibleIva(ivaId)) }}</span>
-                                        <span class="iva-detail-result">IVA: ${{ formatNumber(calcularIvaMontoAbono(ivaId)) }}</span>
+                                        <span class="iva-detail-result">IVA incluido: ${{ formatNumber(calcularIvaMontoAbono(ivaId)) }}</span>
                                     </div>
-                                    <div class="iva-total">
-                                        <span>Total abono: <strong>${{ formatNumber(totalConIvaAbonoCalculado) }}</strong></span>
-                                    </div>
+                                </div>
+                                <div class="iva-total-bar">
+                                    <span class="iva-total-label">Total del abono (con IVA)</span>
+                                    <span class="iva-total-value">${{ formatNumber(totalConIvaAbonoCalculado) }}</span>
                                 </div>
                             </div>
 
@@ -955,7 +958,10 @@ onMounted(() => {
     padding: 16px 24px;
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     border-radius: 14px;
-    border-left: 6px solid #f59e0b;
+    /* box-shadow en vez de border-left: con border-radius, un border-left
+       normal se "sale" de la esquina redondeada y se ve como un gancho
+       suelto (muy notorio en móvil). El box-shadow sí respeta el radio. */
+    box-shadow: inset 6px 0 0 0 #f59e0b;
     margin-bottom: 16px;
     flex-wrap: wrap;
 }
@@ -1059,7 +1065,7 @@ onMounted(() => {
     padding: 12px 16px;
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
     border-radius: 10px;
-    border-left: 4px solid #22c55e;
+    box-shadow: inset 4px 0 0 0 #22c55e;
     margin-bottom: 16px;
     align-items: center;
 }
@@ -1375,74 +1381,97 @@ onMounted(() => {
 /* --- IVA DETAIL --- */
 .iva-detail {
     background: #f8fafc;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: 10px;
+    padding: 14px;
     margin-bottom: 8px;
     border: 1px solid #e5e7eb;
 }
 
 .iva-detail-grid {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
-    align-items: center;
 }
 
+/* Cada IVA es su propia tarjeta (badge+disponible arriba, monto, IVA incluido
+   abajo) en vez de una sola línea apretada con todo junto. */
 .iva-detail-item {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 6px;
+    flex: 1 1 200px;
     background: white;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
     border: 1px solid #e5e7eb;
 }
 
+.iva-detail-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
 .iva-detail-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.6rem;
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-size: 0.65rem;
     font-weight: 700;
     color: white;
+    white-space: nowrap;
 }
 
 .iva-detail-badge.badge-cero { background: #64748b; }
 .iva-detail-badge.badge-dieciseis { background: #3b82f6; }
 
 .iva-input-wrap {
-    width: 100px;
+    width: 100%;
 }
 
 .iva-input {
-    height: 32px !important;
-    padding: 2px 8px 2px 24px !important;
-    font-size: 0.8rem !important;
+    height: 36px !important;
+    padding: 2px 10px 2px 26px !important;
+    font-size: 0.85rem !important;
+    width: 100%;
 }
 
 .iva-detail-disponible {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: #6b7280;
     white-space: nowrap;
 }
 
 .iva-detail-result {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #059669;
-    white-space: nowrap;
 }
 
-.iva-total {
+/* Total separado del grid, como franja propia (igual estilo que
+   .nuevo-saldo-box) en vez de ir apretado junto a las tarjetas de IVA. */
+.iva-total-bar {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    font-size: 0.8rem;
-    color: #1f2937;
-    padding-left: 6px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border: 1px solid #6ee7b7;
+    border-radius: 8px;
 }
 
-.iva-total strong {
-    color: #059669;
-    font-size: 0.9rem;
+.iva-total-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #065f46;
+}
+
+.iva-total-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #047857;
 }
 
 /* --- VALIDACION IVA --- */
@@ -1538,7 +1567,7 @@ onMounted(() => {
     padding: 6px 14px;
     background: #f8fafc;
     border-radius: 8px;
-    border-left: 4px solid #1a3a5c;
+    box-shadow: inset 4px 0 0 0 #1a3a5c;
     font-size: 0.8rem;
     color: #4b5563;
     margin-top: 8px;
@@ -1735,8 +1764,8 @@ onMounted(() => {
         flex-wrap: wrap;
     }
     .btn { flex: 1; justify-content: center; padding: 6px 16px; height: 36px; font-size: 0.8rem; }
-    .iva-detail-item { flex-wrap: wrap; justify-content: center; }
-    .iva-input-wrap { width: 100%; }
+    .iva-detail-item { flex-basis: 100%; }
+    .iva-total-bar { flex-direction: column; align-items: flex-start; gap: 4px; }
     .resumen-grid { grid-template-columns: 1fr; }
     .info-leyenda-premium {
         flex-direction: column;

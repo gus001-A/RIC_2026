@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Convierte a MAYÚSCULAS todo el texto que llega en el request (body y query),
- * excepto contraseñas y correos electrónicos.
+ * Convierte a MAYÚSCULAS el texto que el usuario captura en formularios
+ * (body de POST/PUT/PATCH), excepto contraseñas y correos electrónicos.
  *
  * - Contraseñas: nunca se tocan (login, cambio de contraseña, creación de
  *   usuario, etc.) porque son sensibles a mayúsculas/minúsculas.
@@ -18,6 +18,13 @@ use Symfony\Component\HttpFoundation\Response;
  * - Rutas de autenticación (login, registro, recuperación de contraseña):
  *   se excluyen por completo, no hay beneficio en tocarlas y evita
  *   cualquier sorpresa en un flujo crítico.
+ *
+ * 🔥 IMPORTANTE: la query string (GET, `?vista=diferidas`, `?sort_by=...`,
+ * filtros de búsqueda, paginación, etc.) NUNCA se toca. Esos valores son de
+ * CONTROL de la aplicación, no texto capturado por el usuario, y el código
+ * los compara en minúsculas (`if ($vista === 'diferidas')`). Convertirlos a
+ * mayúsculas rompía el cambio de vista (Diferidas/Traspasos/Pendientes) en
+ * todo el módulo de Movimientos — ya pasó una vez, por eso este aviso.
  */
 class ConvertirEntradaAMayusculas
 {
@@ -56,10 +63,22 @@ class ConvertirEntradaAMayusculas
             return $next($request);
         }
 
-        $datos = $request->all();
+        // Solo se toca el BODY. GET nunca trae "body" real en esta app (la
+        // query string es para filtros/orden/vista), así que no hay nada
+        // que convertir y, sobre todo, nada que romper.
+        if (!$request->isMethod('post') && !$request->isMethod('put') && !$request->isMethod('patch')) {
+            return $next($request);
+        }
+
+        // Bag correcto según el tipo de petición: `json` para los POST por
+        // axios con Content-Type: application/json, `request` para
+        // formularios normales/multipart. La query string (`$request->query`)
+        // queda completamente fuera, a propósito.
+        $fuente = $request->isJson() ? $request->json() : $request->request;
+        $datos = $fuente->all();
 
         if (!empty($datos)) {
-            $request->merge($this->convertirRecursivo($datos));
+            $fuente->replace($this->convertirRecursivo($datos));
         }
 
         return $next($request);

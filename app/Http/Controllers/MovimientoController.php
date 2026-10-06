@@ -141,8 +141,11 @@ public function index(Request $request)
 
     // Filtros específicos por vista
     if ($vista === 'diferidas') {
+        // 🔥 Las diferidas que ya se liquidaron por completo dejan de mostrarse
+        // aquí (no se borran, solo se ocultan de esta vista).
         $query->whereHas('poliza', function($q) {
-            $q->where('es_por_pagar', true);
+            $q->where('es_por_pagar', true)
+                ->where('estatus', '!=', 'LIQUIDADO');
         });
     } elseif ($vista === 'pendientes') {
         $query->whereHas('poliza', function($q) {
@@ -271,6 +274,33 @@ public function index(Request $request)
     }
 
     $perPage = $request->get('per_page', 15);
+
+    // 🔥 Resumen de totales sobre TODO lo filtrado (fecha, estatus, persona…),
+    // no solo sobre la página que se está viendo. Se calcula ANTES de paginar:
+    // paginate() deja LIMIT/OFFSET en el builder y en la página 2+ el SUM
+    // saldría en 0 (el offset salta la única fila del agregado).
+    $queryTotales = (clone $query)->reorder();
+    $resumenTotales = [
+        'ingresos' => round((float) (clone $queryTotales)->where('movimientos_poliza.monto', '>', 0)->sum('movimientos_poliza.monto'), 2),
+        'egresos' => round(abs((float) (clone $queryTotales)->where('movimientos_poliza.monto', '<', 0)->sum('movimientos_poliza.monto')), 2),
+        'traspasos' => 0,
+        'pendiente' => 0,
+    ];
+
+    // "Total pendiente" de Diferidas: saldo por abonar de TODAS las diferidas
+    // filtradas (monto - abonos), no solo de las filas de la página visible.
+    if ($vista === 'diferidas') {
+        $filasDiferidas = (clone $queryTotales)->setEagerLoads([])
+            ->get(['movimientos_poliza.id_poliza', 'movimientos_poliza.monto']);
+        $abonosPorPoliza = AbonoPoliza::whereIn('id_poliza', $filasDiferidas->pluck('id_poliza'))
+            ->selectRaw('id_poliza, SUM(monto_abonado) as total')
+            ->groupBy('id_poliza')
+            ->pluck('total', 'id_poliza');
+        $resumenTotales['pendiente'] = round($filasDiferidas->sum(function ($fila) use ($abonosPorPoliza) {
+            return abs((float) $fila->monto) - (float) ($abonosPorPoliza[$fila->id_poliza] ?? 0);
+        }), 2);
+    }
+
     // withQueryString() conserva TODOS los filtros/empresa/orden en los enlaces
     // de paginación; sin esto, al pasar a la página 2 se pierden los filtros.
     $movimientos = $query->paginate($perPage)->withQueryString();
@@ -329,15 +359,11 @@ public function index(Request $request)
     });
 
     // Calcular saldo total
-    $saldoTotal = null;
-    if ($vista === 'diferidas') {
-        $saldoTotal = $query->get()->sum(function($movimiento) {
-            $totalAbonado = AbonoPoliza::where('id_poliza', $movimiento->id_poliza)->sum('monto_abonado');
-            return abs($movimiento->monto) - $totalAbonado;
-        });
-    } else {
-        $saldoTotal = (float) $query->sum('monto');
-    }
+    // (usa los totales ya calculados antes de paginar; después de paginate()
+    // el builder trae LIMIT/OFFSET y daba resultados incorrectos en página 2+)
+    $saldoTotal = $vista === 'diferidas'
+        ? $resumenTotales['pendiente']
+        : round($resumenTotales['ingresos'] - $resumenTotales['egresos'], 2);
 
     // Filtros para el frontend
     $filtros = $request->only([
@@ -383,6 +409,7 @@ public function index(Request $request)
         'filtros' => $filtros,
         'empresa_seleccionada' => (int) $empresaId,
         'saldo_total' => $saldoTotal !== null ? (float) $saldoTotal : null,
+        'resumen_totales' => $resumenTotales,
         'vista' => $vista,
         'contadores' => $contadores,
         'cuentas_fondeadoras' => $cuentasFondeadoras,
@@ -472,6 +499,13 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
         }, function ($q) use ($sortColumn, $sortOrder) {
             $q->orderBy($sortColumn, $sortOrder);
         });
+
+    // Total de traspasos de TODO lo filtrado (no solo de la página actual).
+    // Se calcula ANTES de paginar: paginate() deja LIMIT/OFFSET en el builder.
+    $totalTraspasosFiltrados = round(abs((float) MovimientoPoliza::whereIn(
+        'id_poliza',
+        (clone $polizas)->reorder()->select('id')
+    )->where('monto', '<', 0)->sum('monto')), 2);
 
     $polizasPaginadas = $polizas->paginate($perPage)->withQueryString();
 
@@ -572,6 +606,11 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
         'filtros' => $filtros,
         'empresa_seleccionada' => (int) $empresaId,
         'saldo_total' => null,
+        'resumen_totales' => [
+            'ingresos' => $totalTraspasosFiltrados,
+            'egresos' => 0,
+            'traspasos' => $totalTraspasosFiltrados,
+        ],
         'vista' => 'traspasos',
         'contadores' => $contadores,
         'cuentas_fondeadoras' => $cuentasFondeadoras,
