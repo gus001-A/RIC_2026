@@ -446,7 +446,7 @@
 
                             <!-- BOTÓN EDITAR -->
                             <Link 
-                                v-if="permisos?.puede_editar && puedeEditar()" 
+                                v-if="(permisos?.puede_editar || movimiento.puede_editar_esta) && puedeEditar()" 
                                 :href="route('movimientos.edit', movimiento.id)" 
                                 class="btn-action btn-editar"
                             >

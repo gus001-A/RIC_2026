@@ -90,7 +90,7 @@
                                 Hoy
                             </button>
                             <button
-                                v-if="filtros.fecha_desde || filtros.fecha_hasta"
+                                v-if="filtros.fecha_desde || filtros.fecha_hasta || filtros.factura_desde || filtros.factura_hasta"
                                 type="button"
                                 class="btn-limpiar-fechas"
                                 @click="limpiarFechas"
@@ -98,6 +98,31 @@
                                 <i class="pi pi-times"></i>
                                 Limpiar
                             </button>
+                        </div>
+
+                        <!-- Separador -->
+                        <div class="filtros-separator"></div>
+
+                        <!-- Calendario: FECHA DE FACTURA (sólo pólizas fiscales) -->
+                        <div class="fecha-item">
+                            <InputLabel>Factura desde</InputLabel>
+                            <input
+                                type="date"
+                                v-model="filtros.factura_desde"
+                                @change="aplicarFiltros"
+                                class="fecha-input-premium"
+                                title="Fecha de la factura (muestra solo pólizas fiscales)"
+                            />
+                        </div>
+                        <div class="fecha-item">
+                            <InputLabel>Factura hasta</InputLabel>
+                            <input
+                                type="date"
+                                v-model="filtros.factura_hasta"
+                                @change="onFacturaHastaChange"
+                                class="fecha-input-premium"
+                                title="Fecha de la factura (muestra solo pólizas fiscales)"
+                            />
                         </div>
 
                         <!-- Separador -->
@@ -141,7 +166,7 @@
                     <!-- Header de la tabla -->
                     <div class="table-header-ultra">
                         <div class="table-header-left-ultra">
-                            <span v-if="filtrosActivos && vistaActual !== 'diferidas'" class="filter-tag-ultra">
+                            <span v-if="filtrosActivos" class="filter-tag-ultra">
                                 <span class="filter-dot-active"></span>
                                 Filtros activos
                             </span>
@@ -351,8 +376,19 @@
                                             </svg>
                                             <span class="btn-recurso-texto">Ver</span>
                                         </button>
+                                        <!-- Cuándo se subió el recurso: negro si fue dentro de los 20 min de registrada la póliza, rojo si no -->
+                                        <span
+                                            v-if="record.tiene_recurso && record.recurso_subido_en"
+                                            class="recurso-fecha-celda"
+                                            :class="record.recurso_tarde ? 'recurso-fecha-tarde' : 'recurso-fecha-ok'"
+                                            :title="'Subido por ' + (record.recurso_subido_por || '—') + ' el ' + record.recurso_subido_en + (record.recurso_retraso_texto ? ' (' + record.recurso_retraso_texto + ' después de registrar la póliza)' : '')"
+                                        >
+                                            <span v-if="record.recurso_subido_por" class="recurso-fecha-usuario">{{ record.recurso_subido_por }}</span>
+                                            <span>{{ record.recurso_subido_en.slice(0, 10) }}</span>
+                                            <span>{{ record.recurso_subido_en.slice(11) }}</span>
+                                        </span>
                                         <button
-                                            v-else
+                                            v-else-if="permisos?.puede_subir_recursos"
                                             class="btn-recurso btn-recurso-azul"
                                             @click="abrirModalSubir(record)"
                                             title="Subir recurso (PDF o imagen)"
@@ -401,7 +437,7 @@
                                         
                                         <!-- Botón Editar (disponible en TODAS las vistas) -->
                                         <button 
-                                            v-if="permisos?.puede_editar"
+                                            v-if="record.puede_editar_esta"
                                             class="btn-accion editar" 
                                             @click="accionEditar(record)"
                                             title="Editar"
@@ -414,7 +450,7 @@
                                         
                                         <!-- Botón Ver (si no tiene permiso de editar) -->
                                         <button 
-                                            v-if="!permisos?.puede_editar"
+                                            v-if="!record.puede_editar_esta"
                                             class="btn-accion ver" 
                                             @click="accionVer(record)"
                                             title="Ver"
@@ -440,7 +476,7 @@
                         </DataTable>
                     </div>
 
-                    <!-- FILTROS INFERIOR - OCULTOS EN DIFERIDAS -->
+                    <!-- FILTROS INFERIOR (Pólizas y Traspasos) -->
                     <div v-if="vistaActual !== 'diferidas'" class="filtros-inferior-tabla">
                         <div class="filtros-inferior-grid">
                             <div class="filtro-inferior-item" v-if="vistaActual === 'normal' || vistaActual === 'traspasos'">
@@ -511,7 +547,7 @@
                                 />
                             </div>
 
-                            <div class="filtro-inferior-item" v-if="vistaActual === 'diferidas' || vistaActual === 'traspasos'">
+                            <div class="filtro-inferior-item" v-if="vistaActual === 'traspasos'">
                                 <label class="filtro-inferior-label">Usuario</label>
                                 <input 
                                     v-model="filtros.usuario"
@@ -531,6 +567,44 @@
                                     Limpiar filtros
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- FILTROS DE DIFERIDAS: cada filtro va debajo de SU columna -->
+                    <div v-else class="filtros-diferidas-fila">
+                        <div
+                            v-for="col in columnasActuales"
+                            :key="col.key"
+                            class="filtros-diferidas-celda"
+                            :style="{ width: col.width }"
+                        >
+                            <input
+                                v-if="col.key === 'persona'"
+                                v-model="filtros.persona"
+                                @input="aplicarFiltros"
+                                placeholder="Buscar persona..."
+                                class="filtro-inferior-input"
+                            />
+                            <select
+                                v-else-if="col.key === 'saldo_pendiente'"
+                                v-model="filtros.estado_deuda"
+                                @change="aplicarFiltros"
+                                class="filtro-inferior-select"
+                                title="Estado de pago"
+                            >
+                                <option value="">Pendientes</option>
+                                <option value="mayor">Se debe más</option>
+                                <option value="menor">Se debe menos</option>
+                                <option value="pagadas">Pagadas</option>
+                            </select>
+                            <button
+                                v-else-if="col.key === 'acciones' && filtrosActivos"
+                                type="button"
+                                class="btn-limpiar-filtros-inferior"
+                                @click="limpiarFiltros"
+                            >
+                                <i class="pi pi-times"></i> Limpiar
+                            </button>
                         </div>
                     </div>
 
@@ -630,34 +704,39 @@
             modal
             class="modal-recurso-premium"
             :class="{ 'modal-recurso-premium-ver': modalRecursoModo === 'ver' }"
-            :style="{ width: '90vw', maxWidth: '900px' }"
+            :style="{ width: '95vw', maxWidth: '1200px' }"
         >
             <template #header>
                 <div class="recurso-header">
                     <span class="recurso-header-titulo">{{ modalRecursoTitulo }}</span>
-                    <!-- Quién subió el comprobante, cuándo, y si tardó más de 20 min desde que se registró la póliza.
-                         Va en el título para no quitarle espacio a la vista del recurso. -->
+                    <!-- Datos de la póliza: chips en UNA SOLA LÍNEA, siempre en negro -->
                     <div
-                        v-if="modalRecursoModo === 'ver' && modalRecursoMovimiento && (modalRecursoMovimiento.recurso_subido_en || modalRecursoMovimiento.recurso_subido_por)"
-                        class="recurso-subida-info"
-                        :class="modalRecursoMovimiento.recurso_tarde ? 'recurso-subida-tarde' : 'recurso-subida-ok'"
+                        v-if="modalRecursoModo === 'ver' && modalRecursoMovimiento"
+                        class="recurso-datos-poliza"
                     >
-                        <span class="recurso-subida-dato">
-                            <i class="pi pi-user"></i>
-                            <strong>{{ modalRecursoMovimiento.recurso_subido_por || '—' }}</strong>
+                        <span class="recurso-chip">
+                            <span class="recurso-chip-label">Tipo</span>
+                            <span class="recurso-chip-valor">{{ modalRecursoMovimiento.tipo_poliza || '—' }}</span>
                         </span>
-                        <span class="recurso-subida-dato">
-                            <i class="pi pi-calendar"></i>
-                            <strong>{{ modalRecursoMovimiento.recurso_subido_en || '—' }}</strong>
+                        <span class="recurso-chip">
+                            <span class="recurso-chip-label">Usuario</span>
+                            <span class="recurso-chip-valor">{{ modalRecursoMovimiento.usuario || '—' }}</span>
                         </span>
-                        <span v-if="modalRecursoMovimiento.recurso_retraso_texto" class="recurso-subida-dato">
-                            <i :class="modalRecursoMovimiento.recurso_tarde ? 'pi pi-exclamation-triangle' : 'pi pi-clock'"></i>
-                            <template v-if="modalRecursoMovimiento.recurso_tarde">
-                                Subido <strong>{{ modalRecursoMovimiento.recurso_retraso_texto }}</strong> después de registrar la póliza (más de 20 min)
-                            </template>
-                            <template v-else>
-                                Subido <strong>{{ modalRecursoMovimiento.recurso_retraso_texto }}</strong> después de registrar la póliza
-                            </template>
+                        <span class="recurso-chip">
+                            <span class="recurso-chip-label">Registro</span>
+                            <span class="recurso-chip-valor">{{ formatFechaHora(modalRecursoMovimiento.created_at) }}</span>
+                        </span>
+                        <span class="recurso-chip">
+                            <span class="recurso-chip-label">Persona</span>
+                            <span class="recurso-chip-valor">{{ modalRecursoMovimiento.persona || '—' }}</span>
+                        </span>
+                        <span class="recurso-chip">
+                            <span class="recurso-chip-label">Monto</span>
+                            <span class="recurso-chip-valor">${{ formatNumber(Math.abs(modalRecursoMovimiento.monto || 0)) }}</span>
+                        </span>
+                        <span class="recurso-chip">
+                            <span class="recurso-chip-label">Fiscal</span>
+                            <span class="recurso-chip-valor">{{ modalRecursoMovimiento.es_fiscal ? 'Sí' : 'No' }}</span>
                         </span>
                     </div>
                 </div>
@@ -666,43 +745,6 @@
             <div class="modal-recurso-content" :class="{ 'modal-recurso-content-ver': modalRecursoModo === 'ver' }">
                 <!-- Si es para ver -->
                 <div v-if="modalRecursoModo === 'ver' && modalRecursoUrl">
-                    <div class="recurso-toolbar-top">
-                        <button type="button" class="btn-modal-submit" @click="abrirRecursoEnPestana">
-                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            Ver documento/imagen
-                        </button>
-                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit btn-modal-submit-outline" download>
-                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                            Descargar
-                        </a>
-                        <button
-                            v-if="permisos.puede_editar"
-                            type="button"
-                            class="btn-modal-submit btn-modal-submit-outline"
-                            @click="modoReemplazarRecurso"
-                        >
-                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                            Reemplazar
-                        </button>
-                        <button
-                            v-if="permisos.puede_editar"
-                            type="button"
-                            class="btn-modal-cancel btn-modal-cancel-danger"
-                            @click="eliminarRecurso"
-                        >
-                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                            Eliminar
-                        </button>
-                    </div>
                     <div v-if="modalRecursoTipo === 'pdf'" class="recurso-pdf-wrapper">
                         <iframe :src="modalRecursoUrl" class="recurso-pdf" frameborder="0"></iframe>
                     </div>
@@ -778,6 +820,49 @@
                 </div>
             </div>
 
+            <!-- PIE DEL MODAL (solo en modo ver): todo en UNA SOLA LÍNEA -->
+            <template #footer>
+                <div v-if="modalRecursoModo === 'ver'" class="recurso-footer">
+                    <!-- Derecha: botones de acción -->
+                    <div class="recurso-footer-right">
+                        <button type="button" class="btn-modal-submit" @click="abrirRecursoEnPestana">
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Ver
+                        </button>
+                        <a :href="modalRecursoUrl" target="_blank" class="btn-modal-submit btn-modal-submit-outline" download>
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Descargar
+                        </a>
+                        <button
+                            v-if="permisos.puede_editar && !modalRecursoEsFiscal"
+                            type="button"
+                            class="btn-modal-submit btn-modal-submit-outline"
+                            @click="modoReemplazarRecurso"
+                        >
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Reemplazar
+                        </button>
+                        <button
+                            v-if="permisos.puede_editar && !modalRecursoEsFiscal"
+                            type="button"
+                            class="btn-modal-cancel btn-modal-cancel-danger"
+                            @click="eliminarRecurso"
+                        >
+                            <svg class="btn-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            </template>
         </Dialog>
     </AppLayout>
 </template>
@@ -857,6 +942,8 @@ const modalRecursoVisible = ref(false);
 const modalRecursoModo = ref('ver');
 const modalRecursoTitulo = ref('');
 const modalRecursoUrl = ref('');
+// true cuando el modal muestra el PDF de una póliza fiscal (no un recurso subido)
+const modalRecursoEsFiscal = ref(false);
 const modalRecursoTipo = ref('');
 const modalRecursoId = ref(null);
 const modalRecursoMovimiento = ref(null);
@@ -938,19 +1025,16 @@ const getColumnasDisponibles = () => {
 
 const columnasDisponibles = computed(() => getColumnasDisponibles());
 
-// Anchos en % para que, por defecto, TODAS las columnas quepan en pantalla sin
-// scroll horizontal. El usuario puede arrastrar el borde de cada encabezado
-// para agrandar/achicar una columna (como en Excel).
 const columnasNormal = [
     { title: 'Referencia', key: 'referencia', width: '10%', sorter: true },
-    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '12%', align: 'center', sorter: true },
-    { title: 'Estatus', key: 'estatus', width: '9%', align: 'center' },
+    { title: 'Fecha Poliza', key: 'fecha_poliza', width: '11%', align: 'center', sorter: true },
+    { title: 'Estatus', key: 'estatus', width: '8%', align: 'center' },
     { title: 'Persona', key: 'persona', width: '12%' },
     { title: 'Cuenta', key: 'cuenta', width: '13%' },
     { title: 'Cta. Fondeo', key: 'cuenta_fondeadora', width: '8%' },
-    { title: 'Nota', key: 'nota', width: '23%' },
-    { title: 'Monto', key: 'monto', width: '8%', align: 'right' },
-    { title: 'Recurso', key: 'recurso', width: '7%', align: 'center' }
+    { title: 'Nota', key: 'nota', width: '22%' },
+    { title: 'Monto', key: 'monto', width: '7%', align: 'right' },
+    { title: 'Recurso', key: 'recurso', width: '11%', align: 'center' }
 ];
 
 const columnasTraspasos = [
@@ -961,26 +1045,25 @@ const columnasTraspasos = [
     { title: 'Persona', key: 'persona', width: '11%' },
     { title: 'Cuenta Origen', key: 'cuenta', width: '12%' },
     { title: 'Cuenta Destino', key: 'cuenta_destino', width: '12%' },
-    { title: 'Nota', key: 'nota', width: '15%' },
+    { title: 'Nota', key: 'nota', width: '13%' },
     { title: 'Monto', key: 'monto', width: '8%', align: 'right' },
-    { title: 'Recurso', key: 'recurso', width: '6%', align: 'center' },
+    { title: 'Recurso', key: 'recurso', width: '8%', align: 'center' },
     { title: 'PDF', key: 'pdf', width: '4%', align: 'center' }
 ];
 
 const columnasDiferidas = [
     { title: 'Vencimiento', key: 'vencimiento', width: '9%', align: 'center', sorter: true },
     { title: 'Persona', key: 'persona', width: '12%' },
-    { title: 'Nota', key: 'nota', width: '17%' },
+    { title: 'Nota', key: 'nota', width: '15%' },
     { title: 'Monto', key: 'monto', width: '8%', align: 'right' },
     { title: 'Abonado', key: 'abonado', width: '8%', align: 'right' },
     { title: 'Saldo Pendiente', key: 'saldo_pendiente', width: '11%', align: 'right' },
     { title: 'Usuario', key: 'usuario', width: '9%' },
-    { title: 'Recurso', key: 'recurso', width: '7%', align: 'center' },
+    { title: 'Recurso', key: 'recurso', width: '9%', align: 'center' },
     { title: 'PDF', key: 'pdf', width: '5%', align: 'center' },
     { title: 'Acciones', key: 'acciones', width: '14%', align: 'center' }
 ];
 
-// En pólizas normales/pendientes/autorizadas el PDF va junto a la referencia.
 const pdfJuntoAReferencia = computed(() => vistaActual.value !== 'diferidas' && vistaActual.value !== 'traspasos');
 
 const columnasActuales = computed(() => {
@@ -1003,7 +1086,6 @@ const columnasActuales = computed(() => {
 // ============================================
 const totalPendiente = computed(() => {
     if (vistaActual.value !== 'diferidas') return 0;
-    // Viene del servidor, sobre TODAS las diferidas filtradas (no solo la página).
     if (props.resumen_totales && props.resumen_totales.pendiente !== undefined) {
         return Number(props.resumen_totales.pendiente) || 0;
     }
@@ -1011,8 +1093,6 @@ const totalPendiente = computed(() => {
     return props.movimientos.data.reduce((sum, item) => sum + (item.saldo_pendiente || 0), 0);
 });
 
-// El resumen viene calculado por el servidor sobre TODO lo filtrado (rango de
-// fechas, estatus, etc.), no solo sobre las filas de la página visible.
 const totalIngresos = computed(() => {
     if (props.resumen_totales) return Number(props.resumen_totales.ingresos) || 0;
     if (!props.movimientos.data || props.movimientos.data.length === 0) return 0;
@@ -1045,9 +1125,15 @@ const saldoNeto = computed(() => {
 // ============================================
 const hoy = obtenerFechaLocal();
 
+// Filtros que SÍ aplican en la vista Diferidas (las fechas y "solo fiscales" no).
+const FILTROS_EN_DIFERIDAS = ['persona', 'estado_deuda'];
+
 const filtros = ref({
     fecha_desde: props.filtros?.fecha_desde || '',
     fecha_hasta: props.filtros?.fecha_hasta || '',
+    factura_desde: props.filtros?.factura_desde || '',
+    factura_hasta: props.filtros?.factura_hasta || '',
+    estado_deuda: props.filtros?.estado_deuda || '',
     referencia: props.filtros?.referencia || '',
     estatus: props.filtros?.estatus || '',
     persona: props.filtros?.persona || '',
@@ -1066,10 +1152,12 @@ watch(mostrarTodos, (val) => { filtros.value.mostrar_todos = val; });
 watch(soloFiscales, (val) => { filtros.value.solo_fiscales = val; });
 
 const filtrosActivos = computed(() => {
-    if (vistaActual.value === 'diferidas') return false;
-    const { fecha_desde, fecha_hasta, vista, sort_by, sort_order, mostrar_todos, solo_fiscales, ...otros } = filtros.value;
+    if (vistaActual.value === 'diferidas') {
+        return FILTROS_EN_DIFERIDAS.some(k => filtros.value[k] !== '' && filtros.value[k] !== null && filtros.value[k] !== undefined);
+    }
+    const { fecha_desde, fecha_hasta, factura_desde, factura_hasta, estado_deuda, vista, sort_by, sort_order, mostrar_todos, solo_fiscales, ...otros } = filtros.value;
     return Object.values(otros).some(v => v !== '' && v !== null && v !== undefined) ||
-           fecha_desde || fecha_hasta || mostrar_todos || solo_fiscales;
+           fecha_desde || fecha_hasta || factura_desde || factura_hasta || mostrar_todos || solo_fiscales;
 });
 
 // ============================================
@@ -1083,6 +1171,15 @@ const onFechaHastaChange = () => {
 };
 
 const onFechaDesdeChange = () => {
+    aplicarFiltros();
+};
+
+// Igual que Desde/Hasta de la póliza: al elegir "Factura hasta", "Factura desde"
+// se mueve a la misma fecha.
+const onFacturaHastaChange = () => {
+    if (filtros.value.factura_hasta) {
+        filtros.value.factura_desde = filtros.value.factura_hasta;
+    }
     aplicarFiltros();
 };
 
@@ -1100,6 +1197,9 @@ const aplicarFiltros = () => {
         
         if (vistaActual.value === 'diferidas') {
             if (filtros.value.sort_by) params.sort_by = filtros.value.sort_by;
+            for (const k of FILTROS_EN_DIFERIDAS) {
+                if (filtros.value[k]) params[k] = filtros.value[k];
+            }
             if (filtros.value.sort_order) params.sort_order = filtros.value.sort_order;
         } else {
             for (const [key, value] of Object.entries(filtros.value)) {
@@ -1108,8 +1208,6 @@ const aplicarFiltros = () => {
                     params[key] = value;
                 }
             }
-            // Si el usuario dejó las fechas vacías a propósito, marcarlo para que
-            // al recargar/paginar NO se vuelva a poner "hoy" automáticamente.
             if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
                 params.sin_fecha = 1;
             }
@@ -1127,6 +1225,9 @@ const limpiarFiltros = () => {
     filtros.value = {
         fecha_desde: '',
         fecha_hasta: '',
+        factura_desde: '',
+        factura_hasta: '',
+        estado_deuda: '',
         referencia: '',
         estatus: '',
         persona: '',
@@ -1148,6 +1249,8 @@ const limpiarFiltros = () => {
 const limpiarFechas = () => {
     filtros.value.fecha_desde = '';
     filtros.value.fecha_hasta = '';
+    filtros.value.factura_desde = '';
+    filtros.value.factura_hasta = '';
     aplicarFiltros();
 };
 
@@ -1162,6 +1265,7 @@ const cambiarVista = (vista) => {
     if (vistaActual.value === vista) return;
     vistaActual.value = vista;
     filtros.value.vista = vista;
+    filtros.value.estado_deuda = '';
     filtros.value.sort_by = vista === 'diferidas' ? 'fecha_vencimiento' : 'referencia';
     filtros.value.sort_order = vista === 'diferidas' ? 'asc' : 'desc';
     soloFiscales.value = false;
@@ -1194,6 +1298,9 @@ const cambiarEmpresa = () => {
         
         if (vistaActual.value === 'diferidas') {
             if (filtros.value.sort_by) params.sort_by = filtros.value.sort_by;
+            for (const k of FILTROS_EN_DIFERIDAS) {
+                if (filtros.value[k]) params[k] = filtros.value[k];
+            }
             if (filtros.value.sort_order) params.sort_order = filtros.value.sort_order;
         } else {
             for (const [key, value] of Object.entries(filtros.value)) {
@@ -1202,8 +1309,6 @@ const cambiarEmpresa = () => {
                     params[key] = value;
                 }
             }
-            // Si el usuario dejó las fechas vacías a propósito, marcarlo para que
-            // al recargar/paginar NO se vuelva a poner "hoy" automáticamente.
             if (!filtros.value.fecha_desde && !filtros.value.fecha_hasta) {
                 params.sin_fecha = 1;
             }
@@ -1336,9 +1441,10 @@ const abrirModalSubir = (record) => {
 };
 
 const verRecurso = (record) => {
+    modalRecursoEsFiscal.value = false;
     modalRecursoMovimiento.value = record;
     modalRecursoModo.value = 'ver';
-    modalRecursoTitulo.value = `Póliza - ${record.referencia || 'Póliza'}`;
+    modalRecursoTitulo.value = `Poliza - ${record.referencia || 'Póliza'}`;
     modalRecursoUrl.value = record.recurso_url || '';
     modalRecursoId.value = record.recurso_id || null;
 
@@ -1361,6 +1467,7 @@ const verRecurso = (record) => {
 const cerrarModalRecurso = () => {
     modalRecursoVisible.value = false;
     modalRecursoModo.value = 'ver';
+    modalRecursoEsFiscal.value = false;
     modalRecursoMovimiento.value = null;
     modalRecursoId.value = null;
     archivoSeleccionado.value = null;
@@ -1368,14 +1475,12 @@ const cerrarModalRecurso = () => {
     dragging.value = false;
 };
 
-// Abre el documento/imagen en una pestaña nueva (sin forzar descarga)
 const abrirRecursoEnPestana = () => {
     if (modalRecursoUrl.value) {
         window.open(modalRecursoUrl.value, '_blank', 'noopener');
     }
 };
 
-// Cambia el modal a modo "reemplazar" reutilizando el formulario de carga
 const modoReemplazarRecurso = () => {
     modalRecursoModo.value = 'reemplazar';
     modalRecursoTitulo.value = `Reemplazar recurso - ${modalRecursoMovimiento.value?.referencia || 'Póliza'}`;
@@ -1383,7 +1488,6 @@ const modoReemplazarRecurso = () => {
     errorRecurso.value = '';
 };
 
-// Elimina el recurso adjunto de la póliza
 const eliminarRecurso = () => {
     const idArchivo = modalRecursoId.value;
     if (!idArchivo) return;
@@ -1523,7 +1627,6 @@ const accionLiquidar = (record) => {
 };
 
 const onLiquidado = () => {
-    // ModalLiquidacion ya muestra su propio toast de éxito.
     setTimeout(() => {
         router.reload({ only: ['movimientos'] });
     }, 1200);
@@ -1544,7 +1647,15 @@ const accionVer = (record) => {
 
 const verPdf = (record) => {
     if (record.es_fiscal && record.tiene_pdf_fiscal && record.pdf_url) {
-        window.open(record.pdf_url, '_blank');
+        // Se muestra en el mismo modal del recurso (iframe), sin abrir otra pestaña.
+        modalRecursoEsFiscal.value = true;
+        modalRecursoMovimiento.value = record;
+        modalRecursoModo.value = 'ver';
+        modalRecursoTitulo.value = `PDF Fiscal - ${record.referencia || 'Póliza'}`;
+        modalRecursoUrl.value = record.pdf_url;
+        modalRecursoId.value = null;
+        modalRecursoTipo.value = 'pdf';
+        modalRecursoVisible.value = true;
     } else if (record.es_fiscal && !record.tiene_pdf_fiscal) {
         mostrarModal('info', 'PDF no disponible', 'Esta poliza fiscal no tiene un PDF asociado.');
     } else {
@@ -1565,6 +1676,9 @@ const exportarExcel = () => {
     
     if (vistaActual.value === 'diferidas') {
         if (filtros.value.sort_by) params.append('sort_by', filtros.value.sort_by);
+        for (const k of FILTROS_EN_DIFERIDAS) {
+            if (filtros.value[k]) params.append(k, filtros.value[k]);
+        }
         if (filtros.value.sort_order) params.append('sort_order', filtros.value.sort_order);
     } else {
         for (const [key, value] of Object.entries(filtros.value)) {
@@ -1590,6 +1704,9 @@ const exportarPdf = () => {
     
     if (vistaActual.value === 'diferidas') {
         if (filtros.value.sort_by) params.append('sort_by', filtros.value.sort_by);
+        for (const k of FILTROS_EN_DIFERIDAS) {
+            if (filtros.value[k]) params.append(k, filtros.value[k]);
+        }
         if (filtros.value.sort_order) params.append('sort_order', filtros.value.sort_order);
     } else {
         for (const [key, value] of Object.entries(filtros.value)) {
@@ -1632,12 +1749,10 @@ onMounted(() => {
 
     const urlParams = new URLSearchParams(window.location.search);
     const hayPagina = urlParams.has('page');
-    const servidorTraeFecha = !!(props.filtros?.fecha_desde || props.filtros?.fecha_hasta);
+    const servidorTraeFecha = !!(props.filtros?.fecha_desde || props.filtros?.fecha_hasta || props.filtros?.factura_desde || props.filtros?.factura_hasta);
     const fechaQuitadaAdrede = urlParams.get('sin_fecha') === '1';
     const cambioDeEmpresa = empresaObjetivo !== empresaDelServidor;
 
-    // Primera entrada real a Movimientos (sin ?page, sin fecha en la URL y sin
-    // haberlas quitado a propósito): arrancar con la fecha de HOY.
     if (!hayPagina && !servidorTraeFecha && !fechaQuitadaAdrede && vistaActual.value !== 'diferidas') {
         const hoy = obtenerFechaLocal();
         filtros.value.fecha_desde = hoy;
@@ -1646,14 +1761,9 @@ onMounted(() => {
         return;
     }
 
-    // Cambio de empresa desde otra pantalla: recargar respetando los filtros
-    // actuales (incluida la ausencia de fecha). En navegación normal / paginación
-    // NO se vuelve a llamar aplicarFiltros() para no perder la página.
     if (cambioDeEmpresa) {
         aplicarFiltros();
     }
-
-    // Los flash messages se muestran de forma global (AppLayout useFlashMessages)
 });
 </script>
 
@@ -2027,7 +2137,6 @@ onMounted(() => {
     border: 1px solid #f1f5f9;
 }
 
-/* Fila "sin resultados" dentro de la tabla (conserva encabezados) */
 .tabla-vacia-inline {
     display: flex;
     align-items: center;
@@ -2340,8 +2449,6 @@ onMounted(() => {
     font-size: 13px;
     color: #0f172a;
     font-weight: 500;
-    /* Nombres largos se envuelven en 2 líneas en vez de empujar la columna
-       (no se recortan con "…": en un nombre sí importa verlo completo). */
     display: block;
     white-space: normal;
     word-break: break-word;
@@ -2361,8 +2468,6 @@ onMounted(() => {
     font-size: 13px;
     color: #64748b;
     font-style: italic;
-    /* La nota se muestra COMPLETA (sin recortar con "…"); si es larga se parte
-       en 2-3 renglones dentro de su columna. */
     display: block;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -2370,9 +2475,11 @@ onMounted(() => {
 }
 
 .monto-text-ultra {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     font-family: 'Courier New', monospace;
+    white-space: nowrap;
+    margin: 0 -10px;
 }
 
 .monto-text-ultra.ingreso {
@@ -2400,7 +2507,6 @@ onMounted(() => {
     color: #10b981;
 }
 
-/* Badge pequeño para traspasos - sin emoji */
 .traspaso-amount-badge {
     display: inline-block;
     margin-left: 4px;
@@ -2432,9 +2538,39 @@ onMounted(() => {
 
 /* --- RECURSO --- */
 .recurso-cell {
+    flex-direction: column;
+    gap: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.recurso-fecha-celda {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 10px;
+    line-height: 1.25;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.recurso-fecha-usuario {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+}
+
+.recurso-fecha-ok {
+    color: #111827;
+}
+
+.recurso-fecha-tarde {
+    color: #dc2626;
 }
 
 .btn-recurso {
@@ -2525,8 +2661,6 @@ onMounted(() => {
     height: 24px !important;
 }
 
-/* Celdas de ancho fijo (el usuario redimensiona con el mouse): el texto largo
-   se parte en lugar de salirse de su columna. */
 .movimiento-table-ultra :deep(.p-datatable-tbody > tr > td) {
     overflow-wrap: anywhere;
 }
@@ -2617,6 +2751,28 @@ onMounted(() => {
 }
 
 /* --- FILTROS INFERIOR --- */
+/* Filtros de Diferidas: una celda por columna, mismo ancho en % que la tabla */
+.filtros-diferidas-fila {
+    display: flex;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 0;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.filtros-diferidas-celda {
+    padding: 0 6px;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.filtros-diferidas-celda .filtro-inferior-input,
+.filtros-diferidas-celda .filtro-inferior-select {
+    width: 100%;
+}
+
 .filtros-inferior-tabla {
     margin-top: 16px;
     padding: 16px 20px;
@@ -2725,7 +2881,6 @@ onMounted(() => {
     justify-content: flex-end;
 }
 
-/* Resumen movido fuera de la tarjeta de la tabla */
 .resumen-totales-externo {
     margin-top: 16px;
     justify-content: stretch;
@@ -2913,19 +3068,12 @@ onMounted(() => {
     border-radius: 4px;
 }
 
-/* --- MODAL RECURSO ---
-   Los estilos del contenedor .p-dialog van en el bloque <style> GLOBAL de abajo:
-   PrimeVue teletransporta el diálogo a <body> y no recibe el data-v del scoped,
-   por lo que `:deep(.p-dialog*)` no lo alcanza. */
-
+/* --- MODAL RECURSO --- */
 .modal-recurso-content {
     min-height: 300px;
     padding: 24px;
 }
 
-/* Modo "ver": SIN scroll interno del modal. Se reparte el alto con flex y
-   sólo el visor de PDF/imagen scrollea por dentro. El alto lo impone el
-   .p-dialog-content (que ya está acotado a max 92vh menos el header). */
 .modal-recurso-content-ver {
     display: flex;
     flex-direction: column;
@@ -2942,16 +3090,14 @@ onMounted(() => {
     min-height: 0;
 }
 
-/* Encabezado del modal: título + leyenda de quién/cuándo subió el comprobante.
-   Negro si fue a tiempo (≤ 20 min después de registrar la póliza), rojo si se
-   pasó de los 20 minutos. */
 .recurso-header {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 6px 16px;
+    gap: 12px;
     flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 .recurso-header-titulo {
@@ -2959,41 +3105,56 @@ onMounted(() => {
     font-weight: 700;
     color: #0f172a;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.recurso-subida-info {
+.recurso-datos-poliza {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px 14px;
+    flex-wrap: nowrap;
+    gap: 6px;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    font-weight: 400;
-    border: 1px solid #e5e7eb;
-    background: #f8fafc;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-width: 0;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
 }
 
-.recurso-subida-dato {
+.recurso-datos-poliza::-webkit-scrollbar {
+    height: 4px;
+}
+
+.recurso-datos-poliza::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 2px;
+}
+
+.recurso-chip {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-}
-
-.recurso-subida-ok,
-.recurso-subida-ok .recurso-subida-dato {
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    font-size: 0.74rem;
+    line-height: 1.2;
     color: #0f172a;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.recurso-subida-tarde {
-    background: #fef2f2;
-    border-color: #fca5a5;
+.recurso-chip-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #64748b;
 }
 
-.recurso-subida-tarde,
-.recurso-subida-tarde .recurso-subida-dato,
-.recurso-subida-tarde strong {
-    color: #dc2626;
+.recurso-chip-valor {
+    font-weight: 600;
+    color: #0f172a;
 }
 
 .recurso-toolbar-top {
@@ -3021,6 +3182,7 @@ onMounted(() => {
     gap: 6px;
     color: #b91c1c !important;
     border: 1px solid #b91c1c !important;
+    background: #fff !important;
 }
 
 .btn-modal-cancel-danger:hover {
@@ -3033,8 +3195,6 @@ onMounted(() => {
     min-height: 400px;
 }
 
-/* En modo "ver" el visor ocupa TODO el alto restante del modal (flex:1) y es
-   lo único que scrollea (el propio iframe del PDF). */
 .modal-recurso-content-ver .recurso-pdf-wrapper {
     flex: 1 1 auto;
     height: auto;
@@ -3130,11 +3290,71 @@ onMounted(() => {
 
 .recurso-footer {
     display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
     justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 24px;
-    background: white;
-    border-top: 1px solid #f3f4f6;
+    gap: 16px;
+    padding: 12px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 8px 8px;
+    width: 100%;
+    overflow-x: auto;
+}
+
+.recurso-footer-left {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.recurso-footer-right {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.recurso-subida-linea {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recurso-subida-linea span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recurso-subida-linea-ok,
+.recurso-subida-linea-ok strong {
+    color: #0f172a;
+}
+
+.recurso-subida-linea-tarde {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+
+.recurso-subida-linea-tarde,
+.recurso-subida-linea-tarde strong {
+    color: #dc2626;
 }
 
 .recurso-upload-wrapper {
@@ -3259,7 +3479,7 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 24px;
+    padding: 8px 18px;
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     color: white;
     border: none;
@@ -3269,6 +3489,7 @@ onMounted(() => {
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .btn-modal-submit:hover:not(:disabled) {
@@ -3396,6 +3617,20 @@ onMounted(() => {
         height: 50vh;
         min-height: 300px;
     }
+
+    .recurso-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .recurso-footer-right {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .recurso-datos-poliza {
+        flex-wrap: wrap;
+    }
 }
 
 @media (max-width: 480px) {
@@ -3487,8 +3722,7 @@ onMounted(() => {
 </style>
 
 <!-- Estilos del diálogo de recurso: NO scoped porque PrimeVue teletransporta
-     el .p-dialog fuera de este componente. Las clases son suficientemente
-     específicas para no colisionar. -->
+     el .p-dialog fuera de este componente. -->
 <style>
 .modal-recurso-premium.p-dialog {
     max-height: 92vh;
@@ -3496,8 +3730,6 @@ onMounted(() => {
     flex-direction: column;
 }
 
-/* Modo "ver": altura fija -> el visor de PDF/imagen ocupa todo y NO hay
-   scroll vertical del propio modal (sólo scrollea el PDF por dentro). */
 .modal-recurso-premium-ver.p-dialog {
     height: 90vh;
 }
@@ -3505,7 +3737,7 @@ onMounted(() => {
 .modal-recurso-premium .p-dialog-header {
     background: linear-gradient(135deg, #1a3a5c, #2c5282);
     border-radius: 8px 8px 0 0;
-    padding: 16px 24px;
+    padding: 12px 20px;
     flex-shrink: 0;
 }
 
@@ -3515,14 +3747,6 @@ onMounted(() => {
     font-size: 1.1rem;
 }
 
-.modal-recurso-premium .p-dialog-close-button {
-    color: #fff;
-}
-
-.modal-recurso-premium .p-dialog-close-button:hover {
-    color: #fca5a5;
-}
-
 .modal-recurso-premium .p-dialog-content {
     padding: 0;
     overflow: hidden;
@@ -3530,5 +3754,31 @@ onMounted(() => {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+}
+
+.modal-recurso-premium .p-dialog-footer {
+    padding: 0;
+    border: none;
+}
+
+/* Botón X de cerrar: SIEMPRE en color ROJO, sin animaciones */
+.modal-recurso-premium .p-dialog-close-button {
+    color: #ef4444 !important;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-recurso-premium .p-dialog-close-button:hover {
+    color: #dc2626 !important;
+    background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.modal-recurso-premium .p-dialog-close-button svg,
+.modal-recurso-premium .p-dialog-close-button .p-icon {
+    color: #ef4444 !important;
 }
 </style>

@@ -102,6 +102,13 @@ class ConvertirEntradaAMayusculas
                 continue;
             }
 
+            // Valores de CONTROL (banderas de checkbox/FormData), no texto capturado:
+            // "false" -> "FALSE" rompía reglas como `in:true,false,1,0,on,off` y no
+            // dejaba registrar pólizas (es_por_pagar / es_fiscal "inválidos").
+            if (in_array($valor, ['true', 'false', 'on', 'off', 'null', 'undefined'], true)) {
+                continue;
+            }
+
             $datos[$clave] = mb_strtoupper($valor, 'UTF-8');
         }
 

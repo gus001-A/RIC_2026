@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
             'puede_ver' => Gate::allows('ver-movimientos', $user),
             'puede_crear' => Gate::allows('crear-movimientos', $user),
             'puede_editar' => Gate::allows('editar-movimientos', $user),
+            'puede_subir_recursos' => Gate::allows('subir-recursos', $user),
             'puede_eliminar' => Gate::allows('eliminar-movimientos', $user),
             'puede_autorizar' => Gate::allows('autorizar-polizas', $user),
             'puede_ver_todos_movimientos' => Gate::allows('ver-todos-movimientos', $user),
@@ -84,6 +85,9 @@ class HandleInertiaRequests extends Middleware
             
             // Reportes
             'puede_ver_reportes' => Gate::allows('ver-reportes', $user),
+
+            // Cuentas fondeadoras por usuario (sólo SUPERUSUARIO)
+            'puede_ver_cuentas_fondeadoras' => Gate::allows('gestionar-fondeadoras-usuarios', $user),
         ];
 
         return [
@@ -122,6 +126,7 @@ class HandleInertiaRequests extends Middleware
             'puede_ver' => false,
             'puede_crear' => false,
             'puede_editar' => false,
+            'puede_subir_recursos' => false,
             'puede_eliminar' => false,
             'puede_autorizar' => false,
             'puede_ver_personas' => false,
@@ -141,6 +146,7 @@ class HandleInertiaRequests extends Middleware
             'puede_editar_empresas' => false,
             'puede_eliminar_empresas' => false,
             'puede_ver_reportes' => false,
+            'puede_ver_cuentas_fondeadoras' => false,
             'puede_ver_todos_movimientos' => false,
         ];
     }

@@ -26,6 +26,15 @@
                                 <i class="pi pi-eye"></i>
                                 Ver Inactivas
                             </button>
+                            <!-- Sólo SUPERUSUARIO: a quién se le muestra cada cuenta fondeadora -->
+                            <Link
+                                v-if="permisos?.puede_ver_cuentas_fondeadoras"
+                                :href="route('cuentas-fondeadoras.index', { empresa_id: empresaSeleccionada })"
+                                class="btn-asignar-fondeadoras"
+                            >
+                                <i class="pi pi-wallet"></i>
+                                Asignar Cuentas Fondeadoras
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -635,6 +644,29 @@ onMounted(() => {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 13px;
     letter-spacing: 0.3px;
+}
+
+.btn-asignar-fondeadoras {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #1a3a5c, #3d6ea5);
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    padding: 0 20px;
+    height: 36px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+}
+
+.btn-asignar-fondeadoras:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.3);
 }
 
 .btn-ver-inactivas:hover {

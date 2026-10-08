@@ -139,13 +139,23 @@ public function index(Request $request)
         });
     }
 
+    // Calendario de fecha de factura (fiscales)
+    $query->whereHas('poliza', function($q) use ($request) {
+        $this->aplicarFiltrosRegistroYFactura($q, $request);
+    });
+
     // Filtros específicos por vista
     if ($vista === 'diferidas') {
         // 🔥 Las diferidas que ya se liquidaron por completo dejan de mostrarse
         // aquí (no se borran, solo se ocultan de esta vista).
-        $query->whereHas('poliza', function($q) {
-            $q->where('es_por_pagar', true)
-                ->where('estatus', '!=', 'LIQUIDADO');
+        // Filtro "Estado de pago": por defecto sólo lo que aún se debe;
+        // "pagadas" muestra las ya liquidadas.
+        $verPagadas = $request->get('estado_deuda') === 'pagadas';
+        $query->whereHas('poliza', function($q) use ($verPagadas) {
+            $q->where('es_por_pagar', true);
+            $verPagadas
+                ? $q->where('estatus', 'LIQUIDADO')
+                : $q->where('estatus', '!=', 'LIQUIDADO');
         });
     } elseif ($vista === 'pendientes') {
         $query->whereHas('poliza', function($q) {
@@ -273,6 +283,15 @@ public function index(Request $request)
             ->orderBy('polizas.id', 'desc');
     }
 
+    // Diferidas: "Más adeudo" / "Menos adeudo" ordenan por saldo pendiente
+    // (monto - abonos), de mayor a menor o de menor a mayor.
+    if ($vista === 'diferidas' && in_array($request->get('estado_deuda'), ['mayor', 'menor'], true)) {
+        $dir = $request->get('estado_deuda') === 'mayor' ? 'desc' : 'asc';
+        $query->reorder()->orderByRaw(
+            'ABS(movimientos_poliza.monto) - COALESCE((SELECT SUM(a.monto_abonado) FROM abonos_poliza a WHERE a.id_poliza = movimientos_poliza.id_poliza), 0) ' . $dir
+        )->orderBy('movimientos_poliza.id', 'desc');
+    }
+
     $perPage = $request->get('per_page', 15);
 
     // 🔥 Resumen de totales sobre TODO lo filtrado (fecha, estatus, persona…),
@@ -344,6 +363,7 @@ public function index(Request $request)
             'saldo_pendiente' => $saldoPendiente,
             'es_fiscal' => $movimiento->poliza->categoria === 'FISCAL',
             'es_traspaso' => false, // Siempre false en vistas que no son traspasos
+            'puede_editar_esta' => $this->puedeEditarPoliza($movimiento->poliza),
             'es_por_pagar' => $movimiento->poliza->es_por_pagar ?? false,
             'tipo_poliza' => $movimiento->poliza->tipo_poliza ?? null,
             'tiene_pdf_fiscal' => !empty($movimiento->poliza->ruta_pdf),
@@ -371,6 +391,7 @@ public function index(Request $request)
         'fecha_desde', 'fecha_hasta', 'referencia', 
         'estatus', 'tipo_poliza', 'persona', 'cuenta', 
         'cuenta_fondeadora', 'nota', 'usuario',
+        'factura_desde', 'factura_hasta', 'estado_deuda',
         'sort_by', 'sort_order', 'vista', 'mostrar_todos', 'solo_fiscales'
     ]);
 
@@ -390,6 +411,7 @@ public function index(Request $request)
     // 🔥 CORREGIDO: Usar fondeo_c en lugar de es_fondeadora
     // Debe filtrarse por empresa; sin este where salían las fondeadoras de TODAS las empresas.
     $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+        ->fondeadorasAsignadas($empresaId)
         ->where(function($q) {
             $q->where('fondeo_c', 1)
               ->orWhere('tipo_cuenta', 'FONDEADORA');
@@ -454,6 +476,9 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
         })
         ->when($request->filled('fecha_hasta'), function($q) use ($request) {
             return $q->whereDate('fecha_poliza', '<=', $request->fecha_hasta);
+        })
+        ->where(function($q) use ($request) {
+            $this->aplicarFiltrosRegistroYFactura($q, $request);
         })
         ->when($request->filled('referencia'), function($q) use ($request) {
             return $q->where(function($sub) use ($request) {
@@ -549,6 +574,7 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
             'monto' => $monto,
             'es_fiscal' => $poliza->categoria === 'FISCAL',
             'es_traspaso' => true,
+            'puede_editar_esta' => $this->puedeEditarPoliza($poliza),
             'tiene_recurso' => $tieneRecurso,
             'recurso_url' => $recursoUrl,
             'recurso_tipo' => $recursoTipo,
@@ -570,6 +596,7 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
     $filtros = $request->only([
         'fecha_desde', 'fecha_hasta', 'referencia', 
         'estatus', 'persona', 'nota', 'usuario',
+        'factura_desde', 'factura_hasta',
         'sort_by', 'sort_order', 'vista', 'solo_fiscales'
     ]);
 
@@ -588,6 +615,7 @@ private function obtenerTraspasosAgrupados(Request $request, $empresaId, $empres
     // 🔥 CORREGIDO: Usar fondeo_c en lugar de es_fondeadora
     // Debe filtrarse por empresa; sin este where salían las fondeadoras de TODAS las empresas.
     $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+        ->fondeadorasAsignadas($empresaId)
         ->where(function($q) {
             $q->where('fondeo_c', 1)
               ->orWhere('tipo_cuenta', 'FONDEADORA');
@@ -645,6 +673,7 @@ public function create()
 
     // 🔥 CUENTAS FONDEADORAS (solo fondeo_c = 1 y activas)
     $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+        ->fondeadorasAsignadas($empresaId)
         ->where('en_uso', true)
         ->where('fondeo_c', 1)
         ->orderBy('nombre_cuenta')
@@ -783,8 +812,7 @@ public function create()
 public function store(Request $request)
 {
     if (!Gate::allows('crear-movimientos')) {
-        return redirect()->route('movimientos.index')
-            ->with('error', 'No tienes permiso para crear movimientos');
+        return $this->respuestaErrorStore($request, 'No tienes permiso para crear movimientos', [], 403);
     }
 
     $rules = [
@@ -822,10 +850,12 @@ public function store(Request $request)
 
     if ($validator->fails()) {
         \Log::error('Validación store fallida:', $validator->errors()->toArray());
-        return redirect()->back()
-            ->withErrors($validator)
-            ->withInput()
-            ->with('error', $validator->errors()->first());
+        return $this->respuestaErrorStore($request, $validator->errors()->first(), $validator->errors()->toArray());
+    }
+
+    if ($request->filled('id_cuenta_fondeadora') && !$this->fondeadoraPermitida($request->id_cuenta_fondeadora)) {
+        $mensaje = 'No tienes asignada esa cuenta fondeadora. Pídele a un superusuario que te la asigne.';
+        return $this->respuestaErrorStore($request, $mensaje, ['id_cuenta_fondeadora' => [$mensaje]], 403);
     }
 
     try {
@@ -1081,19 +1111,18 @@ public function store(Request $request)
 
     } catch (\Illuminate\Validation\ValidationException $e) {
         DB::rollBack();
-        return redirect()->back()
-            ->withErrors($e->errors())
-            ->with('error', 'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())))
-            ->withInput();
+        return $this->respuestaErrorStore(
+            $request,
+            'Error de validación: ' . implode(', ', \Illuminate\Support\Arr::flatten($e->errors())),
+            $e->errors()
+        );
     } catch (\Exception $e) {
         DB::rollBack();
         \Log::error('Error en store:', [
             'message' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
         ]);
-        return redirect()->back()
-            ->with('error', 'Error al crear la póliza: ' . $e->getMessage())
-            ->withInput();
+        return $this->respuestaErrorStore($request, 'Error al crear la póliza: ' . $e->getMessage(), [], 500);
     }
 }
 
@@ -1519,7 +1548,7 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
 
         if (!Gate::allows('crear-movimientos')) {
             \Log::warning('Permiso denegado para crear traspasos');
-            return back()->with('error', 'No tienes permiso para crear traspasos');
+            return $this->respuestaErrorStore($request, 'No tienes permiso para crear traspasos', [], 403);
         }
 
         $rules = [
@@ -1553,7 +1582,7 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
 
         if ($validator->fails()) {
             \Log::error('Validación fallida:', $validator->errors()->toArray());
-            return back()->withErrors($validator)->withInput();
+            return $this->respuestaErrorStore($request, $validator->errors()->first(), $validator->errors()->toArray());
         }
 
         try {
@@ -1577,7 +1606,7 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
             $monto = round($request->monto_directo, 2);
 
             if ($saldoOrigen < $monto) {
-                return back()->with('error', "Saldo insuficiente en la cuenta origen. Disponible: $" . number_format($saldoOrigen, 2))->withInput();
+                return $this->respuestaErrorStore($request, "Saldo insuficiente en la cuenta origen. Disponible: $" . number_format($saldoOrigen, 2));
             }
 
             // ✅ Obtener empresa
@@ -1784,7 +1813,7 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
             \Log::error('=== ERROR EN storeTraspaso ===');
             \Log::error('Mensaje:', ['message' => $e->getMessage()]);
             \Log::error('Trace:', ['trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Error al crear el traspaso: ' . $e->getMessage())->withInput();
+            return $this->respuestaErrorStore($request, 'Error al crear el traspaso: ' . $e->getMessage(), [], 500);
         }
     }
 
@@ -1957,6 +1986,7 @@ private function actualizarSaldosCuentasTraspaso($idPoliza)
             'nota' => $movimiento->poliza->nota,
             'es_ingreso_egreso' => $esIngresoEgreso,
             'es_traspaso' => $esTraspaso,
+            'puede_editar_esta' => $this->puedeEditarPoliza($movimiento->poliza),
             'es_fiscal' => $esFiscal,
             'tiene_doble_iva' => $tieneDobleIva,
             'persona' => $movimiento->poliza->persona ? $movimiento->poliza->persona->nombre_completo : null,
@@ -2240,7 +2270,7 @@ public function showAbono(string $id)
         \Log::info('=== INICIO EDIT ===');
         \Log::info('ID recibido:', ['id' => $id]);
 
-        if (!Gate::allows('editar-movimientos')) {
+        if (!Gate::allows('editar-poliza')) {
             \Log::warning('❌ Permiso denegado para editar movimientos');
             return redirect()->route('movimientos.index')
                 ->with('error', 'No tienes permiso para editar movimientos');
@@ -2291,6 +2321,11 @@ public function showAbono(string $id)
             'tipo_poliza' => $movimiento->poliza->tipo_poliza,
             'es_por_pagar' => $movimiento->poliza->es_por_pagar,
         ]);
+
+        if (!$this->puedeEditarPoliza($movimiento->poliza)) {
+            return redirect()->route('movimientos.index')
+                ->with('error', 'No puedes editar esta póliza (sólo las que capturaste y que aún no han sido revisadas)');
+        }
 
         // 🔥 PERMITIR EDICIÓN EN TODOS LOS ESTADOS EXCEPTO CERRADO
         $estatusNoEditables = ['CERRADO'];
@@ -2422,6 +2457,7 @@ public function showAbono(string $id)
         // 🔥 CUENTAS FONDEADORAS
         // ============================================
         $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+            ->fondeadorasAsignadas($empresaId)
             ->where('en_uso', true)
             ->where('fondeo_c', 1)
             ->orderBy('nombre_cuenta')
@@ -2619,7 +2655,7 @@ public function showAbono(string $id)
             return back()->with('error', $mensaje);
         };
 
-        if (!Gate::allows('editar-movimientos')) {
+        if (!Gate::allows('editar-poliza')) {
             return $esAjax
                 ? response()->json(['success' => false, 'message' => 'No tienes permiso para editar movimientos'], 403)
                 : redirect()->route('movimientos.index')->with('error', 'No tienes permiso para editar movimientos');
@@ -2637,6 +2673,10 @@ public function showAbono(string $id)
         if (!$poliza) {
             \Log::error('Póliza no encontrada:', ['id_poliza' => $movimiento->id_poliza]);
             return $errorResponse('Póliza no encontrada', 404);
+        }
+
+        if (!$this->puedeEditarPoliza($poliza)) {
+            return $errorResponse('No puedes editar esta póliza (sólo las que capturaste y que aún no han sido revisadas)', 403);
         }
 
         \Log::info('Póliza encontrada:', [
@@ -2726,6 +2766,11 @@ public function showAbono(string $id)
             $nuevaCuenta = $request->input('id_cuenta');
             $cambioCuentaFondeadora = $nuevaCuentaFondeadora && $nuevaCuentaFondeadora != $cajaFondoAnterior;
             $cambioCuenta = $nuevaCuenta && $nuevaCuenta != $cuentaAnterior;
+
+            if ($cambioCuentaFondeadora && !$this->fondeadoraPermitida($nuevaCuentaFondeadora)) {
+                DB::rollBack();
+                return $errorResponse('No tienes asignada esa cuenta fondeadora. Pídele a un superusuario que te la asigne.', 403);
+            }
 
             \Log::info('Datos anteriores para saldos:', [
                 'cuenta_anterior' => $cuentaAnterior,
@@ -3830,6 +3875,7 @@ public function showAbono(string $id)
             });
 
         $cuentasFondeadoras = Cuenta::where('id_empresa', $empresaId)
+            ->fondeadorasAsignadas($empresaId)
             ->where('en_uso', true)
             ->where('fondeo_c', 1)
             ->orderBy('nombre_cuenta')
@@ -4471,8 +4517,13 @@ public function showAbono(string $id)
             });
 
             if ($vista === 'diferidas') {
-                $query->whereHas('poliza', function($q) {
+                // Igual que en pantalla: pendientes por defecto; "pagadas" = liquidadas.
+                $verPagadas = $request->get('estado_deuda') === 'pagadas';
+                $query->whereHas('poliza', function($q) use ($verPagadas) {
                     $q->where('es_por_pagar', true);
+                    $verPagadas
+                        ? $q->where('estatus', 'LIQUIDADO')
+                        : $q->where('estatus', '!=', 'LIQUIDADO');
                 });
             } elseif ($vista === 'pendientes') {
                 $query->whereHas('poliza', function($q) {
@@ -4505,6 +4556,10 @@ public function showAbono(string $id)
                     $q->whereDate('fecha_poliza', '<=', $request->fecha_hasta);
                 });
             }
+
+            $query->whereHas('poliza', function($q) use ($request) {
+                $this->aplicarFiltrosRegistroYFactura($q, $request);
+            });
 
             if ($request->filled('referencia')) {
                 $query->whereHas('poliza', function($q) use ($request) {
@@ -4653,8 +4708,13 @@ public function showAbono(string $id)
             });
 
             if ($vista === 'diferidas') {
-                $query->whereHas('poliza', function($q) {
+                // Igual que en pantalla: pendientes por defecto; "pagadas" = liquidadas.
+                $verPagadas = $request->get('estado_deuda') === 'pagadas';
+                $query->whereHas('poliza', function($q) use ($verPagadas) {
                     $q->where('es_por_pagar', true);
+                    $verPagadas
+                        ? $q->where('estatus', 'LIQUIDADO')
+                        : $q->where('estatus', '!=', 'LIQUIDADO');
                 });
             } elseif ($vista === 'pendientes') {
                 $query->whereHas('poliza', function($q) {
@@ -4687,6 +4747,10 @@ public function showAbono(string $id)
                     $q->whereDate('fecha_poliza', '<=', $request->fecha_hasta);
                 });
             }
+
+            $query->whereHas('poliza', function($q) use ($request) {
+                $this->aplicarFiltrosRegistroYFactura($q, $request);
+            });
 
             if ($request->filled('referencia')) {
                 $query->whereHas('poliza', function($q) use ($request) {
@@ -4885,6 +4949,7 @@ public function showAbono(string $id)
             $cuentaFondeadoraValida = Cuenta::where('id_cuenta', $cuentaFondeadoraId)
                 ->where('id_empresa', $empresaId)
                 ->where('en_uso', true)
+                ->fondeadorasAsignadas($empresaId)
                 ->exists();
         }
 
@@ -5745,6 +5810,83 @@ public function showAbono(string $id)
         return view('exports.poliza_ticket', $data);
     }
     /**
+     * ¿El usuario actual puede editar esta póliza?
+     *  - ADMINISTRADOR / AUDITOR / SUPERUSUARIO: siempre (permiso 'editar-movimientos').
+     *  - CAPTURISTA: sólo las pólizas que él capturó y mientras estén PENDIENTE /
+     *    CAPTURADO (una vez revisadas o autorizadas ya no).
+     */
+    private function puedeEditarPoliza($poliza): bool
+    {
+        if (!$poliza) {
+            return false;
+        }
+        if (Gate::allows('editar-movimientos')) {
+            return true;
+        }
+        if (!Gate::allows('editar-poliza')) {
+            return false;
+        }
+        return (int) $poliza->id_usuario_creador === (int) auth()->id()
+            && in_array($poliza->estatus, ['PENDIENTE', 'CAPTURADO'], true);
+    }
+
+    /**
+     * Respuesta de ERROR para store(). La pantalla de captura envía la póliza
+     * por axios: si aquí se respondiera con `redirect()->back()`, axios seguiría
+     * la redirección, recibiría un 200 y la pantalla diría "La póliza se ha
+     * registrado correctamente" SIN haberse guardado nada. Por eso, en peticiones
+     * AJAX/JSON se responde con 422/500 y el mensaje real.
+     */
+    private function respuestaErrorStore(Request $request, string $mensaje, array $errores = [], int $status = 422)
+    {
+        if ($request->ajax() || $request->wantsJson() || $request->expectsJson()) {
+            return response()->json(array_filter([
+                'success' => false,
+                'message' => $mensaje,
+                'errors' => $errores ?: null,
+            ], fn ($v) => $v !== null), $status);
+        }
+
+        return redirect()->back()
+            ->withErrors($errores)
+            ->withInput()
+            ->with('error', $mensaje);
+    }
+
+    /**
+     * ¿Puede el usuario actual usar esta cuenta como fondeadora? Respeta las
+     * fondeadoras que el SUPERUSUARIO le asignó (sin asignación = todas).
+     */
+    private function fondeadoraPermitida($idCuenta): bool
+    {
+        $cuenta = Cuenta::find($idCuenta);
+        if (!$cuenta) {
+            return false;
+        }
+        $ids = auth()->user()->idsFondeadorasRestringidas((int) $cuenta->id_empresa);
+
+        return $ids === null || in_array((int) $idCuenta, $ids, true);
+    }
+
+    /**
+     * Filtro por FECHA DE FACTURA (sólo pólizas fiscales). Es independiente de
+     * las fechas Desde/Hasta de siempre (fecha_poliza).
+     * $q es un builder de Poliza (o el closure de whereHas('poliza')).
+     */
+    private function aplicarFiltrosRegistroYFactura($q, Request $request): void
+    {
+        if ($request->filled('factura_desde') || $request->filled('factura_hasta')) {
+            $q->where('polizas.categoria', 'FISCAL');
+            if ($request->filled('factura_desde')) {
+                $q->whereDate('polizas.fecha_factura', '>=', $request->factura_desde);
+            }
+            if ($request->filled('factura_hasta')) {
+                $q->whereDate('polizas.fecha_factura', '<=', $request->factura_hasta);
+            }
+        }
+    }
+
+    /**
      * Datos de "quién y cuándo subió" el recurso (comprobante) de una póliza y
      * si se subió tarde: más de 20 minutos después de que se registró la póliza.
      * Se calcula aquí (hora del servidor) para no depender de la zona horaria
@@ -5803,11 +5945,31 @@ public function showAbono(string $id)
     // ============================================
     public function subirArchivo(Request $request, $idPoliza)
     {
-        if (!Gate::allows('editar-movimientos')) {
+        if (!Gate::allows('subir-recursos')) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permiso para subir archivos'
             ], 403);
+        }
+
+        $polizaDestino = Poliza::find($idPoliza);
+
+        // El capturista sólo puede subir recursos a las pólizas que él capturó.
+        if ($polizaDestino && auth()->user()->tipo_usuario === 'CAPTURISTA'
+            && (int) $polizaDestino->id_usuario_creador !== (int) auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo puedes subir recursos a las pólizas que tú capturaste'
+            ], 403);
+        }
+
+        // Un solo recurso por póliza (para cambiarlo se usa "Reemplazar", que sí
+        // requiere permiso de edición).
+        if ($polizaDestino && $polizaDestino->archivos()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta póliza ya tiene un recurso. Usa "Reemplazar" para cambiarlo.'
+            ], 422);
         }
 
         $validator = Validator::make($request->all(), [

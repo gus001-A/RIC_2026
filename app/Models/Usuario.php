@@ -42,6 +42,37 @@ class Usuario extends Authenticatable
     // ======================================================
 
     /**
+     * Cuentas fondeadoras que el SUPERUSUARIO le asignó a este usuario.
+     */
+    public function cuentasFondeadorasAsignadas()
+    {
+        return $this->belongsToMany(Cuenta::class, 'cuentas_fondeadoras_usuarios', 'id_usuario', 'id_cuenta')
+                    ->withTimestamps();
+    }
+
+    /**
+     * IDs de las fondeadoras asignadas al usuario EN ESA EMPRESA, o null si no
+     * tiene ninguna asignada en ella (null = sin restricción: ve todas las
+     * fondeadoras de la empresa, así nadie pierde acceso al estrenar esto).
+     */
+    public function idsFondeadorasRestringidas(int $empresaId): ?array
+    {
+        $ids = \DB::table('cuentas_fondeadoras_usuarios as cfu')
+            ->join('cuentas as c', 'c.id_cuenta', '=', 'cfu.id_cuenta')
+            ->where('cfu.id_usuario', $this->id_usuario)
+            ->where('c.id_empresa', $empresaId)
+            // Si una cuenta deja de ser fondeadora activa, su asignación se ignora
+            // (no debe dejar al usuario sin ninguna fondeadora por una fila vieja).
+            ->where('c.fondeo_c', 1)
+            ->where('c.en_uso', true)
+            ->pluck('cfu.id_cuenta')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return $ids === [] ? null : $ids;
+    }
+
+    /**
      * Relación muchos a muchos con Empresas
      */
     public function empresas()

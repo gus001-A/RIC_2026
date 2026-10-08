@@ -1650,15 +1650,9 @@ const cambiarCuentaFondeadora = async () => {
         c => c.id_cuenta === form.id_cuenta_fondeadora
     );
 
-    if (cuentaEncontrada) {
-        cuentaFondeadoraSeleccionada.value = {
-            id_cuenta: cuentaEncontrada.id_cuenta,
-            nombre_cuenta: cuentaEncontrada.nombre_cuenta,
-            saldo: cuentaEncontrada.saldo || 0
-        };
-        return;
-    }
-
+    // Saldo REAL (el mismo que valida el servidor al guardar). El "saldo" que
+    // viene en la lista de fondeadoras es sólo el saldo inicial, y con él se
+    // bloqueaban egresos que sí tenían fondos.
     try {
         const res = await axios.get(route('movimientos.saldo.cuenta'), {
             params: { id: form.id_cuenta_fondeadora }
@@ -1666,13 +1660,10 @@ const cambiarCuentaFondeadora = async () => {
         cuentaFondeadoraSeleccionada.value = res.data;
     } catch (error) {
         console.error('Error al obtener saldo:', error);
-        const cuentaNombre = cuentasFondeadoras.value.find(
-            c => c.id_cuenta === form.id_cuenta_fondeadora
-        )?.nombre_cuenta || 'Cuenta';
         cuentaFondeadoraSeleccionada.value = {
             id_cuenta: form.id_cuenta_fondeadora,
-            nombre_cuenta: cuentaNombre,
-            saldo: 0
+            nombre_cuenta: cuentaEncontrada?.nombre_cuenta || 'Cuenta',
+            saldo: cuentaEncontrada?.saldo || 0
         };
     }
 };

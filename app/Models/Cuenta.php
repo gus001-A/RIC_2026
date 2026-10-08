@@ -264,6 +264,18 @@ class Cuenta extends Model
 
 
 /**
+ * Limita una consulta de fondeadoras a las que el usuario actual tiene
+ * asignadas en esa empresa (si no tiene ninguna asignada, no restringe).
+ */
+public function scopeFondeadorasAsignadas($query, $empresaId, $user = null)
+{
+    $user = $user ?: auth()->user();
+    $ids = $user ? $user->idsFondeadorasRestringidas((int) $empresaId) : null;
+
+    return $ids === null ? $query : $query->whereIn('cuentas.id_cuenta', $ids);
+}
+
+/**
  * Scope para excluir cuentas fondeadoras
  */
 public function scopeNoFondeadoras($query)

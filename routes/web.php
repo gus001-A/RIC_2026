@@ -5,6 +5,7 @@ use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\CuentaController;
+use App\Http\Controllers\CuentaFondeadoraController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\ReporteController;
@@ -49,7 +50,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/movimientos/documento-fiscal/{id}/{tipo}', [MovimientoController::class, 'getDocumentoFiscal'])->name('movimientos.documento.fiscal');
     Route::get('movimientos/buscar/personas', [MovimientoController::class, 'buscarPersonas'])->name('movimientos.buscar.personas');
     Route::get('movimientos/buscar/cuentas', [MovimientoController::class, 'buscarCuentas'])->name('movimientos.buscar.cuentas');
-    Route::get('movimientos/saldo/cuenta', [MovimientoController::class, 'obtenerSaldoCuenta'])->name('movimientos.saldo.cuenta');
+    Route::get('movimientos/saldo/cuenta', [MovimientoController::class, 'saldoCuenta'])->name('movimientos.saldo.cuenta');
     Route::post('movimientos/calcular-desglose', [MovimientoController::class, 'calcularDesglose'])->name('movimientos.calcular-desglose');
     Route::get('movimientos/marcadores', [MovimientoController::class, 'indexMarcadores'])->name('movimientos.marcadores.index');
     Route::post('movimientos/marcadores/store', [MovimientoController::class, 'storeMarcador'])->name('movimientos.marcadores.store');
@@ -106,6 +107,13 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/personas/documentos/{id}/eliminar', [PersonaController::class, 'eliminarDocumento'])->name('personas.eliminar-documento');
     Route::patch('/personas/documentos/{id}/toggle-finalizado', [PersonaController::class, 'toggleFinalizado'])->name('personas.toggle-finalizado');
     Route::resource('personas', PersonaController::class);
+});
+
+// ✅ CUENTAS FONDEADORAS POR USUARIO (sólo SUPERUSUARIO, se valida en el controlador)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cuentas-fondeadoras', [CuentaFondeadoraController::class, 'index'])->name('cuentas-fondeadoras.index');
+    Route::put('/cuentas-fondeadoras/usuario/{id}', [CuentaFondeadoraController::class, 'actualizarUsuario'])->name('cuentas-fondeadoras.usuario');
+    Route::put('/cuentas-fondeadoras/cuenta/{id}', [CuentaFondeadoraController::class, 'actualizarCuenta'])->name('cuentas-fondeadoras.cuenta');
 });
 
 // ✅ CUENTAS - PRIMERO LAS RUTAS PERSONALIZADAS, LUEGO EL RESOURCE

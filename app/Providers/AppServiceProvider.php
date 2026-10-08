@@ -41,6 +41,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('crear-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
         // Editar una póliza: NO el capturista, NO el lector.
         Gate::define('editar-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
+        // Subir el recurso (comprobante) de una póliza: el capturista TAMBIÉN puede
+        // (sólo en las pólizas que él capturó; ver MovimientoController@subirArchivo).
+        // Reemplazar/eliminar un recurso ya subido sigue requiriendo 'editar-movimientos'.
+        Gate::define('subir-recursos', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
+        // Editar una póliza: el capturista TAMBIÉN, pero sólo las que él capturó y
+        // mientras sigan sin revisar (ver MovimientoController::puedeEditarPoliza()).
+        Gate::define('editar-poliza', fn (Usuario $user) => in_array($user->tipo_usuario, [$capturista, $administrador, $auditor, $super]));
+        // Asignar a los usuarios qué cuentas fondeadoras pueden ver (sólo SUPERUSUARIO).
+        Gate::define('gestionar-fondeadoras-usuarios', fn (Usuario $user) => $user->tipo_usuario === $super);
         Gate::define('eliminar-movimientos', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $auditor, $super]));
         // Revisar: administrador (y super). El auditor autoriza, no revisa.
         Gate::define('revisar-polizas', fn (Usuario $user) => in_array($user->tipo_usuario, [$administrador, $super]));
